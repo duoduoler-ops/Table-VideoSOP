@@ -20,7 +20,13 @@ This README includes English instructions and copyable prompts. The linked guide
 
 Put the complete package in your own series folder and open that folder with an agent that can read and write local files. For an existing project, place the package in a separate reference folder and map the integration first, preserving existing files. **Use the first conversation as the coordinator** for episode planning, accepted versions, and assembly. Later section conversations handle their assigned work only.
 
-Copy the prompts below and replace the bracketed fields. Use “none” or “undecided” where appropriate. Send one step at a time, review its result, then send the relevant approval. Start every new conversation from the series root. If rules are not loaded automatically, add: “Read AGENTS.md at the root before handling this task.”
+Copy the prompts below and **replace the bracketed fields**. Use “none” or “undecided” where appropriate. **Send one step at a time**, review its result, then send the relevant approval. Start every new conversation from the series root. If rules are not loaded automatically, add: “Read AGENTS.md at the root before handling this task.”
+
+**Jump to a step:** [1 Setup](#step-1) · [2 DESIGN](#step-2) · [3 Script & voiceover](#step-3) · [4 Planning](#step-4) · [5 Section design](#step-5) · [6 Visual approval & production](#step-6) · [7 Assembly](#step-7) · [8 Sound & delivery](#step-8) · [9 Cover & publishing](#step-9)
+
+---
+
+<a name="step-1"></a>
 
 ### 1. Initialize the project and check the tools
 
@@ -41,13 +47,23 @@ verification method, and commands. Do not mark DESIGN as approved.
 Deliver the episode notes path, environment findings, and next step.
 ```
 
-**Check:** The episode folder is easy to locate, and tool availability has been tested. If installation is needed, approve the specific plan before execution and verification of preview, rendering, and decoding. [Environment guide](docs/07_工具与环境.md)
+**Check:** The episode folder is easy to locate, and tool availability has been tested. If installation is needed, approve the specific plan before execution and verification of preview, rendering, and decoding.
+
+[Environment guide](docs/07_工具与环境.md)
+
+---
+
+<a name="step-2"></a>
 
 ### 2. Approve static and motion style, then create DESIGN.md
 
 **Purpose:** Turn visual and motion preferences into usable specifications. Reuse an approved, applicable `DESIGN.md`; test only the missing parts.
 
-Start with static candidates:
+| Design and motion references |
+| :--- |
+| Explore these sites for **palette, typography, composition, and motion** references. Share selected work links or screenshots with the agent and explain what you want to draw from each.<br><br>[Behance](https://www.behance.net/) · [Vimeo](https://vimeo.com/) · [Dribbble](https://dribbble.com/) · [ZCOOL](https://www.zcool.com.cn/) · [Pinterest](https://www.pinterest.com/) · [Huaban](https://huaban.com/) |
+
+**① Static candidates: approve the appearance**
 
 ```text
 Read AGENTS.md, templates/DESIGN.template.md, and docs/09_DESIGN建立与校验.md.
@@ -63,7 +79,7 @@ If AI image generation is needed, prepare complete prompts and reference roles f
 manually.
 ```
 
-After choosing a static direction, request motion tests:
+**② Motion tests: approve how it moves**
 
 ```text
 Accepted static candidate and scope: [exact path, version, and accepted aspects].
@@ -75,7 +91,7 @@ Deliver playable previews, source files, and parameters in 00_系列测试/动�
 wait for my motion selection.
 ```
 
-Once both are approved, create the specification:
+**③ After both approvals, create the specification**
 
 ```text
 Approved static samples: [paths, versions, scope]; approved motion samples: [paths, versions,
@@ -87,7 +103,13 @@ Mark untested or unapproved aspects as pending. Preserve a rollback copy of an e
 leave unrelated content intact.
 ```
 
-**Check:** `DESIGN.md` links to accepted samples and specifies usable parameters. Static approval has not been treated as motion approval. [Detailed template](templates/DESIGN.template.md) · [Filled example](examples/03_DESIGN填写示例.md)
+**Check:** `DESIGN.md` links to accepted samples and specifies usable parameters. Static approval has not been treated as motion approval.
+
+[Detailed template](templates/DESIGN.template.md) · [Filled example](examples/03_DESIGN填写示例.md)
+
+---
+
+<a name="step-3"></a>
 
 ### 3. Prepare the approved script and voiceover
 
@@ -104,7 +126,9 @@ Deliver one review document in the episode's 01_稿件/ folder with source locat
 issues, and suggested changes. Do not rewrite the whole script.
 ```
 
-To apply selected changes, send: “Accept suggestions `[IDs]` and preserve `[content]`. Change only those items, save a new candidate, and wait for my approval.” After approving the script and preparing your voiceover, send this to the coordinator:
+**Apply selected suggestions:** “Accept suggestions `[IDs]` and preserve `[content]`. Change only those items, save a new candidate, and wait for my approval.”
+
+**Confirm the script and voiceover:** After approving the script and preparing your audio, send this to the coordinator:
 
 ```text
 Episode: [path]; approved script: [exact path and version]; accepted voiceover: [exact path and
@@ -122,7 +146,13 @@ List conflicts or missing inputs. Without voiceover, limit work to semantic plan
 final timecodes or start animation that depends on them.
 ```
 
-**Check:** Accepted files and content boundaries are explicit, and the voiceover matches the script. Having an audio file alone does not establish a verified time base. [Script review method](docs/05_文案检查_可选.md)
+**Check:** Accepted files and content boundaries are explicit, and the voiceover matches the script. Having an audio file alone does not establish a verified time base.
+
+[Script review method](docs/05_文案检查_可选.md)
+
+---
+
+<a name="step-4"></a>
 
 ### 4. Plan the production sections and approve the routes
 
@@ -144,7 +174,7 @@ Highlight the review priorities and recommendation reasons in chat. Recommendati
 automatically; wait for my approval of sections, routes, and responsibilities.
 ```
 
-After reviewing the plan and issues, confirm with the coordinator:
+**Approve the section plan:** After reviewing the plan and issues, send this to the coordinator:
 
 ```text
 I approve the sections, routes, and responsibilities in production plan [exact version].
@@ -158,13 +188,29 @@ Check that inputs exist, write scopes do not overlap, and transitions have owner
 preparation are permitted now; visual approval is still pending.
 ```
 
-**Check:** Each section has an owner, inputs, design deliverables, and dependencies. Parallel starter prompts are fully filled in and ready to copy. [Two-section planning example](examples/01_两段演示.md)
+**Check:** Each section has an owner, inputs, design deliverables, and dependencies. Parallel starter prompts are fully filled in and ready to copy.
+
+[Two-section planning example](examples/01_两段演示.md)
+
+---
+
+<a name="step-5"></a>
 
 ### 5. Open section conversations for design and asset preparation
 
 **Purpose:** Let sections progress independently while retaining one visual specification and one coordinator.
 
 Open new conversations from **the same series root**. Copy each section's complete command from `分段开工指令.md` into its own conversation. For sequential work, handle sections in the current task. Deliver clean design frames and separate motion annotations according to the task brief, and record them in the assigned handoff notes. The coordinator maintains shared control files.
+
+#### Image and video generation
+
+Give each reference image **a clear role**, establish character identity and visual style, and specify the scene, action, camera, and sound. You **generate and select the footage manually**. The agent reviews the returned files and aligns action and sound cues to the actual result.
+
+| Example 1 | Example 2 |
+| :---: | :---: |
+| ![Heidan entering a fixed office in a watercolor scene](assets/screenshots/generated-office.jpg) | ![Characters collaborating around an architectural model](assets/screenshots/generated-collaboration.jpg) |
+
+[Generation notes](experience/手动生图生视频.md) · [Prompt preparation and footage review](prompts/06_生图生视频.md)
 
 **For sections that need generated images or video**, send this in the relevant section conversation:
 
@@ -182,7 +228,7 @@ Save prompts and the reference list in this section's assigned folder. I will ge
 not submit or retry generation for me.
 ```
 
-After generating, return the files to the same section conversation:
+**Review returned footage:** After generating, return the files to the same section conversation:
 
 ```text
 Returned candidates for this section: [file paths]. Check identity, meaning, text, style, action,
@@ -193,13 +239,35 @@ If regeneration is needed, give me complete revised prompts. Review the files fi
 candidates as accepted without my decision.
 ```
 
-**Check:** Design frames show the actual appearance. Motion annotations explain how attention shifts, when states change, and how movement settles. Motion-graphics and screen-recording routes also deliver designs and check evidence through their briefs; generated video is not required for every section. [Generation examples](examples/02_生图生视频提示词示例.md) · [Screen-recording notes](experience/录屏剪辑.md)
+**Check:** Design frames show the actual appearance. Motion annotations explain how attention shifts, when states change, and how movement settles. Motion-graphics and screen-recording routes also deliver designs and check evidence through their briefs; generated video is not required for every section.
+
+[Generation examples](examples/02_生图生视频提示词示例.md) · [Screen-recording notes](experience/录屏剪辑.md)
+
+---
+
+<a name="step-6"></a>
 
 ### 6. Approve the whole video's visual plan, then produce sections
 
 **Purpose:** Review style, meaning, and continuity across sections before full production.
 
-First, return to the coordinator:
+#### Motion graphics and camera movement
+
+Use the **voiceover, scene, and emotion** to decide what the audience should notice, then choose object motion and camera movement. **Comparisons, transfers, repeated handoffs, and spatial reveals** call for concrete staging decisions; necessary reading windows remain stable. Motion annotations specify triggers, destinations, contact, state changes, and settling.
+
+| Close view: focus on the current question | Pullback: reveal the full relationship |
+| :---: | :---: |
+| ![A close view of the conversation record](assets/screenshots/mg-detail.jpg) | ![A wider view of the complete work-boundary diagram](assets/screenshots/mg-overview.jpg) |
+
+| Object transfer: a task crosses the boundary | Viewpoint change: move into a workspace |
+| :---: | :---: |
+| ![Task materials moving between a project and a subagent](assets/screenshots/mg-handoff.jpg) | ![The view moving into independent workspaces](assets/screenshots/mg-worktree.jpg) |
+
+[Visual storytelling and continuous motion graphics](experience/视觉叙事与连续MG.md) · [Camera movement and transitions](experience/镜头推进与转场.md) · [Action and sound markers](templates/动作与声音标记.template.md)
+
+*Screenshots on this page come from my Episode 04 video as visual references. They are not results of an independent reproduction of this package, and still images cannot show the full motion. [Frame sources](assets/README.md)*
+
+**① Return to the coordinator for the whole-video visual overview**
 
 ```text
 Episode: [path]; section designs, motion annotations, and asset candidates: [exact handoff-note
@@ -212,7 +280,11 @@ List concrete decisions for my review. Separate motion that has not been shown o
 frames do not validate movement.
 ```
 
-After choosing, tell the coordinator: “Approve visual overview `[version and scope]` and accept assets `[exact paths and versions]`. Update the production plan and affected briefs; allow sections `[IDs]` to enter production.” Then continue in each section conversation:
+**② Approve the visuals and permit production**
+
+After choosing, tell the coordinator: “Approve visual overview `[version and scope]` and accept assets `[exact paths and versions]`. Update the production plan and affected briefs; allow sections `[IDs]` to enter production.”
+
+**③ Return to each section conversation and continue production**
 
 ```text
 The coordinator has recorded this section's visual approval: [plan version and approved scope].
@@ -227,7 +299,13 @@ Deliver editable source, parameters, a preview, and handoff notes identifying as
 start/end states, timing, sound strategy, checks, and unresolved issues.
 ```
 
-**Check:** Section deliverables can be located and edited. Candidates and accepted versions are distinct. The coordinator schedules heavy rendering. [Section responsibilities and boundaries](docs/03_目录与并行协作.md)
+**Check:** Section deliverables can be located and edited. Candidates and accepted versions are distinct. The coordinator schedules heavy rendering.
+
+[Section responsibilities and boundaries](docs/03_目录与并行协作.md)
+
+---
+
+<a name="step-7"></a>
 
 ### 7. Assemble and approve the full picture
 
@@ -245,7 +323,11 @@ cannot perform as unverified.
 Deliver the review file and outstanding decisions, then wait for my picture-lock approval.
 ```
 
-After watching and accepting the picture, send: “Approve picture lock for `[review version and scope]`; proceed to sound, subtitles, and final QA.” Picture lock identifies the accepted visual version. Later picture changes require rechecking affected sound and subtitles. [QA and revisions](docs/04_验收与返修.md)
+**Approve picture lock:** After watching and accepting the picture, send: “Approve picture lock for `[review version and scope]`; proceed to sound, subtitles, and final QA.” Picture lock identifies the accepted visual version. Later picture changes require rechecking affected sound and subtitles. [QA and revisions](docs/04_验收与返修.md)
+
+---
+
+<a name="step-8"></a>
 
 ### 8. Finish sound and subtitles, verify, and deliver
 
@@ -265,7 +347,7 @@ List gaps before incurring charges or using assets with unclear permission. Dist
 checks from actual listening and mark checks you cannot perform as unverified.
 ```
 
-Once sound choices are settled, ask the coordinator to complete subtitles, assembly, and QA:
+**Subtitles and final QA:** Once sound choices are settled, send this to the coordinator:
 
 ```text
 Approved picture: [exact version and scope].
@@ -282,7 +364,13 @@ Deliver the final video, applicable clean master, subtitles, editable project an
 reproduction instructions, and QA status. List remaining issues; do not publish automatically.
 ```
 
-**Check:** The final video and reproducible source files are available, with completed and unperformed checks clearly separated. Skipping optional sound production still requires checking the voiceover, source audio, and subtitles that are used. [Sound method](docs/06_音效与配乐_可选.md)
+**Check:** The final video and reproducible source files are available, with completed and unperformed checks clearly separated. Skipping optional sound production still requires checking the voiceover, source audio, and subtitles that are used.
+
+[Sound method](docs/06_音效与配乐_可选.md)
+
+---
+
+<a name="step-9"></a>
 
 ### 9. Prepare the cover and publishing materials
 
@@ -298,7 +386,7 @@ Check the current platform's required aspect ratios and official specifications.
 accurate, readable direction first and wait for my choice.
 ```
 
-After selecting a direction, send:
+**After approving the cover direction, send:**
 
 ```text
 Accepted cover direction: [specific option]. Prepare complete image prompts, reference upload roles,
@@ -309,7 +397,9 @@ Check the complete publishing package for factual accuracy, privacy, sources, an
 claims. List pending decisions; do not publish automatically.
 ```
 
-**Check:** Publishing materials are complete and match the video. Upload them yourself, or explicitly authorize an agent with the destination, materials, and permitted actions. [Cover and publication checks](experience/字幕与封面.md)
+**Check:** Publishing materials are complete and match the video. Upload them yourself, or explicitly authorize an agent with the destination, materials, and permitted actions.
+
+[Cover and publication checks](experience/字幕与封面.md)
 
 <details>
 <summary>Reflect after delivery — optional</summary>
@@ -327,31 +417,7 @@ Propose specific files and concise changes first; do not modify rules or publish
 
 </details>
 
-## Image and video generation
-
-Give each reference image a clear role, establish character identity and visual style, and specify the scene, action, camera, and sound. You generate and select the footage manually. The agent reviews the returned files and aligns action and sound cues to the actual result.
-
-| Example 1 | Example 2 |
-| :---: | :---: |
-| ![Heidan entering a fixed office in a watercolor scene](assets/screenshots/generated-office.jpg) | ![Characters collaborating around an architectural model](assets/screenshots/generated-collaboration.jpg) |
-
-[Generation notes](experience/手动生图生视频.md) · [Prompt preparation and footage review](prompts/06_生图生视频.md)
-
-## Motion graphics and camera movement
-
-Use the voiceover, scene, and emotion to decide what the audience should notice, then choose object motion and camera movement. Comparisons, transfers, repeated handoffs, and spatial reveals call for concrete staging decisions; necessary reading windows remain stable. Motion annotations specify triggers, destinations, contact, state changes, and settling.
-
-| Close view: focus on the current question | Pullback: reveal the full relationship |
-| :---: | :---: |
-| ![A close view of the conversation record](assets/screenshots/mg-detail.jpg) | ![A wider view of the complete work-boundary diagram](assets/screenshots/mg-overview.jpg) |
-
-| Object transfer: a task crosses the boundary | Viewpoint change: move into a workspace |
-| :---: | :---: |
-| ![Task materials moving between a project and a subagent](assets/screenshots/mg-handoff.jpg) | ![The view moving into independent workspaces](assets/screenshots/mg-worktree.jpg) |
-
-[Visual storytelling and continuous motion graphics](experience/视觉叙事与连续MG.md) · [Camera movement and transitions](experience/镜头推进与转场.md) · [Action and sound markers](templates/动作与声音标记.template.md)
-
-These are frames from my actual Episode 04 video, included as visual references. They are not results of an independent reproduction of this package, and still images cannot show the full motion. [Frame sources](assets/README.md)
+---
 
 ## Responsibilities and scope
 
