@@ -16,6 +16,12 @@ You decide the content, style, and accepted versions. The agent plans the work, 
 
 This README includes English instructions and copyable prompts. The linked guides and templates are currently in Chinese.
 
+## Three key practices
+
+- **Shot storyboard** (after the section plan is approved, before design frames): the coordinator writes one page on how the audience watches each section — how the main object changes, how the camera leads the eye, the peak moment and reading pauses, and which approved clip it should match. You review it once before any frames are made. Design frames are keyframes of that process, which avoids laying out a static board first and animating it into a moving slideshow. [Template](templates/镜头剧本.template.md)
+- **Test clips only for new types** (decided when planning or starting a section): sections of an already approved type skip the test clip; when finished, they are watched side by side with the reference clip, and their motion, subject size, and camera progression must not fall below it. Only approaches not yet approved — a new camera method, spatial or 3D treatment, a new character–graphic interaction, a new transition, a style change, or a first-time technical route — get a short test clip with voiceover first. Once approved, it becomes a reference and later work of that type only matches it. Before delivery, run the [motion self-check](tools/README.md) to catch long stills and processes that flash by.
+- **End-of-episode retrospective** (after delivery): record rework in your own words and note whether a rule was missing or existed but was not followed; list the shots you liked as future reference clips and the rules that can be removed. Change only the items you choose. [Template](templates/复盘.template.md) · [Prompt](prompts/09_复盘.md)
+
 ## Follow along: from setup to delivery
 
 Put the complete package in your own series folder and open that folder with an agent that can read and write local files. For an existing project, place the package in a separate reference folder and map the integration first, preserving existing files. **Use the first conversation as the coordinator** for episode planning, accepted versions, and assembly. Later section conversations handle their assigned work only.
