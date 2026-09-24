@@ -186,9 +186,12 @@ For parallel work, generate 00_本期控制/分段开工指令.md with each sect
 inputs, permitted stage, write boundaries, and handoff-note location.
 Check that inputs exist, write scopes do not overlap, and transitions have owners. Design and asset
 preparation are permitted now; visual approval is still pending.
+Using templates/镜头剧本.template.md, write 03_视觉设计/正文镜头剧本.md for all sections at once: how the
+main object changes, how the camera leads the eye, the peak moment and reading pauses, and the
+approved reference clip or "new type". Wait for my review before producing design frames.
 ```
 
-**Check:** Each section has an owner, inputs, design deliverables, and dependencies. Parallel starter prompts are fully filled in and ready to copy.
+**Check:** Each section has an owner, inputs, design deliverables, and dependencies. Parallel starter prompts are fully filled in and ready to copy. The shot storyboard is ready for your review.
 
 [Two-section planning example](examples/01_两段演示.md)
 
@@ -200,7 +203,7 @@ preparation are permitted now; visual approval is still pending.
 
 **Purpose:** Let sections progress independently while retaining one visual specification and one coordinator.
 
-Open new conversations from **the same series root**. Copy each section's complete command from `分段开工指令.md` into its own conversation. For sequential work, handle sections in the current task. Deliver clean design frames and separate motion annotations according to the task brief, and record them in the assigned handoff notes. The coordinator maintains shared control files.
+Open new conversations from **the same series root**. Copy each section's complete command from `分段开工指令.md` into its own conversation. For sequential work, handle sections in the current task. Deliver clean design frames and separate motion annotations according to the task brief and the storyboard you reviewed, and record them in the assigned handoff notes. The coordinator maintains shared control files.
 
 #### Image and video generation
 
@@ -255,6 +258,8 @@ candidates as accepted without my decision.
 
 Use the **voiceover, scene, and emotion** to decide what the audience should notice, then choose object motion and camera movement. **Comparisons, transfers, repeated handoffs, and spatial reveals** call for concrete staging decisions; necessary reading windows remain stable. Motion annotations specify triggers, destinations, contact, state changes, and settling.
 
+Motion and meaning come from the same thing: **every line of narration changes the state of an object**, rather than holding one board on screen. Pure motion-graphics explanations sit directly on the canvas; window frames only hold interfaces, screenshots, recordings, and generated video. Camera moves apply to the whole picture, so a frame pushes, pulls, and pans together with its content.
+
 | Close view: focus on the current question | Pullback: reveal the full relationship |
 | :---: | :---: |
 | ![A close view of the conversation record](assets/screenshots/mg-detail.jpg) | ![A wider view of the complete work-boundary diagram](assets/screenshots/mg-overview.jpg) |
@@ -289,8 +294,10 @@ After choosing, tell the coordinator: “Approve visual overview `[version and s
 ```text
 The coordinator has recorded this section's visual approval: [plan version and approved scope].
 Check the updated brief and continue the permitted production work.
-If unresolved risks would make rework costly, first validate the actual difficulty with a
-representative test clip. Continue directly where approval and conditions are unchanged.
+For sections of an already approved type, match the reference clip named in the storyboard. Only a
+new type, or an unresolved costly problem, needs a representative test clip first.
+Before handing it to me, run tools/motion-check.ps1, review the overview, still intervals, and key
+action frames, and fix the problems it reveals.
 Use the registered project environment. Write only in this section's assigned folders; do not
 install separate dependencies or change shared components.
 Align action and sound markers to the actual accepted footage. Recalibrate after speed, trim, or
@@ -405,11 +412,11 @@ claims. List pending decisions; do not publish automatically.
 <summary>Reflect after delivery — optional</summary>
 
 ```text
-Follow prompts/09_复盘.md to produce a concise retrospective from the episode plan, handoff notes, QA,
-and change records.
+Follow prompts/09_复盘.md and templates/复盘.template.md to produce a concise retrospective from the
+episode plan, handoff notes, QA (including my own words), and change records.
 Scope: [episode path / revised section].
-Record only real rework, repeated omissions, and solutions supported by evidence, with triggers,
-limits, and evidence.
+First list the shots I was happy with as future reference clips; then real rework (keep my words
+and say whether a rule was missing or existed but was not followed) and rules that can be removed.
 Separate general methods, series preferences, and episode-specific cases. Keep unverified ideas as
 candidates.
 Propose specific files and concise changes first; do not modify rules or publish automatically.
@@ -429,7 +436,7 @@ Fill in bracketed fields in templates and prompts. The coordinator supplies actu
 
 ## Validation and license status
 
-The main task routes have been checked and revised using Windows and Codex tasks that did not inherit the original conversation. The latest camera-selection rules have received scenario-based logic and cross-reference checks only; new independent trigger tests and footage validation have not been performed. Fresh-machine setup, a complete audiovisual production, and independent reproduction of visual quality remain unverified.
+The main task routes have been checked and revised using Windows and Codex tasks that did not inherit the original conversation. The shot-storyboard, reference-matching, and motion self-check flow was tested once in my own series on a roughly 18-second section, using a new task that did not inherit the original conversation: it wrote the storyboard, chose a reference clip, ran the self-check before delivery, and flagged the missing whole-video overview; motion and meaning improved clearly. The test revealed camera moves happening only inside a window frame; the window-frame rule was added afterward and has not been retested. Fresh-machine setup, a complete audiovisual production, and independent reproduction of visual quality remain unverified.
 
 This is a private working edition, not a public release. A formal license has not yet been selected. [Sources and licensing](docs/08_来源与许可.md)
 
