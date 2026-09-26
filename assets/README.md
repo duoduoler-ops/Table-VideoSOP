@@ -13,6 +13,6 @@
 | screenshots/mg-handoff.jpg | 00:00:25.500 | 1530 |
 | screenshots/mg-worktree.jpg | 00:00:27.500 | 1650 |
 
-这些图片用于 README 展示，不是角色原始素材或通用模板。公开分发前确认图片与正文的许可范围；当前仓库尚未授予开放许可。
+这些图片用于 README 展示，不是角色原始素材或通用模板。它们保留所有权利，不适用仓库正文的 CC BY 4.0 和脚本的 MIT 许可；未经许可请勿复制、修改或用于其他作品。
 
-These images illustrate the README; they are not source character assets or reusable templates. Image and documentation licensing must be confirmed before public distribution. No open license has been granted for this private edition.
+These images illustrate the README; they are not source character assets or reusable templates. All rights are reserved: they are not covered by the repository's CC BY 4.0 (text) or MIT (scripts) licenses. Please do not copy, modify, or reuse them without permission.

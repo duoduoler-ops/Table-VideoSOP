@@ -444,7 +444,12 @@ Fill in bracketed fields in templates and prompts. The coordinator supplies actu
 
 The main task routes have been checked and revised using Windows and Codex tasks that did not inherit the original conversation. The shot-storyboard, reference-matching, and motion self-check flow was tested once in my own series on a roughly 18-second section, using a new task that did not inherit the original conversation: it wrote the storyboard, chose a reference clip, ran the self-check before delivery, and flagged the missing whole-video overview; motion and meaning improved clearly. The test revealed camera moves happening only inside a window frame; the window-frame rule was added afterward and has not been retested. Fresh-machine setup, a complete audiovisual production, and independent reproduction of visual quality remain unverified.
 
-This is a private working edition, not a public release. A formal license has not yet been selected. [Sources and licensing](docs/08_来源与许可.md)
+Licensing:
+
+- Guides, templates, prompts, and written examples: [CC BY 4.0](LICENSE). You may copy, adapt, and use them commercially, provided you give credit, link to the license, and indicate whether you made changes, for example: "Based on [Table-Video SOP](https://github.com/duoduoler-ops/Table-VideoSOP) by 一只桌子, CC BY 4.0, modified."
+- Scripts in `tools/`: [MIT](LICENSE-CODE).
+- The cover and screenshots in `assets/` (including the Heidan character): all rights reserved. They are not covered by the licenses above; please do not copy or reuse them without permission.
+- Third-party material remains under its own terms; see [Sources and licensing](docs/08_来源与许可.md).
 
 ## Get in touch
 
