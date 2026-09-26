@@ -1,6 +1,6 @@
 ![Table-Video SOP](assets/cover.png)
 
-[Douyin · 一只桌子](https://v.douyin.com/7jbgafVeA4U/) · [YouTube · 一只桌子](https://www.youtube.com/@%E4%B8%80%E5%8F%AA%E6%A1%8C%E5%AD%90) · [Xiaohongshu · 一只桌桌桌子](https://xhslink.cn/o/2iZQ3Yc2j4E) · [bilibili · 一只桌子_table](https://b23.tv/7Y34qaP) · [X · 一只Table](https://x.com/YizhiTable)
+[Douyin · 一只桌子](https://v.douyin.com/7jbgafVeA4U/) · [YouTube · 一只桌子](https://www.youtube.com/@%E4%B8%80%E5%8F%AA%E6%A1%8C%E5%AD%90) · [Xiaohongshu · 一只桌桌桌子](https://xhslink.cn/o/2iZQ3Yc2j4E) · [bilibili · 一只桌子_table](https://b23.tv/7Y34qaP) · [X · 一只桌子](https://x.com/D_uoduo)
 
 [简体中文](README.md) · **English**
 
@@ -266,6 +266,8 @@ Use the **voiceover, scene, and emotion** to decide what the audience should not
 
 Motion and meaning come from the same thing: **every line of narration changes the state of an object**, rather than holding one board on screen. Pure motion-graphics explanations sit directly on the canvas; window frames only hold interfaces, screenshots, recordings, and generated video. Camera moves apply to the whole picture, so a frame pushes, pulls, and pans together with its content.
 
+**If motion looks too fast or abrupt, check durations before adjusting easing curves**: give each change (including transitions between shots) enough time for its size, because a curve cannot make up for missing time; see [Give motion and pictures enough time](experience/视觉叙事与连续MG.md#给运动和画面留足时间).
+
 | Close view: focus on the current question | Pullback: reveal the full relationship |
 | :---: | :---: |
 | ![A close view of the conversation record](assets/screenshots/mg-detail.jpg) | ![A wider view of the complete work-boundary diagram](assets/screenshots/mg-overview.jpg) |
@@ -458,4 +460,4 @@ Questions and suggestions from real production work are welcome.
 | Channel | Contact |
 | --- | --- |
 | Email | [duoduoler@gmail.com](mailto:duoduoler@gmail.com) |
-| X | [一只Table · @YizhiTable](https://x.com/YizhiTable) |
+| X | [一只桌子 · @D_uoduo](https://x.com/D_uoduo) |

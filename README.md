@@ -1,6 +1,6 @@
 ![Table-Video SOP](assets/cover.png)
 
-[抖音 · 一只桌子](https://v.douyin.com/7jbgafVeA4U/) · [YouTube · 一只桌子](https://www.youtube.com/@%E4%B8%80%E5%8F%AA%E6%A1%8C%E5%AD%90) · [小红书 · 一只桌桌桌子](https://xhslink.cn/o/2iZQ3Yc2j4E) · [bilibili · 一只桌子_table](https://b23.tv/7Y34qaP) · [X · 一只Table](https://x.com/YizhiTable)
+[抖音 · 一只桌子](https://v.douyin.com/7jbgafVeA4U/) · [YouTube · 一只桌子](https://www.youtube.com/@%E4%B8%80%E5%8F%AA%E6%A1%8C%E5%AD%90) · [小红书 · 一只桌桌桌子](https://xhslink.cn/o/2iZQ3Yc2j4E) · [bilibili · 一只桌子_table](https://b23.tv/7Y34qaP) · [X · 一只桌子](https://x.com/D_uoduo)
 
 **简体中文** · [English](README.en.md)
 
@@ -223,6 +223,8 @@ DESIGN：[确认范围]；现有素材与真实证据：[路径／无]；补充�
 
 动态和表述来自同一件事：**每句配音都有对象状态在变化**，不是长时间停在一张板上。纯 MG 讲解直接放在画布上，窗口框只装界面、截图、录屏和生成视频；镜头运动作用于整个画面，框与内容一起推拉移动。
 
+**看着太快、太突然时，先查时长再调曲线**：每个变化（包括画面之间的过渡）都要按变化大小给够时间，曲线补不了总时长不够，详见[给运动和画面留足时间](experience/视觉叙事与连续MG.md#给运动和画面留足时间)。
+
 | 局部聚焦：看清当前问题 | 拉远总览：揭示完整关系 |
 | :---: | :---: |
 | ![镜头聚焦对话记录](assets/screenshots/mg-detail.jpg) | ![镜头拉远后呈现完整工作边界](assets/screenshots/mg-overview.jpg) |
@@ -385,4 +387,4 @@ DESIGN：[确认范围]；现有素材与真实证据：[路径／无]；补充�
 | 渠道 | 联系方式 |
 | --- | --- |
 | 邮箱 | [duoduoler@gmail.com](mailto:duoduoler@gmail.com) |
-| X | [一只Table · @YizhiTable](https://x.com/YizhiTable) |
+| X | [一只桌子 · @D_uoduo](https://x.com/D_uoduo) |
