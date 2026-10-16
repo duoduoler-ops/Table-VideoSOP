@@ -1,0 +1,25 @@
+{
+  "jsxSyntax": true,
+  "comparedSourceStateFrames": 744,
+  "functionsComparedPerFrame": [
+    "cam",
+    "pageXform",
+    "pageHeight",
+    "reading",
+    "caretWorld",
+    "stripRect",
+    "p5h"
+  ],
+  "sourceStateEqual": true,
+  "waveAndKnotRepresentativeGeometryEqual": true,
+  "noPrivateAbsolutePathsOrEmbeddedImages": true,
+  "sourceTimelineByteIdentical": true,
+  "compositionFrames": {
+    "EP05D04Process": 578,
+    "EP05D04PaperUnfold": 166
+  },
+  "rendered": false,
+  "newVisualReview": false,
+  "oneXReview": false,
+  "audioReview": false
+}

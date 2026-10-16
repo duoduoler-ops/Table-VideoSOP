@@ -1,0 +1,65 @@
+{
+  "kind": "source-preserving MG excerpt; not a pixel replica of the full source",
+  "adoptedVersion": "dyn-20260925",
+  "adoptedControl": "第05期_AI视频制作思路与SOP/00_本期控制/制作大段表.md D04 adopted 2026-09-26",
+  "sourceProject": "第05期_AI视频制作思路与SOP/05_制作工程/分段/D04_每期文案与配音",
+  "sourceFps": 60,
+  "sourceCompositionFrames": 1228,
+  "sourceGlobalStartFrame": 10062,
+  "adoptedVideoSha256": "01869c3f454ddb05cb72c35d43a5a6741bf9689a61c87c64a4eba523df95fa32",
+  "files": [
+    {
+      "file": "src/dyn-20260925/D04Redo.jsx",
+      "sha256": "5d5e8fec61c826615bef9e0aec589201be04766c1e492cf10ce2713f936831b2"
+    },
+    {
+      "file": "src/dyn-20260925/timeline.cjs",
+      "sha256": "a960480d873088cf1880e992dd1cf40fe2346da7776780ae5f2d31ac0df5fd43"
+    },
+    {
+      "file": "src/dyn-20260925/DynRoot.jsx",
+      "sha256": "718adb5a5d4ebdde4e86a6587a450ea8d106086becfa9aa6bc32298fd72da34f"
+    },
+    {
+      "file": "src/dyn-20260925/entry.jsx",
+      "sha256": "7ca2bd72cebe2e9863cf5006dcb848b2c959e62f508f023aeff030bc103991d0"
+    },
+    {
+      "file": "src/redo-20260924/source-data.json",
+      "sha256": "0945308857bd844fca6bcaac1b9fb40727f6db5a19310cfe65feaa53fb459ffa"
+    }
+  ],
+  "copiedBinaryAssets": [],
+  "dataAdaptation": {
+    "page": "original text preserved, including example old and new sentence; not claims about current tools",
+    "wave": "original 400 numeric peak values and 449.856-second scale retained; no audio file",
+    "cues": "237 original start/end pairs retained; subtitle text and private metadata removed",
+    "tokens": "only colors/background/shape retained",
+    "omitted": [
+      "generated metadata",
+      "input paths",
+      "image URIs",
+      "G02 frame references",
+      "character dimensions",
+      "cue text"
+    ]
+  },
+  "controlSources": [
+    {
+      "file": "00_本期控制/制作大段表.md",
+      "sha256": "bee09e951c63fd7b29b85857bd03492a4bdeb98bb767d4f6221e7f87e3d6b6ea"
+    },
+    {
+      "file": "06_审片与QA/分段/D04_每期文案与配音/接入说明.md",
+      "sha256": "28c529476d5ecb01d1e06be98d50f00f987dd6cb5ef125ca87aec09e49d06344"
+    }
+  ],
+  "adoptedVideoHashVerified": true,
+  "adoptedVideoProbe": {
+    "width": 1920,
+    "height": 1080,
+    "fps": "60/1",
+    "frames": 1228,
+    "duration": 20.466667
+  }
+}

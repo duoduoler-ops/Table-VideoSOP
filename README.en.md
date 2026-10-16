@@ -453,7 +453,7 @@ Propose specific files and concise changes first; do not modify rules or publish
 
 `AGENTS.md` routes tasks. SOPs define the production sequence. `DESIGN.md` defines appearance and motion. The production plan records accepted episode versions and progress. The QA sheet records actual checks. Parallel tasks write only to their assigned folders; the coordinator maintains shared state and the final assembly.
 
-The package contains guides, templates, prompts, written examples, and README images. It does not include a demo, production project, generation service, or character asset pack. Remotion and FFmpeg are the default routes described; other tools can be used with the same input, approval, and QA requirements. Installation, login, additional charges, and publishing require authorization within the task's scope.
+The package contains guides, templates, prompts, written examples, [runnable MG process excerpts](examples/05_完整过程源码.md), and README images. It does not include complete private production projects, original media, runtime dependencies, generation services, or character asset packs. Remotion and FFmpeg are the default routes described; other tools can be used with the same input, approval, and QA requirements. Installation, login, additional charges, and publishing require authorization within the task's scope.
 
 Fill in bracketed fields in templates and prompts. The coordinator supplies actual paths before assigning section tasks. You do not need my private knowledge base, accounts, or old projects. Do not commit your finished videos, account details, or private files to this documentation repository.
 
@@ -466,7 +466,7 @@ The 2026-10-15 update extends the main-action, viewing-progression, handoff, and
 Licensing:
 
 - Guides, templates, prompts, and written examples: [CC BY 4.0](LICENSE). You may copy, adapt, and use them commercially, provided you give credit, link to the license, and indicate whether you made changes, for example: "Based on [Table-Video SOP](https://github.com/duoduoler-ops/Table-VideoSOP) by 一只桌子, CC BY 4.0, modified."
-- Scripts in `tools/`: [MIT](LICENSE-CODE).
+- Scripts in `tools/` and `scripts/`, plus programs and runtime/regression data in `assets/motion/`: [MIT](LICENSE-CODE). Process documentation uses the prose license.
 - The cover and screenshots in `assets/` (including the Heidan character): all rights reserved. They are not covered by the licenses above; please do not copy or reuse them without permission.
 - Third-party material remains under its own terms; see [Sources and licensing](docs/08_来源与许可.md).
 

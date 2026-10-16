@@ -1,0 +1,35 @@
+{
+  "source": "20261016-semantic-increment-repair/sample-motion-v2",
+  "scope": "User-approved local motion reinforcement; not approval of this portable export or new content",
+  "approvedDate": "2026-10-16",
+  "fps": 60,
+  "frames": 504,
+  "unchangedCore": [
+    {
+      "file": "src/Scene.jsx",
+      "sourceFile": "source/Scene.jsx",
+      "sha256": "e324efff9854b47e283573151655463dc4d5f6a9b31e6c73d5e1308e7a06f776"
+    },
+    {
+      "file": "src/Poster.jsx",
+      "sourceFile": "source/Poster.jsx",
+      "sha256": "16df006944e8571d9e2db5f06f98bfd7835e41bc5b3e8af36afe809d199b11d7"
+    },
+    {
+      "file": "src/timeline.cjs",
+      "sourceFile": "source/timeline.cjs",
+      "sha256": "cf1975718aee5fcffe12e601dbc6dbcf9b2dcaeea0ec770302370a1270df0052"
+    },
+    {
+      "file": "src/motion-math.cjs",
+      "sourceFile": "source/motion-math.cjs",
+      "sha256": "1a48abe83331c475393fc05a87e4c12a9ce1b12a9b52f8d974571b11f2e076f8"
+    }
+  ],
+  "adaptations": [
+    "Composition renamed SemanticInspection; uses TL.FPS rather than literal 60",
+    "Default narration captions hidden; optional captions=true retains example text",
+    "Original audio, rendered media and comparison script with private paths not included"
+  ],
+  "privateMediaIncluded": false
+}

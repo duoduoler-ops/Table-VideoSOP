@@ -1,0 +1,73 @@
+{
+  "purpose": "Regression fixture for the unchanged packaged example only; not constraints on adaptations.",
+  "source": "2026-10-16 controlled new-content transfer, before portable packaging",
+  "fps": 60,
+  "frames": 708,
+  "allStatesSha256": "cb3426f36e3f7d49582b20793a8dc6fff7f5884f6ca7168e9e6983d258435611",
+  "checkpoints": [
+    {
+      "frame": 0,
+      "stateSha256": "1cbbd3edfa2ede110f350abf4b3bc68ac61f95e3fae73eda7658a056fded1791"
+    },
+    {
+      "frame": 48,
+      "stateSha256": "1c6f2ac03b2883055f87c007498dba19981282d2c062abe2817590d2601fce76"
+    },
+    {
+      "frame": 96,
+      "stateSha256": "385da608ba4e7e4b5aea5cd4dcbae20f86fe939ef08d8bcc317a880e24f229f1"
+    },
+    {
+      "frame": 129,
+      "stateSha256": "89866a53c87d915180a6cb5db66fa6bfc42958d07fe49ea348ada991d2c0deb3"
+    },
+    {
+      "frame": 154,
+      "stateSha256": "1b9bf4358873009dbbf5be30ec6fb512af69b98bb59d1cc080a181d47b6ad8e8"
+    },
+    {
+      "frame": 159,
+      "stateSha256": "cfbaf7d5c776bf77e83e034dc370ff8d46246c1d75cae06f39e3377a06dccf45"
+    },
+    {
+      "frame": 181,
+      "stateSha256": "17bd97281b8bd46474001ee98efbfeb0e028e4b956ca90fa640a155c7e05115e"
+    },
+    {
+      "frame": 228,
+      "stateSha256": "8cfa9c2169e8bf18308174fad3fd1226db335545d99baca6a98df5e2e52167a2"
+    },
+    {
+      "frame": 312,
+      "stateSha256": "be659c0e920b5b734381d1de8d390ca18da2302faa03b28cc8b7d666cd1dd16c"
+    },
+    {
+      "frame": 366,
+      "stateSha256": "42df977415328f7813cf4d0f047a991cea8434ea5036fa68631184339d3e7b25"
+    },
+    {
+      "frame": 432,
+      "stateSha256": "b56b700b4885a07fca501a0af0c9a87698fcbf268469a0b3ed77b4c3f2196d17"
+    },
+    {
+      "frame": 501,
+      "stateSha256": "ce59ec02efb3ef6ce1b583929b32f891ea0a235bcfc5e5940d4b86f2de9cfdb9"
+    },
+    {
+      "frame": 550,
+      "stateSha256": "937732cd97b555c06cb350d3ad5f6b07198c430efe5d0d80c3bcdbfa7c2ef831"
+    },
+    {
+      "frame": 621,
+      "stateSha256": "365836fca94299dd49b436277a0404e35f88aeecb7a03d19a41599fc43dc0a04"
+    },
+    {
+      "frame": 660,
+      "stateSha256": "1027e3ac50100f3e6268044e90c850910804f3c02a8a2228ce9effc94ef13275"
+    },
+    {
+      "frame": 707,
+      "stateSha256": "31855c397205209ec38d61897cb56430d3aa0a46c54702736f1bbb96b724f924"
+    }
+  ]
+}
