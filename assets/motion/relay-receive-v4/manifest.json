@@ -1,0 +1,24 @@
+{
+  "name": "relay-receive-v4",
+  "entry": "src/entry.jsx",
+  "compositions": [
+    "RelayReceiveV3",
+    "RelayReceiveV4"
+  ],
+  "width": 1920,
+  "height": 1080,
+  "fps": 60,
+  "frames": 504,
+  "sourceGlobalFrameRange": [
+    1036,
+    1540
+  ],
+  "sourceGlobalSeconds": [
+    17.266666666666666,
+    25.666666666666668
+  ],
+  "localApi": "src/state.cjs",
+  "mediaIncluded": false,
+  "defaultCaptions": [],
+  "purpose": "Source comparison of readable comparison plus receiving-surface relay; not a universal duration or quality preset"
+}
