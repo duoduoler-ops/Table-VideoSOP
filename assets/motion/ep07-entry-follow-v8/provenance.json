@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "example": "ep07-entry-follow-v8",
+  "sourceTrial": "EP07 repeat-workflow 2026-10-18 revision-v08",
+  "feedback": "用户完成观看后：这次做的算是合格了。",
+  "feedbackScope": "Only the actual 13.2-second v08 trial and local repair; not approval of other scenes or a universal style/speed preset.",
+  "acceptedVideo": {
+    "filename": "ep07_repeat_v08_candidate_1080p60.mp4",
+    "bytes": 3148455,
+    "sha256": "26c32f543275ce2273c94fbf057def58cf2e147ac24f026b204ad24e97ddd990",
+    "included": false
+  },
+  "sourceFiles": [
+    {
+      "source": "revision-v08/motion-scene.cjs",
+      "sourceSha256": "1b106c4a9b3486a2f157d9d8ec5311095b5b4c3f7ed094b13b133a362e111830",
+      "packaged": "src/scene.cjs",
+      "packagedSha256": "961d5b507be0a454a71fa1696761341a277f94eb01350f9c26dc6149bc55aeda",
+      "packagedLfSha256": "c2772a2c887dd9c896c2ec25018206bfca45358af5995704b52eca416f90ae8c",
+      "adaptation": "Local primitive import; comment-only portable timing pointers; reject unsupported SVG path syntax instead of silently dropping commands. Supported existing example paths and rendering unchanged. Removed trailing blank line only at final packaging."
+    },
+    {
+      "source": "revision-v08/camera.cjs",
+      "sourceSha256": "fe5e6ad9becaca4f9131ea394834421dd177ee1641b72650a08edb6a9158f245",
+      "packaged": "src/camera.cjs",
+      "packagedSha256": "fe5e6ad9becaca4f9131ea394834421dd177ee1641b72650a08edb6a9158f245",
+      "packagedLfSha256": "fe5e6ad9becaca4f9131ea394834421dd177ee1641b72650a08edb6a9158f245",
+      "adaptation": "Byte-preserved"
+    },
+    {
+      "source": "mg-primitives.cjs",
+      "sourceSha256": "455615bb1e9750f7d3d7186456e725f39c04311dd418c070af578fde054891b4",
+      "packaged": "src/mg-primitives.cjs",
+      "packagedSha256": "455615bb1e9750f7d3d7186456e725f39c04311dd418c070af578fde054891b4",
+      "packagedLfSha256": "455615bb1e9750f7d3d7186456e725f39c04311dd418c070af578fde054891b4",
+      "adaptation": "Byte-preserved"
+    }
+  ],
+  "noPrivateMedia": true,
+  "noPrivateAbsolutePaths": true,
+  "unverified": [
+    "Implementing assistant did not complete continuous 1x video review/listening.",
+    "New-environment font/layout identity unless separately checked.",
+    "New-content suitability and actual semantic/audio review."
+  ],
+  "packagedRegressionHashPolicy": "Normalize CRLF to LF only; preserve raw hashes as source evidence.",
+  "portVerification": {
+    "status": "all-792-svg-and-state-identical",
+    "sourceSha256": "1b106c4a9b3486a2f157d9d8ec5311095b5b4c3f7ed094b13b133a362e111830",
+    "portableSha256": "961d5b507be0a454a71fa1696761341a277f94eb01350f9c26dc6149bc55aeda",
+    "aggregateSvgSha256": "410222cb9b35f89abe214c6b89edffda5aabc6b1b67f26a165f4cc302c66b837",
+    "scope": "Exact SVG text/full state equality after supported-command validation and audit-adapter update; no rerender, encoded video or 1x review claimed."
+  }
+}

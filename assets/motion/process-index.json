@@ -63,6 +63,156 @@
       "preserve": ["比较期间回接", "按当前最终变换补偿", "固定反问不取消"],
       "recalculate": ["候选的可读尺度和遮挡", "接点屏幕位置、切线与速度"],
       "limits": "只继承本次局部有效修法；v3是反例；源码状态不能替代新内容审看。"
+    },
+    {
+      "id": "ep07-v8-causal-entrance",
+      "relations": [
+        "入场",
+        "复制",
+        "展开",
+        "路径显现",
+        "entrance",
+        "copy",
+        "unfold",
+        "path-reveal"
+      ],
+      "causalChain": "原处复制保留来源，接收区展开，纸面从零面积折开，连接沿真实路径前缀出现",
+      "sourceSeconds": [
+        0.54,
+        7.3
+      ],
+      "implementation": [
+        {
+          "path": "assets/motion/ep07-entry-follow-v8/src/scene.cjs",
+          "anchors": [
+            "function frameAt(t)",
+            "function linePrefix(d,q)"
+          ]
+        }
+      ],
+      "sampler": {
+        "path": "assets/motion/ep07-entry-follow-v8/src/state.cjs",
+        "export": "state",
+        "unit": "sourceSeconds"
+      },
+      "sampleSeconds": [
+        0.55,
+        3.08,
+        5.7
+      ],
+      "preserve": [
+        "来源与副本身份",
+        "物件生命周期与真实显现分开",
+        "生产像素中线条确实从起点增长"
+      ],
+      "recalculate": [
+        "新内容的来源与接收端",
+        "首个可见帧和遮挡",
+        "路径及渲染器支持"
+      ],
+      "limits": "完整场景实例，非所有元素都必须复制或折纸；原本在场者无需入场。几何不能替代实际像素，依 verify.cjs --runtime 检查。"
+    },
+    {
+      "id": "ep07-v8-subject-follow",
+      "relations": [
+        "跟随",
+        "主体绑定",
+        "follow",
+        "subject-bound"
+      ],
+      "causalChain": "先求同一操作载体最终位置，再按观看锚点反求相机，接收端在跟随中展开",
+      "sourceSeconds": [
+        3.08,
+        7.1
+      ],
+      "implementation": [
+        {
+          "path": "assets/motion/ep07-entry-follow-v8/src/scene.cjs",
+          "anchors": [
+            "function carrierAt(t)",
+            "const cam=cameraAt(t,"
+          ]
+        },
+        {
+          "path": "assets/motion/ep07-entry-follow-v8/src/camera.cjs",
+          "anchors": [
+            "function followCarrier(",
+            "function cameraAt(t,anchors={})"
+          ]
+        }
+      ],
+      "sampler": {
+        "path": "assets/motion/ep07-entry-follow-v8/src/state.cjs",
+        "export": "state",
+        "unit": "sourceSeconds"
+      },
+      "sampleSeconds": [
+        3.55,
+        3.9,
+        6.95
+      ],
+      "preserve": [
+        "实际主体变换传给相机",
+        "观看目标与接收关系",
+        "近读窗口"
+      ],
+      "recalculate": [
+        "新配音窗口",
+        "屏幕距离及字大小",
+        "曲线和落点"
+      ],
+      "limits": "0.74/0.78秒仅为本例，不能把所有运镜统一缩短；相机范围不是景别任务或语义通过。"
+    },
+    {
+      "id": "ep07-v8-follow-to-wide",
+      "relations": [
+        "拉全景",
+        "跟随到拉全景",
+        "到达接力",
+        "follow-to-wide",
+        "arrival-relay"
+      ],
+      "causalChain": "原件留在归档，副本前往备份；接近到达时相机开始拉开，交给新旧步骤与两个结果共同比较",
+      "sourceSeconds": [
+        10.76,
+        13.2
+      ],
+      "implementation": [
+        {
+          "path": "assets/motion/ep07-entry-follow-v8/src/scene.cjs",
+          "anchors": [
+            "const copyProgress=ap(t,"
+          ]
+        },
+        {
+          "path": "assets/motion/ep07-entry-follow-v8/src/camera.cjs",
+          "anchors": [
+            "function mixCam(a,b,q)",
+            "function cameraAt(t,anchors={})"
+          ]
+        }
+      ],
+      "sampler": {
+        "path": "assets/motion/ep07-entry-follow-v8/src/state.cjs",
+        "export": "state",
+        "unit": "sourceSeconds"
+      },
+      "sampleSeconds": [
+        11.2,
+        12.06,
+        12.6
+      ],
+      "preserve": [
+        "原件不随副本离开",
+        "跟随和拉开有实际交叠",
+        "最终比较和阅读停顿"
+      ],
+      "recalculate": [
+        "本项目是否需要比较",
+        "主物件与接收端屏幕位置",
+        "拉开起点与最终可读尺度"
+      ],
+      "limits": "适用于到达后需要展示关系全貌；不要求每个结尾拉全景。用户仅确认本次13.2秒v08，助手未1×审看。"
     }
   ]
 }
