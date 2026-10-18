@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "basis": "Actual distributed source; source times belong to each example, not the new project. Match local causal relations, not whole-topic similarity.",
+  "processes": [
+    {
+      "id": "ep05-d06-receive-process-deliver",
+      "relations": ["接收", "处理", "交付", "扩展", "receive", "process", "deliver", "expand"],
+      "causalChain": "同一行卡脱出，来源线钩住并牵往依据，原卡展开为提示词，副本接入工具，发送后接出结果",
+      "sourceSeconds": [0, 15.266666666666667],
+      "implementation": [
+        {"path": "assets/motion/ep05-d06-task-relay/src/timeline.cjs", "anchors": ["function cardFlight(T)", "function camS1(T)", "function cam(t)", "function pAt(T)"]},
+        {"path": "assets/motion/ep05-d06-task-relay/src/scenes.jsx", "anchors": []}
+      ],
+      "sampler": {"path": "assets/motion/ep05-d06-task-relay/src/timeline.cjs", "export": "pAt", "unit": "sourceSeconds"},
+      "sampleSeconds": [2.1, 3.7, 4.6],
+      "preserve": ["主卡身份与线根", "先接收再产生结果的因果", "对象、相机和线各自时段"],
+      "recalculate": ["新配音时段", "最终屏幕布局与尺度", "接触与取景"],
+      "limits": "结果媒体为占位；源码采样不是像素跟踪、配音听校或原片观感复刻。"
+    },
+    {
+      "id": "ep05-d06-adapt-return",
+      "relations": ["适配", "交付", "回收", "adapt", "deliver", "return"],
+      "causalChain": "旧接口碰撞短退，保留原件，依据新要求改副本，接口接入后回归原任务",
+      "sourceSeconds": [24.6, 34.4],
+      "implementation": [
+        {"path": "assets/motion/ep05-d06-task-relay/src/timeline.cjs", "anchors": ["function pAt(T)", "function morphS6(x)", "function camS6(x)"]},
+        {"path": "assets/motion/ep05-d06-task-relay/src/scenes.jsx", "anchors": []}
+      ],
+      "sampler": {"path": "assets/motion/ep05-d06-task-relay/src/timeline.cjs", "export": "pAt", "unit": "sourceSeconds"},
+      "sampleSeconds": [26.8, 31.5, 34.1],
+      "preserve": ["旧副本和新副本各自身份", "真实不兼容后才适配", "收回与相机共同落位"],
+      "recalculate": ["本项目是否确有不兼容关系", "新内容接口及动作时间"],
+      "limits": "不能把齿形不兼容当通用审核关卡；历史工具文档不是当前指令。"
+    },
+    {
+      "id": "ep05-d04-inspect-rewrite-handoff",
+      "relations": ["检查", "处理", "交付", "inspect", "process", "deliver"],
+      "causalChain": "原稿读取遇阻，波形在原处打结，圈出同句并改短，原线接通，稿纸让位交给配音字幕",
+      "sourceSeconds": [9.4, 19.033333333333335],
+      "implementation": [
+        {"path": "assets/motion/ep05-d04-revision-process/model.cjs", "anchors": ["function cam(t)", "function pageXform(t)", "function reading(t)"]},
+        {"path": "assets/motion/ep05-d04-revision-process/Scene.jsx", "anchors": []},
+        {"path": "assets/motion/ep05-d04-revision-process/source-timeline.cjs", "anchors": []}
+      ],
+      "sampler": {"path": "assets/motion/ep05-d04-revision-process/model.cjs", "export": "state", "unit": "sourceSeconds"},
+      "sampleSeconds": [16.2, 16.6, 17.3],
+      "preserve": ["同句修改与原处波形的因果", "改句、接通、让位交叠", "必要阅读"],
+      "recalculate": ["句长、字框、阅读落点", "新配音下的接管与收势"],
+      "limits": "摘编不包含原G02媒体；不与另一独立入口硬拼。"
+    },
+    {
+      "id": "relay-v4-compare-receive-return",
+      "relations": ["比较", "接收", "回收", "compare", "receive", "return"],
+      "causalChain": "候选仍共同可辨时载体先回接，按钮让位，计时下落，统计合回，末尾保留反问",
+      "sourceSeconds": [17.266666666666666, 25.666666666666668],
+      "implementation": [
+        {"path": "assets/motion/relay-receive-v4/src/timeline-v4.cjs", "anchors": ["function cameraAt(t)", "function state(t)"]},
+        {"path": "assets/motion/relay-receive-v4/src/scene.cjs", "anchors": []},
+        {"path": "assets/motion/relay-receive-v4/src/timeline-v3.cjs", "anchors": ["function state(t)"]}
+      ],
+      "sampler": {"path": "assets/motion/relay-receive-v4/src/timeline-v4.cjs", "export": "state", "unit": "sourceSeconds"},
+      "sampleSeconds": [21.05, 21.8, 22.5],
+      "preserve": ["比较期间回接", "按当前最终变换补偿", "固定反问不取消"],
+      "recalculate": ["候选的可读尺度和遮挡", "接点屏幕位置、切线与速度"],
+      "limits": "只继承本次局部有效修法；v3是反例；源码状态不能替代新内容审看。"
+    }
+  ]
+}
