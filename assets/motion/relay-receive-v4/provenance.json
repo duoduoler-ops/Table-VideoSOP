@@ -7,35 +7,40 @@
       "sourceSha256": "ad7c875dc882016b5ad3a28b8da78543128cc97282457bc13782404a3b2be880",
       "packaged": "src/scene.cjs",
       "packagedSha256": "ad7c875dc882016b5ad3a28b8da78543128cc97282457bc13782404a3b2be880",
-      "adaptation": "Byte-preserved"
+      "adaptation": "Byte-preserved",
+      "packagedLfSha256": "ad7c875dc882016b5ad3a28b8da78543128cc97282457bc13782404a3b2be880"
     },
     {
       "source": "sample/source/revision-v3/timeline.cjs",
       "sourceSha256": "5f4a168c53c42dc94f90bf4f8c99f87ea1a0448012db188f4b23624da1c867a5",
       "packaged": "src/timeline-v3.cjs",
       "packagedSha256": "f849b3e5de911d766c62beddc64cc154ce2d0cb154d834fae15cbedefd576443",
-      "adaptation": "Only relative original dependency path"
+      "adaptation": "Only relative original dependency path",
+      "packagedLfSha256": "b13421bec9b43b93a92039c335dcef7e5858813586a90a64d116ea2bb224f714"
     },
     {
       "source": "sample/source/new/timeline.cjs",
       "sourceSha256": "202766e0aa4e90fe8d0011e6455eb55971854085b9e359ec6185777f08ec44ae",
       "packaged": "src/timeline-v4.cjs",
       "packagedSha256": "b76457f38bce46ac91fc0a939185668d9c15c8f168125038dff99942456fa4f4",
-      "adaptation": "Only relative original dependency path"
+      "adaptation": "Only relative original dependency path",
+      "packagedLfSha256": "0b7085abbdda1e67c81631ef4e23e202bd3b8d03dc2c2ec2ef4ef5aa7841e627"
     },
     {
       "source": "sample/source/original/full-timeline.cjs",
       "sourceSha256": "47c7fdbca7433e31613070807ec3affb3595f2a4f2f8fa8e19d21b5b142b903f",
       "packaged": "src/original/full-timeline.cjs",
       "packagedSha256": "eb8c2fe36192d068e8ea4598952194c2ff30405424c421cd799bdd25854b1980",
-      "adaptation": "Shared scene dependency; identical stateCard/math semantics; API exposes only source [F1036,F1540]"
+      "adaptation": "Shared scene dependency; identical stateCard/math semantics; API exposes only source [F1036,F1540]",
+      "packagedLfSha256": "eb8c2fe36192d068e8ea4598952194c2ff30405424c421cd799bdd25854b1980"
     },
     {
       "source": "sample/source/original/pilot.cjs",
       "sourceSha256": "773d6354d025b027850beb3a0caf6b400c76c755db95c9e8e337dd0a19b26602",
       "packaged": "src/original/pilot.cjs",
       "packagedSha256": "2e4ad897682be3630fdba8388583e2180379b2b9f91b10cc0b16281c58135b2f",
-      "adaptation": "Shared scene dependency; identical stateCard/math semantics; API exposes only source [F1036,F1540]"
+      "adaptation": "Shared scene dependency; identical stateCard/math semantics; API exposes only source [F1036,F1540]",
+      "packagedLfSha256": "2e4ad897682be3630fdba8388583e2180379b2b9f91b10cc0b16281c58135b2f"
     },
     {
       "source": "sample/source/new/design.cjs",
@@ -46,7 +51,8 @@
       },
       "packaged": "src/design.cjs",
       "packagedSha256": "cc6c9b132acf0c724fc62fae9092cf04b3351300d05a2af58d900f0ddc9c1730",
-      "adaptation": "Replace fs parsing of the four palette rows with their exact values; no other visual change"
+      "adaptation": "Replace fs parsing of the four palette rows with their exact values; no other visual change",
+      "packagedLfSha256": "cc6c9b132acf0c724fc62fae9092cf04b3351300d05a2af58d900f0ddc9c1730"
     }
   ],
   "localRepairSourceSeconds": [
@@ -63,5 +69,6 @@
     "New-content suitability"
   ],
   "noPrivateMedia": true,
-  "noPrivateAbsolutePaths": true
+  "noPrivateAbsolutePaths": true,
+  "packagedRegressionHashPolicy": "Normalize CRLF to LF only; raw packagedSha256 retained as delivery evidence"
 }
