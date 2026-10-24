@@ -178,3 +178,53 @@ test('rotation-changing bounds do not pretend to reconstruct uniform material-po
   assert(!r.findings.some(f=>f.code==='uniform-screen-motion'));
   assert.equal(r.actions[0].compositeSpeed.visibleIntervals,0);
 });
+
+
+test('rotating nonlinear motion with all composite intervals excluded is incomplete, not no-findings',()=>{
+  const r=auditMotion(standalone(t=>({objects:[{...box('main',500+100*Math.cos(t),500+100*Math.sin(t)),rotation:t}]})),{requireVideo:false});
+  assert.equal(r.status,'incomplete');assert.equal(r.findings.length,0);
+  assert.equal(r.actions[0].compositeSpeed.visibleIntervals,0);
+  assert.equal(r.actions[0].compositeSpeed.minVelocity,null);
+  assert.deepEqual(r.actions[0].compositeSpeed.rotationExcludedRanges,[{start:0,end:1,intervals:60}]);
+  assert(r.coverageGaps.some(g=>g.includes('rotation-changing')));
+});
+
+test('a partially rotated action retains measured intervals and exposes its uncovered range',()=>{
+  const r=auditMotion(standalone(t=>({objects:[{...box('main',300*smooth(t),100),rotation:t<=.5?0:t-.5}]})),{requireVideo:false});
+  assert.equal(r.status,'incomplete');assert.equal(r.actions[0].compositeSpeed.visibleIntervals,30);
+  assert.deepEqual(r.actions[0].compositeSpeed.rotationExcludedRanges,[{start:.5,end:1,intervals:30}]);
+});
+
+test('isolated or too-short visible samples cannot claim complete trajectory coverage',()=>{
+  for(const opacity of [t=>t===0?1:0,t=>Math.round(t*60)%2===0?1:0,t=>t<=5/60?1:0]){
+    const r=auditMotion(standalone(t=>({objects:[{...box('main',300*smooth(t),100),opacity:opacity(t)}]})),{requireVideo:false});
+    assert.equal(r.status,'incomplete');assert(r.coverageGaps.some(g=>g.includes('Insufficient consecutive visible')));
+  }
+  const r=auditMotion(standalone(t=>({objects:[{...box('main',300*smooth(t),100),opacity:t<=6/60?1:0}]})),{requireVideo:false});
+  assert.equal(r.actions[0].compositeSpeed.maxContiguousIntervals,6);
+  assert.equal(r.status,'measured-no-findings');assert.equal(r.visualAcceptance,'not-assessed');
+});
+
+test('fully offscreen movement on any side cannot erase a visible relay wait',()=>{
+  for(const offscreen of [t=>box('hidden',3000+100*t,100),t=>box('hidden',-500-100*t,100),t=>box('hidden',100,-500-100*t),t=>box('hidden',100,2000+100*t),t=>box('hidden',1920,100*t)]){
+    const r=auditMotion(gapFixture(offscreen),{requireVideo:false});
+    assert.equal(r.relays[0].measuredAllCoveredStatic,true);
+    assert(r.findings.some(f=>f.code==='relay-empty-wait'));
+  }
+});
+
+test('crossing the viewport boundary is a genuine relay change',()=>{
+  for(const entering of [t=>box('hidden',2000-200*t,100),t=>box('hidden',1800+200*t,100)]){
+    const r=auditMotion(gapFixture(entering),{requireVideo:false});
+    assert.equal(r.relays[0].measuredAllCoveredStatic,false);
+    assert(!r.findings.some(f=>f.code==='relay-empty-wait'));
+  }
+});
+
+test('rotated bounds near the viewport are unresolved instead of incorrectly culled',()=>{
+  const r=auditMotion(gapFixture(t=>({...box('hidden',1925+10*t,500),rotation:90})),{requireVideo:false});
+  assert.equal(r.status,'incomplete');assert.equal(r.relays[0].measuredAllCoveredStatic,null);
+  assert.deepEqual(r.relays[0].unresolvedVisibilityObjectIds,['hidden']);
+  assert(r.coverageGaps.some(g=>g.includes('Rotation/viewport visibility unresolved')));
+  assert(!r.findings.some(f=>f.code==='relay-empty-wait'));
+});

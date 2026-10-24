@@ -24,8 +24,12 @@ const uniq=(xs,label)=>{if(!Array.isArray(xs)||new Set(xs).size!==xs.length)thro
 const channels=['x','y','width','height','opacity','rotation'];
 const EPS={positionPx:1e-5,velocity:1e-3,relative:1e-6,derivativeStep:1e-4,cruiseIntervals:6};
 const bounds=b=>[b.x,b.y,b.width,b.height,b.opacity,b.rotation??0];
-const visible=b=>b.opacity>0&&b.width>0&&b.height>0;
-const sameVisibleState=(a,b)=>!visible(a)&&!visible(b)||visible(a)&&visible(b)&&maxAbs(sub(bounds(a),bounds(b)))<=EPS.positionPx;
+function viewportVisibility(b,viewport){
+  if(b.opacity<=0||b.width<=0||b.height<=0)return 'hidden';
+  if(b.x<viewport.width&&b.x+b.width>0&&b.y<viewport.height&&b.y+b.height>0)return 'visible';
+  // The schema has no rotation pivot. Do not cull a rotated object using an unrotated rectangle.
+  return Math.abs(b.rotation??0)>EPS.relative?'unresolved-rotation':'hidden';
+}
 const screenPoints=b=>[[b.x,b.y],[b.x+b.width,b.y],[b.x,b.y+b.height],[b.x+b.width,b.y+b.height],[b.x+b.width/2,b.y+b.height/2]];
 const sub=(a,b)=>a.map((x,i)=>x-b[i]);
 const div=(a,k)=>a.map(x=>x/k);
@@ -69,6 +73,8 @@ function validateSpec(s){
 }
 export function auditMotion(spec,{baseDir=process.cwd(),adapterFile,requireVideo=true}={}){
   validateSpec(spec);
+  const visibility=b=>viewportVisibility(b,spec.viewport),visible=b=>visibility(b)==='visible';
+  const sameVisibleState=(a,b)=>!visible(a)&&!visible(b)||visible(a)&&visible(b)&&maxAbs(sub(bounds(a),bounds(b)))<=EPS.positionPx;
   const sources=[...new Set(spec.sourceFiles.map(p=>resolveExisting(p,baseDir)))];
   if(adapterFile){const f=resolveExisting(adapterFile,baseDir);if(!sources.includes(f))sources.push(f);}
   const sourceLocks=sources.map(fileLock);
@@ -108,6 +114,10 @@ export function auditMotion(spec,{baseDir=process.cwd(),adapterFile,requireVideo
     const out={time:t,map,frame};cache.set(key,out);return out;
   }
   const samples=[];for(let f=0;f<=Math.floor(spec.duration*spec.fps);f++)samples.push(read(f/spec.fps));if(samples.at(-1).time!==spec.duration)samples.push(read(spec.duration));
+  for(const id of spec.coverage.objectIds){
+    const unresolved=samples.filter(s=>visibility(s.map.get(id))==='unresolved-rotation');
+    if(unresolved.length)coverageGaps.push(`Rotation/viewport visibility unresolved for ${id}: ${unresolved[0].time}–${unresolved.at(-1).time}; provide final rotated bounds or inspect encoded frames`);
+  }
   // Independent repeated/reverse seeking checks a stateful adapter without assuming sequential playback.
   for(const t of [spec.duration/2,0,spec.duration,.371*spec.duration].reverse()){
     const before=JSON.stringify(read(t).frame),again=JSON.stringify(spec.frameAt(t));if(before!==again)throw Error('Non-deterministic render adapter at '+t);
@@ -120,7 +130,7 @@ export function auditMotion(spec,{baseDir=process.cwd(),adapterFile,requireVideo
   for(const a of spec.actions){
     const p=actionPoints(a);if(p.length<4){coverageGaps.push('Action too short for trajectory checks: '+a.id);continue;}
     const fullyHidden=p.every(p=>!visible(p.b));
-    if(fullyHidden){coverageGaps.push('Action has no visible sampled object: '+a.id);continue;}
+    if(fullyHidden){coverageGaps.push('Action has no confirmed visible sampled object: '+a.id);continue;}
     const active=p.filter(v=>visible(v.b));
     const measurement={id:a.id,objectId:a.objectId,kind:a.kind,start:a.start,end:a.end,visibleSampleCount:active.length,channels:{}};
     for(const c of a.channels||(a.kind==='reveal'?['opacity']:['x','y','width','height'])){
@@ -144,13 +154,26 @@ export function auditMotion(spec,{baseDir=process.cwd(),adapterFile,requireVideo
     const composite=p.slice(1).map((v,i)=>{
       const prev=p[i],dt=v.t-prev.t,from=screenPoints(prev.b),to=screenPoints(v.b);
       const pointSpeeds=to.map((q,j)=>Math.hypot(q[0]-from[j][0],q[1]-from[j][1])/dt);
+      const onScreen=visible(prev.b)&&visible(v.b),rotationChanged=Math.abs((v.b.rotation??0)-(prev.b.rotation??0))>EPS.relative;
       return {start:prev.t,end:v.t,value:Math.sqrt(pointSpeeds.reduce((s,x)=>s+x*x,0)/pointSpeeds.length),pointSpeeds,
-        visible:visible(prev.b)&&visible(v.b)&&Math.abs((v.b.rotation??0)-(prev.b.rotation??0))<=EPS.relative};
+        visible:onScreen&&!rotationChanged,rotationExcluded:onScreen&&rotationChanged};
     });
-    const measured=composite.filter(v=>v.visible);
+    const measured=composite.filter(v=>v.visible),rotationExcludedRanges=[];
+    let currentRun=0,maxContiguousIntervals=0;
+    for(const v of composite){
+      currentRun=v.visible?currentRun+1:0;maxContiguousIntervals=Math.max(maxContiguousIntervals,currentRun);
+      if(v.rotationExcluded){
+        const last=rotationExcludedRanges.at(-1);
+        if(last&&last.end===v.start){last.end=v.end;last.intervals++;}
+        else rotationExcludedRanges.push({start:v.start,end:v.end,intervals:1});
+      }
+    }
     measurement.compositeSpeed={basis:'RMS speed of final-screen bbox corners and center; rotation-changing intervals excluded',unit:'pixels/second',visibleIntervals:measured.length,
+      maxContiguousIntervals,minimumContiguousIntervals:EPS.cruiseIntervals,rotationExcludedRanges,
       minVelocity:measured.length?Math.min(...measured.map(v=>v.value)):null,maxVelocity:measured.length?Math.max(...measured.map(v=>v.value)):null};
     if(['transfer','camera'].includes(a.kind)){
+      if(rotationExcludedRanges.length)coverageGaps.push('Composite screen speed excludes visible rotation-changing intervals: '+a.id+'; inspect encoded frames or provide material-point motion');
+      if(maxContiguousIntervals<EPS.cruiseIntervals)coverageGaps.push(`Insufficient consecutive visible composite-speed intervals for ${a.id}: ${maxContiguousIntervals}/${EPS.cruiseIntervals}; uniform motion is not covered`);
       let first=0;
       for(let i=1;i<=composite.length;i++){
         const base=composite[first],cur=composite[i],equal=cur&&base.visible&&cur.visible&&Math.abs(cur.value-base.value)<=EPS.velocity+EPS.relative*Math.abs(base.value)
@@ -189,12 +212,18 @@ export function auditMotion(spec,{baseDir=process.cwd(),adapterFile,requireVideo
   const relayMeasurements=[];
   for(const r of spec.relays){
     const a=spec.actions.find(a=>a.id===r.fromAction),b=spec.actions.find(a=>a.id===r.toAction),gap=b.start-a.end;
-    const m={id:r.id,fromAction:a.id,toAction:b.id,declaredGapSeconds:gap,measuredAllCoveredStatic:false,basis:'visible covered-object states; hidden-only geometry changes ignored'};
+    const m={id:r.id,fromAction:a.id,toAction:b.id,declaredGapSeconds:gap,measuredAllCoveredStatic:false,basis:'viewport-intersecting covered-object states; hidden/offscreen-only changes ignored; unresolved rotated visibility is not a no-wait result'};
     if(gap>0){
       const ts=[a.end,...samples.filter(s=>s.time>a.end&&s.time<b.start).map(s=>s.time),b.start];
-      const at=read(ts[0]),stationary=ts.slice(1).every(t=>spec.coverage.objectIds.every(id=>sameVisibleState(read(t).map.get(id),at.map.get(id))));
-      m.measuredAllCoveredStatic=stationary;
-      if(stationary&&!r.exception)findings.push({code:'relay-empty-wait',severity:'review',relay:r.id,start:a.end,end:b.start,note:'Declared causal handoff contains no measured change in covered objects. Check whether a necessary readable/causal hold is missing from the source, or an avoidable empty wait.'});
+      m.unresolvedVisibilityObjectIds=spec.coverage.objectIds.filter(id=>ts.some(t=>visibility(read(t).map.get(id))==='unresolved-rotation'));
+      if(m.unresolvedVisibilityObjectIds.length){
+        m.measuredAllCoveredStatic=null;
+        coverageGaps.push('Relay has unresolved rotated-object viewport visibility: '+r.id+' ('+m.unresolvedVisibilityObjectIds.join(', ')+')');
+      }else{
+        const at=read(ts[0]),stationary=ts.slice(1).every(t=>spec.coverage.objectIds.every(id=>sameVisibleState(read(t).map.get(id),at.map.get(id))));
+        m.measuredAllCoveredStatic=stationary;
+        if(stationary&&!r.exception)findings.push({code:'relay-empty-wait',severity:'review',relay:r.id,start:a.end,end:b.start,note:'Declared causal handoff contains no measured change in covered objects. Check whether a necessary readable/causal hold is missing from the source, or an avoidable empty wait.'});
+      }
     }
     relayMeasurements.push(m);
   }
@@ -214,7 +243,7 @@ Adapter exports exportAudit() returning schemaVersion 1, fps/duration/viewport, 
 Frame objects MUST be final-screen {id,x,y,width,height,opacity,rotation?}; all coverage IDs must exist even while hidden. Camera is optional {cx,cy,z}. Never provide a second hand-authored state table.
 Source and video are SHA-256 bound. Exceptions need kind plus evidence {sourceFile,anchor,reason} and remain human-review obligations.
 Empty checkpoints/relays may declare coverage.notApplicable[group]={sourceFile,anchor,reason}; sources must be hash-bound and anchors must exist. Unsupported or contradictory waivers fail. No primary actions remains incomplete.
-Per-channel uniformity is review-only; uniform-screen-motion tests combined final-screen bbox-point speeds for ordinary transfer/camera actions. Rotation-changing intervals are not reconstructed from bbox data. Hidden-only geometry cannot suppress a relay wait, while appearing/disappearing objects count as changes.
+Per-channel uniformity is review-only; uniform-screen-motion tests combined final-screen bbox-point speeds for ordinary transfer/camera actions. Rotation-excluded intervals or insufficient consecutive visible samples are incomplete coverage, not a no-finding pass. Hidden/offscreen-only geometry cannot suppress a relay wait, while appearing/disappearing objects count as changes. Offscreen rotated bounds without a known pivot are visibility-unresolved and require review.
 Exit 0: measured-no-findings in declared scope only; NOT visual pass. Exit 2: findings require repair or review. Exit 1: incomplete coverage or invalid inputs. Output is engineering sampling, NOT pixel tracking. No install or rendering.`;
 async function main(){
   const args=process.argv.slice(2);if(args.includes('--help')){console.log(HELP);return;}
