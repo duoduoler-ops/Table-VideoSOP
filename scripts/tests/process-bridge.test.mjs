@@ -23,12 +23,14 @@ test('whole-topic mismatch cannot silently claim a source match',()=>assert.thro
 test('actual 8.15–9.25 linear x with curved y is detected',()=>{
   const s=spec(t=>({objects:[box('main',t<8.15?0:t>9.25?685.3:(t-8.15)*623,40*Math.sin(Math.PI*Math.max(0,Math.min(1,(t-8.15)/1.1))))]}),10);
   s.actions=[{id:'a',objectId:'main',start:8.15,end:9.25,kind:'transfer'}];s.checkpoints[0].time=9;
-  const r=run(s);assert(r.findings.some(f=>f.code==='uniform-screen-channel'&&f.channel==='x'&&Math.abs(f.velocityPxPerSecond-623)<1e-7));
+  const r=run(s);assert(r.findings.some(f=>f.code==='uniform-screen-channel'&&f.severity==='review'&&f.channel==='x'&&Math.abs(f.velocityPxPerSecond-623)<1e-7));
+  assert(!r.findings.some(f=>f.code==='uniform-screen-motion'&&f.action==='a'));
 });
 test('short eased ends do not hide interior uniform cruise',()=>{
   const f=t=>t<.2?250*t*t:t<1.8?10+100*(t-.2):170+100*(t-1.8)-250*(t-1.8)**2;
   const r=run(spec(t=>({objects:[box('main',f(t))]})));
   assert(r.findings.some(f=>f.code==='uniform-screen-channel'&&f.start>=.19&&f.end<=1.81));
+  assert(r.findings.some(f=>f.code==='uniform-screen-motion'&&f.severity==='constraint-violation'&&f.start>=.19&&f.end<=1.81));
 });
 test('smooth nonlinear displacement is not labeled uniform',()=>{
   const r=run(spec(t=>({objects:[box('main',600*smooth(t/2))]})));
@@ -49,7 +51,7 @@ test('camera cancellation is assessed after composition, not by world movement',
 test('real clock motion requires attributable source and remains visible as exception',()=>{
   const s=spec(t=>({objects:[box('main',100*t)]}));s.actions.forEach(a=>{a.kind='realtime';a.exception=exception('real-time');});
   s.actions.push({id:'b',objectId:'main',start:1.8,end:2,kind:'realtime',exception:exception('real-time')});
-  const r=run(s);assert(!r.findings.some(f=>f.code==='uniform-screen-channel'));assert.equal(r.exceptions.length,2);
+  const r=run(s);assert(!r.findings.some(f=>f.code.startsWith('uniform-screen-')));assert.equal(r.exceptions.length,2);
   s.actions[0].exception={kind:'real-time',evidence:{sourceFile:self,anchor:['NONEXISTENT','ANCHOR'].join(' '),reason:'excuse'}};
   assert.throws(()=>run(s),/anchor missing/);
 });
@@ -96,4 +98,83 @@ test('all indexed relation sources have valid anchors and real executable sample
 test('stateful evaluation and invalid realtime bypass are rejected',()=>{
   let n=0;assert.throws(()=>run(spec(()=>({objects:[box('main',++n)]}))),/Non-deterministic/);
   const s=spec(t=>({objects:[box('main',t)]}));s.actions[0].kind='realtime';assert.throws(()=>run(s),/requires attributable/);
+});
+
+// fixture scope evidence: this isolated action has no passage node or causal handoff.
+const scopeEvidence=()=>({sourceFile:self,anchor:'fixture scope evidence',reason:'This isolated fixture contains one complete action and no internal joins or causal handoffs.'});
+function standalone(frameAt,duration=1,withScope=true){
+  const s=spec(frameAt,duration);s.checkpoints=[];s.relays=[];
+  if(withScope)s.coverage.notApplicable={checkpoints:scopeEvidence(),relays:scopeEvidence()};
+  return s;
+}
+function gapFixture(hiddenAt){
+  const s=spec(t=>({objects:[box('main',t<.5?300*smooth(t*2):t>1.5?300+300*smooth((t-1.5)*2):300),hiddenAt(t)]}));
+  s.coverage.objectIds.push('hidden');
+  s.actions=[{id:'a',objectId:'main',start:0,end:.5,kind:'transfer'},{id:'b',objectId:'main',start:1.5,end:2,kind:'transfer'}];
+  s.checkpoints[0].time=.25;
+  return s;
+}
+test('hidden-only coordinate changes cannot erase an otherwise identical relay wait',()=>{
+  for(const hiddenAt of [t=>({...box('hidden'),opacity:0}),t=>({...box('hidden',t*100),opacity:0}),t=>({...box('hidden',t*100),width:0})]){
+    const r=auditMotion(gapFixture(hiddenAt),{requireVideo:false});
+    assert.equal(r.relays[0].declaredGapSeconds,1);
+    assert.equal(r.relays[0].measuredAllCoveredStatic,true);
+    assert(r.findings.some(f=>f.code==='relay-empty-wait'));
+  }
+});
+test('genuine appearance, disappearance and visible movement remain relay changes',()=>{
+  for(const hiddenAt of [t=>({...box('hidden'),opacity:smooth((t-.5))}),t=>({...box('hidden'),opacity:1-smooth((t-.5))}),t=>box('hidden',t*100)]){
+    const r=auditMotion(gapFixture(hiddenAt),{requireVideo:false});
+    assert.equal(r.relays[0].measuredAllCoveredStatic,false);
+    assert(!r.findings.some(f=>f.code==='relay-empty-wait'));
+  }
+});
+test('one complete eased action can explicitly document inapplicable node and relay checks',()=>{
+  const r=auditMotion(standalone(t=>({objects:[box('main',300*smooth(t))]})),{requireVideo:false});
+  assert.equal(r.status,'measured-no-findings');assert.equal(r.coverageGaps.length,0);
+  assert.equal(r.actions[0].visibleSampleCount,61);assert.equal(r.notApplicable.length,2);
+  assert(r.notApplicable.every(n=>n.status==='attributed-not-applicable-requires-scope-review'));
+  assert.equal(r.visualAcceptance,'not-assessed');
+});
+test('missing node and relay evidence still reports incomplete, and primary actions cannot be waived',()=>{
+  const s=standalone(t=>({objects:[box('main',300*smooth(t))]}),1,false);
+  const r=auditMotion(s,{requireVideo:false});assert.equal(r.status,'incomplete');assert.equal(r.coverageGaps.length,2);
+  s.coverage.notApplicable={checkpoints:scopeEvidence(),relays:scopeEvidence()};s.actions=[];
+  assert.equal(auditMotion(s,{requireVideo:false}).status,'incomplete');
+  s.coverage.notApplicable.actions=scopeEvidence();assert.throws(()=>auditMotion(s,{requireVideo:false}),/only supported/);
+});
+test('not-applicable claims reject strings, missing anchors, unbound sources and nonempty groups',()=>{
+  const make=()=>standalone(t=>({objects:[box('main',300*smooth(t))]}));
+  let s=make();s.coverage.notApplicable.checkpoints='not needed';assert.throws(()=>auditMotion(s,{requireVideo:false}),/evidence reason/);
+  s=make();s.coverage.notApplicable.checkpoints.anchor=['MISSING','SCOPE','ANCHOR'].join('-');assert.throws(()=>auditMotion(s,{requireVideo:false}),/anchor missing/);
+  s=make();s.coverage.notApplicable.checkpoints.sourceFile=path.join(root,'scripts/motion-audit.mjs');assert.throws(()=>auditMotion(s,{requireVideo:false}),/not hash-bound/);
+  s=make();s.checkpoints=[{id:'real-node',time:.5,role:'pass',objectIds:['main']}];assert.throws(()=>auditMotion(s,{requireVideo:false}),/must be empty/);
+});
+test('a constant x on a strongly accelerating arc is a clue, not a hard uniform-motion violation',()=>{
+  const s=standalone(t=>({objects:[box('main',100+100*t,100+200*t*t)]}),2);
+  const r=auditMotion(s,{requireVideo:false});
+  assert(r.findings.some(f=>f.code==='uniform-screen-channel'&&f.channel==='x'&&f.severity==='review'));
+  assert(!r.findings.some(f=>f.severity==='constraint-violation'));
+  const speed=r.actions[0].compositeSpeed;assert(speed.minVelocity<101);assert(speed.maxVelocity>800);
+});
+test('true uniform diagonal translation remains a hard ordinary-motion finding',()=>{
+  const r=auditMotion(standalone(t=>({objects:[box('main',100*t,200*t)]})),{requireVideo:false});
+  const finding=r.findings.find(f=>f.code==='uniform-screen-motion');assert(finding);
+  assert.equal(finding.severity,'constraint-violation');assert.equal(finding.rule,'ordinary-visual-nonuniform');
+  assert(Math.abs(finding.speedPxPerSecond-Math.hypot(100,200))<1e-6);
+});
+test('a fixed corner cannot hard-fail otherwise accelerating scale',()=>{
+  const r=auditMotion(standalone(t=>({objects:[{...box('main'),width:120+200*t*t,height:80+100*t*t}]})),{requireVideo:false});
+  assert(!r.findings.some(f=>f.code==='uniform-screen-motion'));
+  assert(r.actions[0].compositeSpeed.maxVelocity>10*r.actions[0].compositeSpeed.minVelocity);
+});
+test('uniform scale with one fixed corner is still measured from the other points',()=>{
+  const r=auditMotion(standalone(t=>({objects:[{...box('main'),width:120+200*t,height:80+100*t}]})),{requireVideo:false});
+  assert(r.findings.some(f=>f.code==='uniform-screen-motion'&&f.severity==='constraint-violation'));
+});
+test('rotation-changing bounds do not pretend to reconstruct uniform material-point motion',()=>{
+  const r=auditMotion(standalone(t=>({objects:[{...box('main',100*t),rotation:90*t*t}]})),{requireVideo:false});
+  assert(r.findings.some(f=>f.code==='uniform-screen-channel'));
+  assert(!r.findings.some(f=>f.code==='uniform-screen-motion'));
+  assert.equal(r.actions[0].compositeSpeed.visibleIntervals,0);
 });
