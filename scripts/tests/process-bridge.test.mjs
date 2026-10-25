@@ -80,9 +80,9 @@ test('delivery needs actual video lock and source lock',()=>{
   // The hash function is deliberately independent of decoding. Media validation is not claimed.
   s.videoFile=self;const r=auditMotion(s);assert.equal(r.locks.video.sha256.length,64);assert.equal(r.locks.sources[0].sha256.length,64);
 });
-test('opacity reveal is measured without masquerading as a trajectory pass',()=>{
+test('fixed-composition opacity reveal is measured without requiring a spatial trajectory',()=>{
   const s=spec(t=>({objects:[{...box('main'),opacity:t/2}]}));s.actions=[{id:'a',objectId:'main',start:0,end:2,kind:'reveal',channels:['opacity']},{id:'b',objectId:'main',start:1.8,end:2,kind:'reveal',channels:['opacity']}];
-  const r=run(s);assert(!r.findings.some(f=>f.code==='uniform-screen-channel'));assert.equal(r.actions[0].channels.opacity.unit,'fraction');assert.equal(r.status,'incomplete');
+  const r=run(s);assert(!r.findings.some(f=>f.code==='uniform-screen-channel'));assert.equal(r.actions[0].channels.opacity.unit,'fraction');assert.equal(r.status,'measured-no-findings');assert.equal(r.visualAcceptance,'not-assessed');
 });
 test('invisible moving layers cannot hide a visible common stop',()=>{
   const s=spec(t=>({objects:[box('main',t<1?300*smooth(t):300+300*smooth(t-1)),{...box('hidden',t*100),opacity:0}]}));s.coverage.objectIds.push('hidden');s.checkpoints[0].objectIds.push('hidden');
@@ -227,4 +227,56 @@ test('rotated bounds near the viewport are unresolved instead of incorrectly cul
   assert.deepEqual(r.relays[0].unresolvedVisibilityObjectIds,['hidden']);
   assert(r.coverageGaps.some(g=>g.includes('Rotation/viewport visibility unresolved')));
   assert(!r.findings.some(f=>f.code==='relay-empty-wait'));
+});
+
+function fadeOnly(frameAt=t=>({objects:[{...box('main',100,100),opacity:smooth(t)}]})){
+  const s=standalone(frameAt);s.actions[0].kind='reveal';s.actions[0].channels=['opacity'];return s;
+}
+test('a real fixed-composition fade with attributed inapplicable joins has complete applicable coverage',()=>{
+  const r=auditMotion(fadeOnly(),{requireVideo:false});
+  assert.equal(r.status,'measured-no-findings');assert.deepEqual(r.coverageGaps,[]);
+  assert.equal(r.notApplicable.length,2);assert.equal(r.actions[0].channels.opacity.range,1);
+  assert.equal(r.visualAcceptance,'not-assessed');assert(r.requiredNext.some(n=>n.includes('1x')));
+});
+test('reveal labels cannot conceal sampled translation, size or rotation changes',()=>{
+  for(const change of [t=>({x:100+100*t}),t=>({width:120+100*t}),t=>({rotation:90*t})]){
+    const r=auditMotion(fadeOnly(t=>({objects:[{...box('main',100,100),opacity:smooth(t),...change(t)}]})),{requireVideo:false});
+    assert.equal(r.status,'incomplete');assert(r.coverageGaps.some(g=>g.includes('sampled visible translation, size or rotation')));
+  }
+});
+test('reveal-only checks the full sampled composition, not merely the fading object',()=>{
+  const s=fadeOnly(t=>({objects:[{...box('main',100,100),opacity:smooth(t)},box('other',500+100*t,100)]}));s.coverage.objectIds.push('other');
+  const r=auditMotion(s,{requireVideo:false});assert.equal(r.status,'incomplete');assert(r.coverageGaps.some(g=>g.includes('spatial movement is not covered')));
+});
+test('reveal-only does not claim no spatial motion when visible objects are omitted from coverage',()=>{
+  const r=auditMotion(fadeOnly(t=>({objects:[{...box('main',100,100),opacity:smooth(t)},box('uncovered',500,100)]})),{requireVideo:false});
+  assert.equal(r.status,'incomplete');assert(r.coverageGaps.some(g=>g.includes('outside coverage: uncovered')));
+});
+test('reveal-only cannot conceal camera motion behind fixed final-screen object coordinates',()=>{
+  for(const camera of [t=>({cx:t*100,cy:0,z:1}),t=>({cx:0,cy:0,z:1+t}),t=>t<.5?undefined:{cx:0,cy:0,z:1}]){
+    const r=auditMotion(fadeOnly(t=>({objects:[{...box('main',100,100),opacity:smooth(t)}],camera:camera(t)})),{requireVideo:false});
+    assert.equal(r.status,'incomplete');assert(r.coverageGaps.some(g=>g.includes('camera movement or changing camera coverage')));
+  }
+});
+test('actual fade changes must lie within the declared object, time and channel coverage',()=>{
+  let s=fadeOnly();s.actions[0].end=.5;
+  assert(auditMotion(s,{requireVideo:false}).coverageGaps.some(g=>g.includes('outside its declared object/action/channel')));
+  s=fadeOnly();s.actions[0].channels=['width'];
+  assert(auditMotion(s,{requireVideo:false}).coverageGaps.some(g=>g.includes('outside its declared object/action/channel')));
+  s=fadeOnly(t=>({objects:[{...box('main',100,100),opacity:smooth(t)},{...box('second',500,100),opacity:smooth(t)}]}));s.coverage.objectIds.push('second');
+  assert(auditMotion(s,{requireVideo:false}).coverageGaps.some(g=>g.includes('outside its declared object/action/channel coverage: second')));
+});
+test('a static hold labeled reveal or missing node evidence cannot become a complete fade audit',()=>{
+  let s=fadeOnly(()=>({objects:[box('main',100,100)]}));
+  assert(auditMotion(s,{requireVideo:false}).coverageGaps.some(g=>g.includes('no sampled opacity change')));
+  s=fadeOnly();delete s.coverage.notApplicable;
+  assert.equal(auditMotion(s,{requireVideo:false}).status,'incomplete');
+});
+test('pure fade applicability preserves realtime limits and ignores truly invisible helper geometry',()=>{
+  let s=fadeOnly(t=>({objects:[{...box('main',100,100),opacity:smooth(t)},{...box('invisible',100*t,100),opacity:0}]}));
+  assert.equal(auditMotion(s,{requireVideo:false}).status,'measured-no-findings');
+  s=fadeOnly();s.actions[0].kind='realtime';delete s.actions[0].channels;s.actions[0].exception=exception('real-time');
+  assert.equal(auditMotion(s,{requireVideo:false}).status,'incomplete');
+  s=fadeOnly();s.actions.push({id:'clock',objectId:'main',start:.5,end:1,kind:'realtime',exception:exception('real-time')});
+  assert.equal(auditMotion(s,{requireVideo:false}).status,'incomplete');
 });

@@ -25,7 +25,7 @@ node scripts/process-locate.mjs --relation 接收,处理 --sample --out '_work/D
 
 输入与可选字段以 [motion-audit.mjs 的契约注释和 --help](../scripts/motion-audit.mjs) 为准：提供采用帧率／时长／画布、覆盖对象、实际源码与视频路径，以及上述取样函数。隐藏物件保留 ID 与零透明度，避免对象从检查中无声退出。阅读、反问、真实依赖、数据计时或有意切镜例外须绑定来源文件、可定位文本和具体理由；这只使理由可追溯，不自动证明例外成立。
 
-简单动画确无经过节点或接力时（例如单一完整动作），可让相应数组为空，并在 `coverage.notApplicable.checkpoints`／`coverage.notApplicable.relays` 提供 `{sourceFile, anchor, reason}`。来源须在 `sourceFiles` 哈希范围内、锚点须实际存在，理由说明本段为什么没有该类关系；不得为过检虚构节点，也不能豁免主要动作或同时保留该组非空数组。未声明或无有效证据仍报覆盖不完整／输入失效。报告将声明列为 `attributed-not-applicable-requires-scope-review`，它只证明理由可追溯，适用性仍须人工核实。
+简单动画确无经过节点或接力时（例如单一完整动作），可让相应数组为空，并在 `coverage.notApplicable.checkpoints`／`coverage.notApplicable.relays` 提供 `{sourceFile, anchor, reason}`。来源须在 `sourceFiles` 哈希范围内、锚点须实际存在，理由说明本段为什么没有该类关系；不得为过检虚构节点，也不能豁免主要动作或同时保留该组非空数组。未声明或无有效证据仍报覆盖不完整／输入失效。报告将声明列为 `attributed-not-applicable-requires-scope-review`，它只证明理由可追溯，适用性仍须人工核实。仅有 reveal 且生产采样确认可见对象没有平移、缩放或旋转、相机不变时，不因缺 transfer／camera 报漏测；所有可见对象及显现变化仍须被相应动作区间覆盖。实际移动、漏对象或漏显现区间仍报覆盖不足，不以改标签绕过检查；显现效果另与实际编码帧核对。
 
 ```powershell
 node scripts/motion-audit.mjs --adapter 'project/05_制作工程/motion-audit-adapter.mjs' --out 'project/06_审片与QA/motion-audit-v01.json'

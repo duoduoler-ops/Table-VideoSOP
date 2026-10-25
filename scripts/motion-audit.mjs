@@ -100,7 +100,9 @@ export function auditMotion(spec,{baseDir=process.cwd(),adapterFile,requireVideo
     if(Object.hasOwn(spec.coverage.notApplicable??{},group))notApplicable.push({group,...evidenceFor(spec.coverage.notApplicable[group],'notApplicable.'+group),status:'attributed-not-applicable-requires-scope-review'});
     else coverageGaps.push(label);
   }
-  if(spec.actions.length&&!spec.actions.some(a=>['transfer','camera'].includes(a.kind)))coverageGaps.push('Only reveal/realtime actions declared; primary movement is not covered');
+  const hasSpatialActions=spec.actions.some(a=>['transfer','camera'].includes(a.kind));
+  const revealOnly=spec.actions.length>0&&spec.actions.every(a=>a.kind==='reveal');
+  if(spec.actions.length&&!hasSpatialActions&&!revealOnly)coverageGaps.push('Only reveal/realtime actions declared; primary movement is not covered');
   const cache=new Map();
   function read(t){
     finite(t,'sample time');const key=t.toPrecision(15);if(cache.has(key))return cache.get(key);
@@ -125,6 +127,35 @@ export function auditMotion(spec,{baseDir=process.cwd(),adapterFile,requireVideo
   function actionPoints(a){
     const ts=[a.start,...samples.filter(s=>s.time>a.start&&s.time<a.end).map(s=>s.time),a.end];
     return ts.map(t=>({t,b:read(t).map.get(a.objectId)}));
+  }
+  // A fixed-composition fade has no spatial trajectory to audit. This exception
+  // is proved from sampled render states, not from naming a moving action reveal.
+  if(revealOnly){
+    const times=[...new Set([...samples.map(s=>s.time),...spec.actions.flatMap(a=>[a.start,a.end])])].sort((a,b)=>a-b);
+    const probes=times.map(read),covered=new Set(spec.coverage.objectIds),uncovered=new Set();
+    for(const s of probes)for(const [id,b]of s.map)if(!covered.has(id)&&visibility(b)!=='hidden')uncovered.add(id);
+    if(uncovered.size)coverageGaps.push('Reveal-only scope has visible or unresolved objects outside coverage: '+[...uncovered].join(', '));
+    const camera=probes[0].frame.camera;
+    if(probes.some(s=>!!s.frame.camera!==!!camera||(camera&&['cx','cy','z'].some(k=>Math.abs(s.frame.camera[k]-camera[k])>(k==='z'?EPS.relative:EPS.positionPx)))))
+      coverageGaps.push('Reveal-only scope has camera movement or changing camera coverage; declare the applicable spatial action');
+    for(const id of spec.coverage.objectIds){
+      const visibleStates=probes.map(s=>s.map.get(id)).filter(visible),first=visibleStates[0];
+      if(first&&visibleStates.some(b=>['x','y','width','height','rotation'].some(k=>Math.abs((b[k]??0)-(first[k]??0))>(k==='rotation'?EPS.relative:EPS.positionPx))))
+        coverageGaps.push('Reveal-only scope has sampled visible translation, size or rotation change: '+id+'; spatial movement is not covered');
+      const actions=spec.actions.filter(a=>a.objectId===id);
+      let outside=false;
+      for(let i=1;i<probes.length;i++){
+        const before=probes[i-1],after=probes[i],a=before.map.get(id),b=after.map.get(id);
+        if((visibility(a)!=='hidden'||visibility(b)!=='hidden')&&Math.abs(b.opacity-a.opacity)>EPS.relative&&
+          !actions.some(action=>action.start<=before.time&&action.end>=after.time&&(!action.channels||action.channels.includes('opacity'))))outside=true;
+      }
+      if(outside)coverageGaps.push('Reveal-only opacity change lies outside its declared object/action/channel coverage: '+id);
+    }
+    for(const action of spec.actions){
+      const opacity=actionPoints(action).map(p=>p.b.opacity);
+      if(Math.max(...opacity)-Math.min(...opacity)<=EPS.relative)
+        coverageGaps.push('Declared reveal has no sampled opacity change: '+action.id+'; a static hold does not establish a reveal');
+    }
   }
   const actionMeasurements=[];
   for(const a of spec.actions){
