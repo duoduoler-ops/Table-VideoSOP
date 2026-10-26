@@ -141,29 +141,50 @@
     "motion": {
       "curves": {
         "reveal": [
+          0.16,
+          1,
+          0.3,
+          1
+        ],
+        "anticipation": "ease-in-out-cubic",
+        "travel": [
           0.22,
           0.72,
           0.22,
-          1
-        ],
-        "anticipation": [
-          0.42,
-          0,
-          0.58,
-          1
-        ],
-        "travel": [
-          0.42,
-          0,
-          0.58,
           1
         ],
         "settle": [
-          0.22,
-          0.72,
-          0.22,
+          0.16,
+          1,
+          0.3,
           1
-        ]
+        ],
+        "process": "ease-in-out-cubic",
+        "camera": {
+          "revealReframePullback": [
+            0.3,
+            0,
+            0.25,
+            1
+          ],
+          "zoomInterpolation": "logarithmic",
+          "subjectFollow": "derive-from-final-subject-transform-and-screen-anchor",
+          "readjust": [
+            0.16,
+            1,
+            0.3,
+            1
+          ],
+          "emotionalSlow": "ease-in-out-sine",
+          "emotionalSlowCondition": "only with expressive need and stated reason"
+        },
+        "source": "B3: assets/motion/ep05-d06-task-relay/src/timeline.cjs; camera: assets/motion/ep07-entry-follow-v8/src/camera.cjs"
+      },
+      "curveUsage": {
+        "travel": "位置或尺度移动（含部件移位、副本传递、归档移动）用 travel；短距时长参照 B3 的 calibration.phasesFrames.travel（46f@60fps），不是固定时长。",
+        "process": "ease-in-out-cubic 只用于需要看清变化本身的过程，如形变、生长、颜色或材质渐变；位置或尺度移动不属于这类过程。",
+        "anticipation": "预备另按 B3 短、可读地安排（参照24f@60fps），让意图或受力可辨；不能用预备曲线替代主位移。",
+        "examples": "沙发右移8%：travel (0.22,0.72,0.22,1)；墙面白变浅蓝：process ease-in-out-cubic。"
       },
       "linearUseCases": [
         "需保持匀速的时间指示；按实际场景采用"
@@ -175,13 +196,32 @@
         "preserveVolume": true
       },
       "calibration": {
-        "sample": null,
-        "fps": null,
-        "phasesFrames": {},
-        "distancesPx": {},
-        "anglesDeg": {},
-        "followDelaysFrames": {},
-        "scope": "待实际动态样本与用户确认后填写"
+        "sample": "B3 source reference, not current-project tested evidence",
+        "fps": 60,
+        "phasesFrames": {
+          "anticipation": 24,
+          "travel": 46,
+          "longTravelAt2_5xDistance": 69,
+          "settleApprox": 32
+        },
+        "distancesPx": {
+          "retract": 14
+        },
+        "anglesDeg": {
+          "anticipation": -5,
+          "tail": 18
+        },
+        "deformationRatios": {
+          "compression": 0.07,
+          "releaseStretch": 0.095,
+          "contactCompression": 0.09,
+          "singleRecovery": 0.025
+        },
+        "followDelaysFrames": {
+          "trail": 7,
+          "receiver": 7
+        },
+        "scope": "这是参照，不是硬值；改帧数时保持先后和比例。当前项目效果待实际片段验证。"
       }
     },
     "componentBehavior": {
@@ -269,7 +309,7 @@
 
 ## Motion（视频扩展）
 
-四类曲线是待测试的候选：reveal 用于出现，anticipation 用于有明确意图的预备，travel 用于主动作，settle 用于停稳。没有预备、接触或附属件的动作不强补阶段。跨镜运动匹配需承接切点两侧的方向和速度，不机械地两边各缓入缓出。
+这些职责曲线与模板默认候选一致，JSON 的 `curveUsage` 说明使用边界：reveal 用于出现，anticipation 另按 B3 安排短、可读的预备（参照24f@60fps）；**位置或尺度移动**，包括部件移位、副本传递、归档移动，用 travel `(0.22,0.72,0.22,1)`，短距时长参照 B3 约46f@60fps；settle 用于到位。process `ease-in-out-cubic` 只用于需看清变化本身的形变、生长、颜色或材质渐变，不能用于位置或尺度移动。例如沙发右移8%用 travel，墙面由白变浅蓝用 process；镜头另按 camera 职责选择。没有预备、接触或附属件的动作不强补阶段。跨镜运动匹配需承接切点两侧的方向和速度，不机械地两边各缓入缓出。
 
 本例暂不采用形变，因此 squashStretch.enabled 为 false；这不禁止其他项目经测试后采用。曲线参数只定义速度变化的候选方式，不决定本期动作时长或镜头选择。
 
@@ -277,12 +317,14 @@
 
 ### 校准怎样填写
 
-实际动态样本完成后，填写 `calibration.sample`、实测 fps，以及样本对应的阶段帧数、距离、角度和跟随延迟；在 scope 说明验证范围。没有发生的动作可省略对应数值，未验证项继续留空。
+上方 `calibration` 是 B3 来源参照，`sample` 与 `scope` 已说明它不是本片实测。先保留有来源的职责初值；空值不等于禁用，进入动画前实际用到的参数必须有值和来源，未采用的动作明确不适用。
 
-这些数值来自实际样本，不填演示用的假时间。正式镜头再依据采用配音写毫秒与帧标记；换 fps 时先换算时长，不照抄帧数。
+实际动态样本完成后，把本片样本路径、实测 fps、阶段帧数、距离、角度和跟随延迟回填现有 calibration，并在 scope 区分来源参照与本片已验证范围；对应真实文件与确认写 evidence。尚缺的是本片动态证据，不能清空默认候选或把参照登记为已测试。正式镜头按采用配音写毫秒与帧标记，计划不冒充实听；换 fps 先换算时长，改帧数保持先后和比例。
 
 ## Exceptions & Evidence（视频扩展）
 
 `evidence.static` 和 `evidence.motion` 分别填写真实文件路径；`confirmation` 记录用户确认的范围和依据。只确认静态时，不登记运动已确认。
 
 正式采用前检查参数引用与单位、组件实际用值、文字可读性、对象因果、接触遮挡、阅读窗口及前后衔接。某段的例外写明范围和确认依据，不自动升级为系列默认。
+
+本例的职责曲线已对齐[默认候选与校准](../templates/DESIGN.template.md#职责曲线与校准)，它们是有来源的起点，仍须按当前观看任务与实际片段核验；不继承来源效果确认。

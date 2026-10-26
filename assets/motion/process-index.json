@@ -34,7 +34,7 @@
     },
     {
       "id": "ep05-d04-inspect-rewrite-handoff",
-      "relations": ["检查", "处理", "交付", "inspect", "process", "deliver"],
+      "relations": ["检查", "处理", "交付", "修改", "改写", "修订", "局部修改", "反复修改", "inspect", "process", "deliver", "rewrite", "revision"],
       "causalChain": "原稿读取遇阻，波形在原处打结，圈出同句并改短，原线接通，稿纸让位交给配音字幕",
       "sourceSeconds": [9.4, 19.033333333333335],
       "implementation": [
@@ -46,7 +46,7 @@
       "sampleSeconds": [16.2, 16.6, 17.3],
       "preserve": ["同句修改与原处波形的因果", "改句、接通、让位交叠", "必要阅读"],
       "recalculate": ["句长、字框、阅读落点", "新配音下的接管与收势"],
-      "limits": "摘编不包含原G02媒体；不与另一独立入口硬拼。"
+      "limits": "语义是诊断后改好，与反复修改仍不解决不同；可复用内部修改与关联响应，不能照搬成功结局。摘编不包含原G02媒体；不与另一独立入口硬拼。"
     },
     {
       "id": "relay-v4-compare-receive-return",

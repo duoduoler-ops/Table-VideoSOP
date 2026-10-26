@@ -140,11 +140,51 @@
     },
     "motion": {
       "curves": {
-        "reveal": null,
-        "anticipation": null,
-        "travel": null,
-        "settle": null,
-        "process": null
+        "reveal": [
+          0.16,
+          1,
+          0.3,
+          1
+        ],
+        "anticipation": "ease-in-out-cubic",
+        "travel": [
+          0.22,
+          0.72,
+          0.22,
+          1
+        ],
+        "settle": [
+          0.16,
+          1,
+          0.3,
+          1
+        ],
+        "process": "ease-in-out-cubic",
+        "camera": {
+          "revealReframePullback": [
+            0.3,
+            0,
+            0.25,
+            1
+          ],
+          "zoomInterpolation": "logarithmic",
+          "subjectFollow": "derive-from-final-subject-transform-and-screen-anchor",
+          "readjust": [
+            0.16,
+            1,
+            0.3,
+            1
+          ],
+          "emotionalSlow": "ease-in-out-sine",
+          "emotionalSlowCondition": "only with expressive need and stated reason"
+        },
+        "source": "B3: assets/motion/ep05-d06-task-relay/src/timeline.cjs; camera: assets/motion/ep07-entry-follow-v8/src/camera.cjs"
+      },
+      "curveUsage": {
+        "travel": "位置或尺度移动（含部件移位、副本传递、归档移动）用 travel；短距时长参照 B3 的 calibration.phasesFrames.travel（46f@60fps），不是固定时长。",
+        "process": "ease-in-out-cubic 只用于需要看清变化本身的过程，如形变、生长、颜色或材质渐变；位置或尺度移动不属于这类过程。",
+        "anticipation": "预备另按 B3 短、可读地安排（参照24f@60fps），让意图或受力可辨；不能用预备曲线替代主位移。",
+        "examples": "沙发右移8%：travel (0.22,0.72,0.22,1)；墙面白变浅蓝：process ease-in-out-cubic。"
       },
       "linearUseCases": [],
       "squashStretch": {
@@ -154,13 +194,32 @@
         "preserveVolume": true
       },
       "calibration": {
-        "sample": null,
-        "fps": null,
-        "phasesFrames": {},
-        "distancesPx": {},
-        "anglesDeg": {},
-        "followDelaysFrames": {},
-        "scope": null
+        "sample": "B3 source reference, not current-project tested evidence",
+        "fps": 60,
+        "phasesFrames": {
+          "anticipation": 24,
+          "travel": 46,
+          "longTravelAt2_5xDistance": 69,
+          "settleApprox": 32
+        },
+        "distancesPx": {
+          "retract": 14
+        },
+        "anglesDeg": {
+          "anticipation": -5,
+          "tail": 18
+        },
+        "deformationRatios": {
+          "compression": 0.07,
+          "releaseStretch": 0.095,
+          "contactCompression": 0.09,
+          "singleRecovery": 0.025
+        },
+        "followDelaysFrames": {
+          "trail": 7,
+          "receiver": 7
+        },
+        "scope": "这是参照，不是硬值；改帧数时保持先后和比例。当前项目效果待实际片段验证。"
       }
     },
     "componentBehavior": {
@@ -223,7 +282,7 @@
 
 ## Elevation & Depth
 
-写清阴影、边框、光照、遮挡和层级的作用。用 `x-video.surfaces` 记录准确表达式与单位。需要景深或视差时写对象分层与运动关系；二维缩放不能当作存在真实三维视角的证明。
+写清阴影、边框、光照、遮挡和层级的作用。用 `x-video.surfaces` 记录准确表达式与单位。设计阶段按[空间镜头](../experience/镜头推进与转场.md#空间镜头)在已有标注写一行空间适配，既检查信息层级也检查物理纵深；采用时写对象分层、遮挡、光影与运动关系。二维缩放不能当作存在真实三维视角的证明。
 
 ## Shapes
 
@@ -247,6 +306,8 @@
 
 每个动作有作用；阅读需要时保持稳定；证据与比喻分开；角色、图形、真实截图共存时说明主焦点。禁止项只覆盖真正会破坏当前设计的行为，不用“高级、流畅”作唯一验收描述。
 
+适用对象、排除边界及默认动作语言按[进出场与替换](../experience/视觉叙事与连续MG.md#默认进出场与替换)：卡片、文字等进出与内容替换须有可见过程；纯淡变和无过程突现突失默认不允许。例外仅在本期 DESIGN 逐条列出并由用户确认。
+
 ## Motion（视频扩展）
 
 **先设计主动作与观看过程，再细化曲线。** 共同安排主对象变化、观察位置与尺度、焦点交接和必要停顿；辅助物持续运动或技术无缺陷不等于主画面在推进。阅读、比较和情绪留白可以停稳；比较可辨不等于全场固定。接力须在实际画面可感知，不以非零微动或持续运镜填空。关键变化的图证据与阅读窗口按系列根目录的 `templates/镜头剧本.template.md`；完整过程预演、确定性与实际审看片按 `docs/04_验收与返修.md`。本规范只维护视觉和运动语言，不另设阶段门禁。
@@ -257,13 +318,19 @@
 
 写清镜头变化的风格与适用边界，不把阅读对象稳定扩大为全画面冻结或整段固定机位。静态风格统一指配色、材质、字体与组件语言，不要求同一构图覆盖整段。具体选择在设计图前按系列根目录的 `experience/镜头推进与转场.md` 完成；用关键状态先挑战主变化、真实近读和整体揭示，不等完整动画写完后再抽终态作为设计依据。单段景别、轨迹与参数不自动变成系列默认，也不设每段图数或相机运动配额。
 
-曲线分别写入 `x-video.motion.curves`：出现、预备、传递、落位，以及 `process`（变形、生长、逐步失真等需要被看清的过程）。出现类曲线前段变化极快，用在变形上会让过程一闪而过；需要看清的过程按可读时长安排，不以两个词之间的空隙为上限。一个动作保持连贯的曲线逻辑，跨镜匹配承接切点两侧屏幕速度，不机械两边各缓入缓出。
+曲线分别写入 `x-video.motion.curves`，使用边界见相邻 `curveUsage`：出现、短促可读的预备、位置或尺度移动、落位，以及 `process`（形变、生长、颜色或材质渐变等需要看清变化本身的过程）。位置或尺度移动不归入 `process`。出现类曲线前段变化极快，用在变形上会让过程一闪而过；需要看清的过程按可读时长安排，不以两个词之间的空隙为上限。一个动作保持连贯的曲线逻辑，跨镜匹配承接切点两侧屏幕速度，不机械两边各缓入缓出。
 
 **普通视觉位移、缩放、相机运动和内容过渡采用可感知的非匀速。** 不做全程恒速，也不以起终点的一点缓动包住中段恒速巡航。真实进度、计数、时间轴等按实际数据关系允许线性，具体用途写入 `x-video.motion.linearUseCases`；“机械感”“扫描感”不能单独豁免普通视觉运动。数学上非线性不自动合格：核对实现实际调用的曲线，以及主体与相机合成后的屏幕速度、主动作和停顿的节奏；不同职责也不能未经判断全部套用同一条曲线。
 
-### 校准样本
+### 职责曲线与校准
 
-`calibration` 记录实际样片、fps、阶段帧数、位移、角度、形变和跟随延迟，以及验证了什么。未知数值保持待测试；样片时间只是手感参考，本期动作仍由真实配音决定。换 fps 先换算时间再到帧，保留先后关系。
+上方 `motion.curves` 和 `motion.calibration` 已填可直接选择的默认候选与 B3 来源。出现／到位 `(0.16,1,0.3,1)`；**位置或尺度移动（含部件移位、副本传递、归档移动）用主体传递 `(0.22,0.72,0.22,1)`，短距时长参照 B3 约46f@60fps**。过程曲线 `ease-in-out-cubic` 只用于需要看清变化本身的形变、生长、颜色或材质渐变，不用于位置或尺度移动；预备另按 B3 短、可读地安排（参照24f@60fps），不作为主位移的替代曲线。例如沙发右移8%用传递曲线，墙面由白变浅蓝用过程曲线。出现曲线不能替代需看清的变形过程。落位可用到位候选，接触压缩／一次回正仍单独排时。镜头分职责选择：揭示／重构图／拉开用 ep07 `cubic-bezier(.3,0,.25,1)` 配合对数缩放插值；主体绑定跟随由主体最终变换和屏幕锚点反算相机，不另配独立曲线；稳定阅读时固定取景，局部微调用到位候选并短促停稳，不用长慢尾；情绪性慢镜只有表达需要时使用，写明理由。
+
+**不准用一条曲线包办所有动作（含镜头）；曲线合规不等于利落；空值不等于禁用，进入动画前必须有值，并写明来源。** 只对实际采用的动作填执行值；未采用项目注明不适用，不能以空值偷换“禁止预备／跟随”。具体源码见[B3 完整过程](../assets/motion/ep05-d06-task-relay/src/timeline.cjs)与[ep07 相机](../assets/motion/ep07-entry-follow-v8/src/camera.cjs)，制作前结合对象、路程、真实配音和阅读预算选择，不把例中镜头旧曲线继承成普通默认。
+
+B3 的 fps、预备／传递／长距／停稳帧数、后撤、倾斜、压缩／拉伸／一次回正、尾标与跟随延迟，统一维护在上方 `motion.calibration`，不另存一份执行数值。**这是参照，不是硬值；改帧数时保持先后和比例。** 换 fps 先按秒换算，当前项目尚未验证的动态证据保持待验，不能把来源参照登记成本片实测。
+
+本分享包保留“动态风格测试 → 确认 → 回填”，这些默认值作为测试起点。测试与实际片段产生后，将采用范围、参数来源和当前证据写在既有 DESIGN；不另设逐动作审批。
 
 ### 动画原则检查
 

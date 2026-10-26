@@ -82,7 +82,7 @@ test('delivery needs actual video lock and source lock',()=>{
 });
 test('fixed-composition opacity reveal is measured without requiring a spatial trajectory',()=>{
   const s=spec(t=>({objects:[{...box('main'),opacity:t/2}]}));s.actions=[{id:'a',objectId:'main',start:0,end:2,kind:'reveal',channels:['opacity']},{id:'b',objectId:'main',start:1.8,end:2,kind:'reveal',channels:['opacity']}];
-  const r=run(s);assert(!r.findings.some(f=>f.code==='uniform-screen-channel'));assert.equal(r.actions[0].channels.opacity.unit,'fraction');assert.equal(r.status,'measured-no-findings');assert.equal(r.visualAcceptance,'not-assessed');
+  const r=run(s);assert(!r.findings.some(f=>f.code==='uniform-screen-channel'));assert.equal(r.actions[0].channels.opacity.unit,'fraction');assert.equal(r.status,'findings');assert(r.findings.some(f=>f.code==='opacity-only-lifecycle'&&f.severity==='review'));assert.equal(r.visualAcceptance,'not-assessed');
 });
 test('invisible moving layers cannot hide a visible common stop',()=>{
   const s=spec(t=>({objects:[box('main',t<1?300*smooth(t):300+300*smooth(t-1)),{...box('hidden',t*100),opacity:0}]}));s.coverage.objectIds.push('hidden');s.checkpoints[0].objectIds.push('hidden');
@@ -202,7 +202,7 @@ test('isolated or too-short visible samples cannot claim complete trajectory cov
   }
   const r=auditMotion(standalone(t=>({objects:[{...box('main',300*smooth(t),100),opacity:t<=6/60?1:0}]})),{requireVideo:false});
   assert.equal(r.actions[0].compositeSpeed.maxContiguousIntervals,6);
-  assert.equal(r.status,'measured-no-findings');assert.equal(r.visualAcceptance,'not-assessed');
+  assert.equal(r.status,'findings');assert(r.findings.some(f=>f.code==='instant-element-visibility'));assert.equal(r.visualAcceptance,'not-assessed');
 });
 
 test('fully offscreen movement on any side cannot erase a visible relay wait',()=>{
@@ -234,7 +234,7 @@ function fadeOnly(frameAt=t=>({objects:[{...box('main',100,100),opacity:smooth(t
 }
 test('a real fixed-composition fade with attributed inapplicable joins has complete applicable coverage',()=>{
   const r=auditMotion(fadeOnly(),{requireVideo:false});
-  assert.equal(r.status,'measured-no-findings');assert.deepEqual(r.coverageGaps,[]);
+  assert.equal(r.status,'findings');assert.deepEqual(r.coverageGaps,[]);assert(r.findings.some(f=>f.code==='opacity-only-lifecycle'));
   assert.equal(r.notApplicable.length,2);assert.equal(r.actions[0].channels.opacity.range,1);
   assert.equal(r.visualAcceptance,'not-assessed');assert(r.requiredNext.some(n=>n.includes('1x')));
 });
@@ -274,9 +274,330 @@ test('a static hold labeled reveal or missing node evidence cannot become a comp
 });
 test('pure fade applicability preserves realtime limits and ignores truly invisible helper geometry',()=>{
   let s=fadeOnly(t=>({objects:[{...box('main',100,100),opacity:smooth(t)},{...box('invisible',100*t,100),opacity:0}]}));
-  assert.equal(auditMotion(s,{requireVideo:false}).status,'measured-no-findings');
+  assert.equal(auditMotion(s,{requireVideo:false}).status,'findings');
   s=fadeOnly();s.actions[0].kind='realtime';delete s.actions[0].channels;s.actions[0].exception=exception('real-time');
   assert.equal(auditMotion(s,{requireVideo:false}).status,'incomplete');
   s=fadeOnly();s.actions.push({id:'clock',objectId:'main',start:.5,end:1,kind:'realtime',exception:exception('real-time')});
   assert.equal(auditMotion(s,{requireVideo:false}).status,'incomplete');
+});
+
+// I1 D1: lifecycle/content changes are review findings, separate from visual acceptance.
+const d1Codes=new Set(['opacity-only-lifecycle','instant-element-visibility','content-replaced-without-process']);
+const d1=s=>auditMotion(s,{requireVideo:false});
+test('natural modification aliases locate D04 and retain its successful-repair semantic boundary',()=>{
+  for(const relation of ['修改','改写','修订','局部修改','反复修改']){
+    const r=locate({root,relation});assert.equal(r.processes.length,1);assert.equal(r.processes[0].id,'ep05-d04-inspect-rewrite-handoff');
+    assert(r.processes[0].limits.includes('诊断后改好'));assert(r.processes[0].limits.includes('反复修改仍不解决'));
+    assert.deepEqual(r.processes[0].matchedRelations,[relation]);assert(!r.processes[0].samples);
+  }
+});
+test('locator default is concise and partial matches expose unmatched terms',()=>{
+  const r=locate({root,relation:'修改,未收录关系'});assert.equal(r.detail,'concise');assert.deepEqual(r.query.unmatchedTerms,['未收录关系']);
+  assert(!Object.hasOwn(r.processes[0].implementation[0],'absolutePath'));assert(!Object.hasOwn(r.processes[0],'sampleSeconds'));
+  const full=locate({root,relation:'修改',full:true});assert.equal(full.processes[0].implementation[0].sha256.length,64);assert(!full.processes[0].samples);
+  assert.equal(locate({root,relation:'修改',sample:true}).processes[0].samples.length,3);
+});
+test('pure alpha entry and exit are review-only findings even if mislabeled transfer',()=>{
+  const r=d1(standalone(t=>({objects:[{...box('main',100,100),opacity:t<=.5?smooth(t*2):1-smooth((t-.5)/.4)}]})));
+  const found=r.findings.filter(f=>f.code==='opacity-only-lifecycle');assert.equal(found.length,2);assert.deepEqual(found.map(f=>f.kind),['entry','exit']);
+  assert(found.every(f=>f.severity==='review'));assert.equal(r.visualAcceptance,'not-assessed');
+});
+test('a twelve-pixel fade slide is still a lifecycle suspicion',()=>{
+  const r=d1(standalone(t=>({objects:[{...box('main',100+12*smooth(t),100),opacity:smooth(t)}]})));
+  assert(r.findings.some(f=>f.code==='opacity-only-lifecycle'&&f.translationPx>11.9&&f.translationPx<=12));
+});
+test('physical unfold and sampled mask/path/morph/occlusion progress establish a process',()=>{
+  const examples=[t=>({...box('main',100,100),opacity:smooth(t),width:120*smooth(t)}),...['maskProgress','pathProgress','morphProgress','occlusionProgress'].map(key=>t=>({...box('main',100,100),opacity:smooth(t),process:{[key]:smooth(t)}}))];
+  for(const fn of examples){const r=d1(standalone(t=>({objects:[fn(t)]})));assert(!r.findings.some(f=>d1Codes.has(f.code)));}
+});
+test('a process label with constant progress cannot waive a fade',()=>{
+  const r=d1(standalone(t=>({objects:[{...box('main',100,100),opacity:smooth(t),process:{maskProgress:1}}]})));
+  assert(r.findings.some(f=>f.code==='opacity-only-lifecycle'));
+});
+test('retained dimming is not disappearance, and audio is outside the object contract',()=>{
+  const r=d1(standalone(t=>({objects:[{...box('main',100,100),opacity:1-.8*smooth(t)}],audioGain:smooth(t)})));
+  assert(!r.findings.some(f=>d1Codes.has(f.code)));assert.equal(r.lifecycle.length,0);
+});
+test('inherited camera movement does not disguise a pure fade as local object motion',()=>{
+  const r=d1(standalone(t=>{const cx=500+200*smooth(t),z=1+smooth(t);return {objects:[{...box('main'),x:960+(500-cx)*z,y:540,width:120*z,height:80*z,opacity:smooth(t)}],camera:{cx,cy:0,z}};}));
+  assert(r.findings.some(f=>f.code==='opacity-only-lifecycle'&&f.geometryBasis==='centered-camera-inversion-inference'));
+});
+test('actual local geometry overrides camera inference',()=>{
+  const r=d1(standalone(t=>({objects:[{...box('main',100+100*smooth(t),100),opacity:smooth(t),localGeometry:{x:0,y:0,width:120,height:80}}],camera:{cx:0,cy:0,z:1}})));
+  assert(r.findings.some(f=>f.code==='opacity-only-lifecycle'&&f.geometryBasis==='production-local-geometry'));
+});
+test('instant jumps cannot manufacture visible geometry process',()=>{
+  const r=d1(standalone(t=>({objects:[{...box('main',t<.5?100:500,100),opacity:t<.5?0:1}]})));
+  assert(r.findings.some(f=>f.code==='instant-element-visibility'));
+});
+function contentSpec(extra=()=>({}),legacy=false){
+  return standalone(t=>({objects:[{...box('main',100,100),...(!legacy?{contentVersion:t<.5?'old':'new'}:{}),...extra(t)}],...(legacy?{semantic:{main:t<.5?'old':'new'}}:{})}));
+}
+test('same-ID content swaps are detected with stable bounds and exact production boundary',()=>{
+  const r=d1(contentSpec());const f=r.findings.find(f=>f.code==='content-replaced-without-process');assert(f);assert.equal(f.time,.5);assert.equal(f.fromVersion,'old');assert.equal(f.toVersion,'new');assert.equal(f.severity,'review');
+});
+test('legacy scalar semantic[objectId] is an explicit content identity fallback',()=>{
+  const r=d1(contentSpec(()=>({}),true));assert(r.findings.some(f=>f.code==='content-replaced-without-process'));assert.deepEqual(r.contentVersionCoverage.covered,['main']);
+});
+test('resetting opacity at the version boundary does not conceal replacement',()=>{
+  const r=d1(contentSpec(t=>({opacity:t<.5?1:smooth((t-.5)*2)})));assert(r.findings.some(f=>f.code==='content-replaced-without-process'&&f.time===.5));
+});
+test('actual replacement progress is tied to the old/new content pair',()=>{
+  const r=d1(contentSpec(t=>({replacement:{kind:'mask',progress:smooth(t),fromVersion:'old',toVersion:'new'}})));
+  assert.equal(r.replacements[0].replacementMechanism,'mask');assert(!r.findings.some(f=>f.code==='content-replaced-without-process'));
+  const wrong=d1(contentSpec(t=>({replacement:{kind:'mask',progress:smooth(t),fromVersion:'other',toVersion:'new'}})));
+  assert(wrong.findings.some(f=>f.code==='content-replaced-without-process'));
+});
+test('replacement names, fixed progress and instantaneous progress jumps do not establish a process',()=>{
+  for(const progress of [()=>.5,t=>t<.5?0:1]){
+    const r=d1(contentSpec(t=>({replacement:{kind:'morph',progress:progress(t),fromVersion:'old',toVersion:'new'}})));
+    assert(r.findings.some(f=>f.code==='content-replaced-without-process'));
+  }
+});
+test('content prepared while hidden does not become a visible-replacement finding',()=>{
+  const r=d1(contentSpec(()=>({opacity:0})));assert.equal(r.replacements.length,0);assert(!r.findings.some(f=>f.code==='content-replaced-without-process'));
+});
+test('unexposed identity remains explicitly uncovered rather than silently called stable',()=>{
+  const r=d1(standalone(t=>({objects:[box('main',100+300*smooth(t),100)]})));
+  assert.deepEqual(r.contentVersionCoverage.uncovered,['main']);assert.deepEqual(r.contentVersionCoverage.covered,[]);
+});
+test('a full scene cut with source evidence differs from an element-local cut',()=>{
+  const s=contentSpec();delete s.coverage.notApplicable.checkpoints;
+  s.checkpoints=[{id:'scene-cut',time:.5,role:'cut',scope:'scene',objectIds:['main'],exception:exception('cut')}];
+  assert(!d1(s).findings.some(f=>f.code==='content-replaced-without-process'));
+  delete s.checkpoints[0].scope;assert(d1(s).findings.some(f=>f.code==='content-replaced-without-process'));
+});
+test('a claimed scene cut cannot suppress unlisted visible participants',()=>{
+  const s=contentSpec();const before=s.frameAt;s.frameAt=t=>({...before(t),objects:[...before(t).objects,box('other',400,100)]});s.coverage.objectIds.push('other');
+  delete s.coverage.notApplicable.checkpoints;s.checkpoints=[{id:'partial-cut',time:.5,role:'cut',scope:'scene',objectIds:['main'],exception:exception('cut')}];
+  assert(d1(s).findings.some(f=>f.code==='content-replaced-without-process'));
+});
+test('bad content/replacement/progress values cannot silently disable checks',()=>{
+  assert.throws(()=>d1(contentSpec(()=>({contentVersion:{text:'not scalar'}}))),/scalar/);
+  assert.throws(()=>d1(contentSpec(()=>({replacement:{kind:'mask',progress:.5}}))),/scalar/);
+  assert.throws(()=>d1(contentSpec(()=>({process:{maskProgress:2}}))),/outside/);
+});
+function splitSpec(offset){
+  const s=standalone(t=>({objects:[box('main',100+300*smooth(t),100),{...box('child',250+offset,100),opacity:t<.5?0:smooth((t-.5)*2)}]}));
+  s.coverage.objectIds.push('child');s.sourceLinks=[{id:'same-location-copy',sourceObjectId:'main',targetObjectId:'child',time:.5,evidence:scopeEvidence()}];return s;
+}
+test('source/target relation checks actual first visible origin and catches stale coordinates',()=>{
+  assert(!d1(splitSpec(0)).findings.some(f=>f.code==='source-origin-discontinuity'));
+  const r=d1(splitSpec(528));const f=r.findings.find(f=>f.code==='source-origin-discontinuity');assert(f);assert.equal(f.distancePx,528);assert.equal(f.severity,'review');
+});
+test('source links require bound source evidence and valid covered IDs',()=>{
+  const s=splitSpec(0);s.sourceLinks[0].evidence.anchor=['missing','split','relation','anchor'].join(' ');assert.throws(()=>d1(s),/anchor missing/);
+  s.sourceLinks[0].targetObjectId='omitted';assert.throws(()=>d1(s),/not covered/);
+});
+test('opacity-only declared action still exposes a fading attached object while its parent travels',()=>{
+  const s=standalone(t=>({objects:[{...box('main',100+160*smooth(t),100),opacity:1-smooth(t/.9)}]}));
+  s.actions[0].kind='reveal';s.actions[0].channels=['opacity'];
+  const r=d1(s);assert(r.findings.some(f=>f.code==='opacity-only-lifecycle'&&f.kind==='exit'&&f.declaredOpacityOnlyAction==='a'));
+});
+
+
+// I1 round 2: independent review boundaries, with encoded-frame EOF excluded.
+test('subpixel shape noise cannot excuse an alpha-only entrance',()=>{
+  for(const geometry of [t=>({width:120+.0001*t}),t=>({height:80+.0001*t}),t=>({rotation:.0001*t})]){
+    const r=d1(standalone(t=>({objects:[{...box('main',100,100),opacity:t,...geometry(t)}]})));
+    const f=r.findings.find(f=>f.code==='opacity-only-lifecycle');assert(f);assert.equal(f.shapeChange,false);
+  }
+});
+test('one-millionth process-progress noise does not establish mask/path/morph/occlusion',()=>{
+  for(const key of ['maskProgress','pathProgress','morphProgress','occlusionProgress']){
+    const r=d1(standalone(t=>({objects:[{...box('main',100,100),opacity:t,process:{[key]:.5+t*1e-6}}]})));
+    const f=r.findings.find(f=>f.code==='opacity-only-lifecycle');assert(f);assert.deepEqual(f.progressChannels,[]);
+  }
+});
+test('replacement progress noise cannot hide an actual same-ID content swap',()=>{
+  const r=d1(contentSpec(t=>({replacement:{kind:'mask',progress:.5+t*1e-6,fromVersion:'old',toVersion:'new'}})));
+  assert(r.findings.some(f=>f.code==='content-replaced-without-process'&&f.time===.5));
+});
+test('a later correctly named mask cannot retroactively excuse an earlier visible text swap',()=>{
+  const r=d1(contentSpec(t=>({replacement:t>=.6?{kind:'mask',progress:Math.min(1,(t-.6)/.1),fromVersion:'old',toVersion:'new'}:undefined})));
+  const f=r.findings.find(f=>f.code==='content-replaced-without-process');assert(f);assert.equal(f.time,.5);assert.equal(f.replacementMechanism,null);
+});
+test('an already-finished mechanism also cannot excuse a later swap',()=>{
+  const r=d1(contentSpec(t=>({replacement:{kind:'mask',progress:Math.min(1,t/.3),fromVersion:'old',toVersion:'new'}})));
+  assert(r.findings.some(f=>f.code==='content-replaced-without-process'&&f.time===.5));
+});
+test('real replacement progress starting or completing at the actual boundary remains recognized',()=>{
+  for(const progress of [t=>Math.max(0,Math.min(1,(t-.5)/.2)),t=>Math.max(0,Math.min(1,(t-.3)/.2))]){
+    const r=d1(contentSpec(t=>({replacement:{kind:'mask',progress:progress(t),fromVersion:'old',toVersion:'new'}})));
+    assert.equal(r.replacements[0].replacementMechanism,'mask');assert(!r.findings.some(f=>f.code==='content-replaced-without-process'));
+  }
+});
+test('missing identity samples are partial coverage and leave the changed-version boundary unresolved',()=>{
+  const r=d1(contentSpec(t=>({contentVersion:t<.4?'old':t>.6?'new':undefined})));
+  assert.equal(r.status,'incomplete');assert(r.coverageGaps.some(g=>g.includes('Content identity coverage incomplete')));
+  assert.deepEqual(r.contentVersionCoverage.covered,[]);assert.equal(r.contentVersionCoverage.partial[0].missingSamples,13);
+  const missing=r.contentVersionCoverage.partial[0].missingRanges[0];assert.equal(missing.firstMissing,.4);assert.equal(missing.lastMissing,.6);
+  const change=r.contentVersionCoverage.unresolvedChanges[0];assert.equal(change.time,null);assert.equal(change.lastKnownTime,23/60);assert.equal(change.firstKnownTime,37/60);
+  assert(!r.replacements.length);assert(!r.findings.some(f=>f.code==='content-replaced-without-process'));
+});
+test('a partial identity gap does not erase other precisely known swaps',()=>{
+  const r=d1(contentSpec(t=>({contentVersion:t<.2?'A':t<.4?'B':t<=.6?undefined:t<.8?'C':'D'})));
+  assert.deepEqual(r.replacements.map(f=>f.time),[.2,.8]);assert.equal(r.contentVersionCoverage.unresolvedChanges[0].time,null);
+  assert.equal(r.contentVersionCoverage.unresolvedChanges[0].fromVersion,'B');assert.equal(r.contentVersionCoverage.unresolvedChanges[0].toVersion,'C');
+});
+test('an identity gap found between encoded samples is not binary-searched into a false exact time',()=>{
+  const r=d1(contentSpec(t=>({contentVersion:t<.491?'old':t<.495?undefined:'new'})));
+  assert.equal(r.contentVersionCoverage.partial.length,1);assert.equal(r.contentVersionCoverage.covered.length,0);
+  assert.equal(r.contentVersionCoverage.unresolvedChanges[0].time,null);assert.equal(r.replacements.length,0);
+});
+test('unencoded duration endpoint changes are not D1 visibility or content events',()=>{
+  const r=d1(standalone(t=>({objects:[{...box('main',100,100),opacity:t<1?1:0,contentVersion:t<1?'old':'new'}]})));
+  assert(!r.findings.some(f=>d1Codes.has(f.code)));assert.equal(r.lifecycle.length,0);assert.equal(r.replacements.length,0);
+  assert.equal(r.sampling.lifecycleEncodedFrames,60);assert.equal(r.sampling.lifecycleLastFrameTime,59/60);assert.equal(r.sampling.lifecycleEndExclusive,true);
+});
+test('the last actual encoded frame still participates in visibility and identity checks',()=>{
+  const at=59/60;
+  let r=d1(standalone(t=>({objects:[{...box('main',100,100),opacity:t<at?1:0}]})));
+  assert(r.findings.some(f=>f.code==='instant-element-visibility'&&f.end===at));
+  r=d1(standalone(t=>({objects:[{...box('main',100,100),contentVersion:t<at?'old':'new'}]})));
+  assert(r.findings.some(f=>f.code==='content-replaced-without-process'&&Math.abs(f.time-at)<1e-8));
+});
+test('fractional duration retains every frame strictly before its endpoint',()=>{
+  const r=d1(standalone(t=>({objects:[{...box('main',100,100),opacity:t<1?1:0}]}),1.01));
+  assert.equal(r.sampling.lifecycleEncodedFrames,61);assert.equal(r.sampling.lifecycleLastFrameTime,1);
+  assert(r.findings.some(f=>f.code==='instant-element-visibility'&&f.end===1));
+});
+test('hidden content preparation followed by a genuine geometry reveal is not a visible replacement',()=>{
+  const r=d1(contentSpec(t=>({opacity:t<.6?0:1,width:t<.6?0:120*Math.min(1,(t-.6)/.2)})));
+  assert(!r.findings.some(f=>d1Codes.has(f.code)));assert.equal(r.replacements.length,0);
+});
+test('hidden preparation cannot waive a subsequent instant element pop',()=>{
+  const r=d1(contentSpec(t=>({opacity:t<.6?0:1})));
+  assert(!r.findings.some(f=>f.code==='content-replaced-without-process'));assert(r.findings.some(f=>f.code==='instant-element-visibility'&&f.start>=.58));
+});
+test('hidden preparation is recognized after a previously visible old version has left',()=>{
+  const r=d1(contentSpec(t=>({opacity:t<.3?1:t<.6?0:1,width:t<.6?120:120*Math.min(1,(t-.6)/.2)})));
+  assert(!r.findings.some(f=>f.code==='content-replaced-without-process'));assert(r.findings.some(f=>f.code==='instant-element-visibility'&&f.kind==='exit'));
+});
+
+// I2: declared content-layer boundaries affect D1 only, never engineering motion checks.
+const i2D1Codes=new Set([...d1Codes,'source-origin-discontinuity']);
+function categoryFixture(category){
+  return standalone(t=>({objects:[{...box('main',100,100),opacity:t<.2?0:1,
+    contentVersion:t<.5?'cue-A':'cue-B',...(category===undefined?{}:{d1Category:category})}]}));
+}
+test('I2 explicit cue/source-footage categories exclude all D1 with an unverified declaration record',()=>{
+  for(const category of ['subtitle-cue','source-footage']){
+    const r=d1(categoryFixture(category));assert(!r.findings.some(f=>i2D1Codes.has(f.code)));
+    assert.deepEqual(r.d1Classification.excludedObjectIds,['main']);assert.deepEqual(r.d1Classification.checkedObjectIds,[]);
+    assert.equal(r.d1Classification.objects[0].category,category);assert.equal(r.d1Classification.objects[0].disposition,'excluded');
+    assert(r.d1Classification.objects[0].reason.includes('review'));assert(r.d1Classification.basis.includes('not assessed'));
+    assert.deepEqual(r.contentVersionCoverage.covered,[]);assert.deepEqual(r.contentVersionCoverage.uncovered,[]);assert.equal(r.visualAcceptance,'not-assessed');
+  }
+});
+test('I2 MG and post-production overlays still report direct appearance and same-node replacement',()=>{
+  for(const category of ['mg','overlay']){
+    const r=d1(categoryFixture(category));assert(r.findings.some(f=>f.code==='instant-element-visibility'));
+    assert(r.findings.some(f=>f.code==='content-replaced-without-process'&&f.time===.5));assert.deepEqual(r.d1Classification.checkedObjectIds,['main']);
+    assert.equal(r.d1Classification.objects[0].category,category);assert.deepEqual(r.d1Classification.excludedObjectIds,[]);
+  }
+});
+test('I2 omitted, misspelled and invalid categories never become an exemption',()=>{
+  for(const category of [undefined,'source-footage ','subtitle','unknown',null,17,{}]){
+    const r=d1(categoryFixture(category));assert(r.findings.some(f=>f.code==='content-replaced-without-process'));
+    assert.deepEqual(r.d1Classification.checkedObjectIds,['main']);assert.deepEqual(r.d1Classification.excludedObjectIds,[]);
+    const c=r.d1Classification.objects[0];assert.equal(c.disposition,'checked');assert.equal(c.category,null);
+    if(category===undefined)assert.equal(c.missingSamples,60);else assert(c.unknownCategories.length>0);
+  }
+});
+test('I2 mixed or partially omitted categories retain the whole ID in D1 coverage',()=>{
+  for(const categoryAt of [t=>t<.5?'subtitle-cue':'mg',t=>t<.2?undefined:'source-footage',t=>t<.5?'source-footage':'data-readout']){
+    const s=categoryFixture();const original=s.frameAt;s.frameAt=t=>({objects:original(t).objects.map(o=>({...o,d1Category:categoryAt(t)}))});
+    const r=d1(s);assert(r.findings.some(f=>f.code==='content-replaced-without-process'));assert.equal(r.d1Classification.objects[0].category,null);
+    assert.deepEqual(r.d1Classification.excludedObjectIds,[]);assert(r.d1Classification.objects[0].reason.includes('retain'));
+  }
+});
+test('I2 a source-footage layer cannot exempt its separately identified annotation overlay',()=>{
+  const s=categoryFixture('source-footage'),original=s.frameAt;s.coverage.objectIds.push('annotation');
+  s.frameAt=t=>({objects:[...original(t).objects,{...original(t).objects[0],id:'annotation',d1Category:'overlay',parentId:'main'}]});
+  const r=d1(s);assert.deepEqual(r.d1Classification.excludedObjectIds,['main']);assert.deepEqual(r.d1Classification.checkedObjectIds,['annotation']);
+  assert(r.findings.some(f=>f.objectId==='annotation'&&f.code==='instant-element-visibility'));
+  assert(r.findings.some(f=>f.objectId==='annotation'&&f.code==='content-replaced-without-process'));
+  assert(!r.findings.some(f=>f.objectId==='main'&&i2D1Codes.has(f.code)));
+});
+test('I2 a real numeric readout may update every frame without same-node replacement findings',()=>{
+  const make=category=>standalone(t=>({objects:[{...box('main',100,100),contentVersion:Math.floor(t*60),d1Category:category}]}));
+  const excluded=d1(make('data-readout'));assert(!excluded.findings.some(f=>f.code==='content-replaced-without-process'));
+  assert.equal(excluded.d1Classification.objects[0].disposition,'content-only-excluded');
+  assert.deepEqual(excluded.d1Classification.excludedObjectIds,[]);assert.deepEqual(excluded.d1Classification.contentOnlyExcludedObjectIds,['main']);
+  assert.deepEqual(excluded.d1Classification.checkedObjectIds,['main']);assert.deepEqual(excluded.d1Classification.contentCheckedObjectIds,[]);
+  assert.deepEqual(excluded.d1Classification.objects[0].checks,{lifecycle:true,contentIdentity:false,sourceLinks:true});
+  const mg=d1(make('mg'));assert(mg.findings.some(f=>f.code==='content-replaced-without-process'));
+});
+test('I2 D1 exclusion does not waive ordinary uniform-motion engineering findings',()=>{
+  const r=d1(standalone(t=>({objects:[{...box('main',100+300*t,100),d1Category:'source-footage'}]})));
+  assert.deepEqual(r.d1Classification.excludedObjectIds,['main']);assert(r.findings.some(f=>f.code==='uniform-screen-motion'&&f.severity==='constraint-violation'));
+});
+test('I2 D1 exclusion does not waive pass-node stops or causal empty waits',()=>{
+  const s=spec(t=>({objects:[{...box('main',t<.5?300*smooth(t*2):t>1.5?300+300*smooth((t-1.5)*2):300),d1Category:'data-readout'}]}));
+  s.actions=[{id:'a',objectId:'main',start:0,end:.5,kind:'transfer'},{id:'b',objectId:'main',start:1.5,end:2,kind:'transfer'}];
+  const r=d1(s);assert(r.findings.some(f=>f.code==='pass-node-common-stop'));assert(r.findings.some(f=>f.code==='relay-empty-wait'));
+});
+test('I2 excluded content identity gaps are outside D1 while MG identity gaps remain incomplete',()=>{
+  const make=category=>standalone(t=>({objects:[{...box('main',100+300*smooth(t),100),d1Category:category,contentVersion:t<.4?'A':t>.6?'B':undefined}]}));
+  const footage=d1(make('source-footage'));assert.deepEqual(footage.contentVersionCoverage.partial,[]);assert(!footage.coverageGaps.some(g=>g.includes('identity')));
+  const mg=d1(make('mg'));assert.equal(mg.contentVersionCoverage.partial.length,1);assert(mg.coverageGaps.some(g=>g.includes('identity')));
+});
+test('I2 the source-link target category controls D1 without inheriting a source exemption',()=>{
+  const s=splitSpec(528),original=s.frameAt;
+  s.frameAt=t=>({objects:original(t).objects.map(o=>({...o,d1Category:o.id==='child'?'source-footage':'mg'}))});
+  let r=d1(s);assert(!r.findings.some(f=>f.code==='source-origin-discontinuity'));assert.equal(r.d1Classification.excludedSourceLinks[0].id,'same-location-copy');
+  assert.equal(r.d1Classification.excludedSourceLinks[0].targetObjectId,'child');
+  s.frameAt=t=>({objects:original(t).objects.map(o=>({...o,d1Category:o.id==='child'?'overlay':'source-footage'}))});
+  r=d1(s);assert(r.findings.some(f=>f.code==='source-origin-discontinuity'));assert.deepEqual(r.d1Classification.excludedSourceLinks,[]);
+});
+test('I2 a scene cut is assessed over D1 participants without reintroducing excluded subtitle cues',()=>{
+  const s=contentSpec(),original=s.frameAt;s.coverage.objectIds.push('cue');
+  s.frameAt=t=>({objects:[...original(t).objects,{...box('cue',600,700),d1Category:'subtitle-cue',contentVersion:t<.5?'cue1':'cue2'}]});
+  delete s.coverage.notApplicable.checkpoints;s.checkpoints=[{id:'scene-cut',time:.5,role:'cut',scope:'scene',objectIds:['main'],exception:exception('cut')}];
+  const r=d1(s);assert.deepEqual(r.d1Classification.excludedObjectIds,['cue']);assert(!r.findings.some(f=>f.code==='content-replaced-without-process'));
+});
+test('I2 an unencoded EOF category cannot grant an earlier exemption',()=>{
+  const s=categoryFixture('mg'),original=s.frameAt;s.frameAt=t=>({objects:original(t).objects.map(o=>({...o,d1Category:t<1?'mg':'source-footage'}))});
+  const r=d1(s);assert.equal(r.d1Classification.objects[0].category,'mg');assert(r.findings.some(f=>f.code==='content-replaced-without-process'));
+});
+test('I2 excluded categories do not suppress invalid input or source binding requirements',()=>{
+  const s=categoryFixture('source-footage'),original=s.frameAt;s.frameAt=t=>({objects:original(t).objects.map(o=>({...o,x:NaN}))});
+  assert.throws(()=>d1(s),/finite/);
+  s.frameAt=original;s.sourceFiles=[];assert.throws(()=>d1(s),/No render source files/);
+});
+
+// I2 revision 2: real data updates exempt identity changes only, never designed entry/exit/copy.
+test('I2 data-readout hard entry and exit remain D1 findings while numbers update from 0 to 100',()=>{
+  const r=d1(standalone(t=>({objects:[{...box('main',100,100),d1Category:'data-readout',contentVersion:Math.min(100,Math.floor(t*125)),opacity:t<.2||t>=.8?0:1}]})));
+  const lifecycle=r.findings.filter(f=>f.code==='instant-element-visibility');assert.equal(lifecycle.length,2);
+  assert.deepEqual(lifecycle.map(f=>f.kind),['entry','exit']);assert(!r.findings.some(f=>f.code==='content-replaced-without-process'));
+  assert.deepEqual(r.d1Classification.excludedObjectIds,[]);assert.deepEqual(r.d1Classification.contentOnlyExcludedObjectIds,['main']);
+});
+test('I2 data-readout alpha-only fades remain D1 lifecycle findings',()=>{
+  const alpha=t=>t<.2?0:t<.5?(t-.2)/.3:t<.6?1:t<.9?(.9-t)/.3:0;
+  const r=d1(standalone(t=>({objects:[{...box('main',100,100),d1Category:'data-readout',contentVersion:Math.floor(t*100),opacity:Math.max(0,Math.min(1,alpha(t)))}]})));
+  assert.equal(r.findings.filter(f=>f.code==='opacity-only-lifecycle').length,2);
+  assert(!r.findings.some(f=>f.code==='content-replaced-without-process'));assert.equal(r.d1Classification.objects[0].checks.lifecycle,true);
+});
+test('I2 data-readout with a genuine geometric reveal keeps that D1 process evidence',()=>{
+  const r=d1(standalone(t=>({objects:[{...box('main',100,100),d1Category:'data-readout',contentVersion:Math.floor(t*100),width:120*smooth(t),opacity:smooth(t)}]})));
+  assert.equal(r.lifecycle.length,1);assert.equal(r.lifecycle[0].hasProcess,true);assert(!r.findings.some(f=>i2D1Codes.has(f.code)));
+  assert.deepEqual(r.d1Classification.checkedObjectIds,['main']);assert.equal(r.d1Classification.objects[0].disposition,'content-only-excluded');
+});
+test('I2 data-readout copy still checks its actual source even when the source is footage',()=>{
+  const s=splitSpec(528),original=s.frameAt;
+  s.frameAt=t=>({objects:original(t).objects.map(o=>({...o,d1Category:o.id==='child'?'data-readout':'source-footage',contentVersion:Math.floor(t*100)}))});
+  const r=d1(s),finding=r.findings.find(f=>f.code==='source-origin-discontinuity');assert(finding);assert.equal(finding.distancePx,528);
+  assert.deepEqual(r.d1Classification.excludedObjectIds,['main']);assert.deepEqual(r.d1Classification.contentOnlyExcludedObjectIds,['child']);
+  assert.deepEqual(r.d1Classification.excludedSourceLinks,[]);assert.equal(r.sourceLinks.length,1);assert(!r.findings.some(f=>f.code==='content-replaced-without-process'));
+});
+test('I2 numeric content exemption does not propagate into its separately identified packaging label',()=>{
+  const s=standalone(t=>({objects:[{...box('main',100,100),d1Category:'data-readout',contentVersion:Math.floor(t*100)},
+    {...box('label',100,200),d1Category:'overlay',parentId:'main',opacity:t<.2?0:1,contentVersion:t<.5?'old label':'new label'}]}));
+  s.coverage.objectIds.push('label');const r=d1(s);
+  assert.deepEqual(r.d1Classification.contentOnlyExcludedObjectIds,['main']);assert.deepEqual(r.d1Classification.contentCheckedObjectIds,['label']);
+  assert(r.findings.some(f=>f.objectId==='label'&&f.code==='instant-element-visibility'));
+  assert(r.findings.some(f=>f.objectId==='label'&&f.code==='content-replaced-without-process'));
+  assert(!r.findings.some(f=>f.objectId==='main'&&f.code==='content-replaced-without-process'));
 });

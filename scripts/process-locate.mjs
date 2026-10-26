@@ -14,20 +14,23 @@ function inside(root, rel){
   if(r==='..'||r.startsWith('..'+path.sep)||path.isAbsolute(r))throw Error('Index path escapes package: '+rel);
   return p;
 }
-export function locate({root=ROOT,relation,id,sample=false}={}){
+export function locate({root=ROOT,relation,id,sample=false,full=false}={}){
   if(!relation&&!id)throw Error('Provide relation or id; topic-level omission is not a match.');
   const indexFile=inside(root,'assets/motion/process-index.json');
   const index=JSON.parse(fs.readFileSync(indexFile,'utf8'));
   if(index.schemaVersion!==1||!Array.isArray(index.processes))throw Error('Unsupported process index');
   const terms=relation?.split(/[,，]/).map(s=>s.trim().toLowerCase()).filter(Boolean)||[];
+  const matchedTerms=terms.filter(t=>index.processes.some(p=>p.relations.some(r=>r.toLowerCase()===t)));
+  const unmatchedTerms=terms.filter(t=>!matchedTerms.includes(t));
   const selected=index.processes.filter(p=>id?p.id===id:terms.some(t=>p.relations.some(r=>r.toLowerCase()===t)));
   if(!selected.length)throw Error('No local causal relation matched; inspect available relations, not whole-topic similarity.');
-  return {schemaVersion:1,basis:'distributed-source-execution; not screen tracking or visual acceptance',index:{path:indexFile,sha256:sha(fs.readFileSync(indexFile))},processes:selected.map(p=>{
+  return {schemaVersion:1,basis:'distributed-source-execution; not screen tracking or visual acceptance',index:{path:indexFile,sha256:sha(fs.readFileSync(indexFile))},query:{terms,matchedTerms,unmatchedTerms},detail:sample?'full-with-samples':full?'full':'concise',processes:selected.map(p=>{
     const files=p.implementation.map(f=>{
       const file=inside(root,f.path),bytes=fs.readFileSync(file),text=bytes.toString('utf8');
       return {path:f.path,absolutePath:file,sha256:sha(bytes),anchors:f.anchors.map(a=>{const pos=text.indexOf(a);if(pos<0)throw Error(`Missing source anchor ${a} in ${f.path}`);return {text:a,line:text.slice(0,pos).split('\n').length};})};
     });
-    const result={...p,implementation:files};
+    const result=full||sample?{...p,matchedRelations:terms.filter(t=>p.relations.some(r=>r.toLowerCase()===t)),implementation:files}:
+      {id:p.id,matchedRelations:terms.filter(t=>p.relations.some(r=>r.toLowerCase()===t)),causalChain:p.causalChain,limits:p.limits,sourceSeconds:p.sourceSeconds,implementation:files.map(f=>({path:f.path,anchors:f.anchors})),next:'Use --id '+p.id+' --full for source hashes and reuse details; add --sample only when actual source states are needed.'};
     if(sample){
       if(p.sampler.unit!=='sourceSeconds')throw Error('Unsupported source timebase');
       const mod=require(inside(root,p.sampler.path)),fn=mod[p.sampler.export];
@@ -42,9 +45,9 @@ export function locate({root=ROOT,relation,id,sample=false}={}){
   })};
 }
 async function main(){
-  const args=process.argv.slice(2);if(args.includes('--help')){console.log('node scripts/process-locate.mjs --relation 接收,处理 [--sample] [--out project/result.json]\nOr --id ep05-d06-receive-process-deliver. Exact relation aliases in assets/motion/process-index.json. Output includes source paths, hashes, function anchors, actual source samples and reuse boundaries. --sample executes only bundled trusted source; no install, rendering or visual pass.');return;}
+  const args=process.argv.slice(2);if(args.includes('--help')){console.log('node scripts/process-locate.mjs --relation 接收,处理 [--full] [--sample] [--out project/result.json]\nOr --id ep05-d06-receive-process-deliver. Exact relation aliases in assets/motion/process-index.json. Default output is concise: matched relations, unmatched terms, causal summary, source anchors and semantic limits. --full adds hashes and complete reuse details; --sample explicitly adds full source samples. --sample executes only bundled trusted source; no install, rendering or visual pass.');return;}
   const opts={};let out;
-  for(let i=0;i<args.length;i++){const k=args[i];if(k==='--sample')opts.sample=true;else if(['--relation','--id','--out'].includes(k)){const v=args[++i];if(!v||v.startsWith('--'))throw Error('Missing '+k);if(k==='--out')out=v;else opts[k.slice(2)]=v;}else throw Error('Unknown argument '+k);}
+  for(let i=0;i<args.length;i++){const k=args[i];if(k==='--sample')opts.sample=true;else if(k==='--full')opts.full=true;else if(['--relation','--id','--out'].includes(k)){const v=args[++i];if(!v||v.startsWith('--'))throw Error('Missing '+k);if(k==='--out')out=v;else opts[k.slice(2)]=v;}else throw Error('Unknown argument '+k);}
   const text=JSON.stringify(locate(opts),null,2)+'\n';if(out)fs.writeFileSync(path.resolve(out),text,{encoding:'utf8',flag:'wx'});else process.stdout.write(text);
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href)main().catch(e=>{console.error(e.message);process.exitCode=1;});
