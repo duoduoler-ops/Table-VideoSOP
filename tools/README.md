@@ -91,6 +91,24 @@ pwsh -NoProfile -File tools/motion-check.ps1 -Video 'renders/D01_sample.mp4' -Ou
 
 时间采样、静止统计只用于查漏，不构成设计图配额，也不替代[关键状态覆盖](../templates/镜头剧本.template.md#关键状态覆盖)。本脚本不检查对象身份、历史快照或连接的确定性；这些按[工程检查](../docs/04_验收与返修.md#程序化动画的确定性与连续性)在实际工程中完成，未覆盖项如实记录。
 
+上面的动态自检只定位区间。它标出的用途不能抵消下一节工具已算出的未通过。已登记例外只免除它所覆盖的超长单段，不从累计占比里扣除。
+
+## 运动量化门禁
+
+交审前对程序化 MG 运行：
+
+```powershell
+node scripts/motion-gates.mjs --adapter <adapter.cjs> --video <preview.mp4> --out <qa/motion-gates.json>
+```
+
+已有 freezedetect 日志时加 `--freeze-log <ffmpeg.txt>`，不再解码该片。可选 `--gates <overrides.json>` 只覆盖本期 DESIGN 里已经用户确认的字段。默认值就是模板 `motion.gates`。数值权威在系列 DESIGN「运动量化门禁」，本页不另抄通过线。
+
+适配器沿用上一节的 `exportAudit()`：`schemaVersion` 为 1，`frameAt(seconds)` 返回最终屏幕坐标的 `objects` 与 `camera`。跟随、预备、阅读、构图和静止例外写在 `motionCast`，每条须有能在源文件中找到的锚点。缺声明记无法测量，不能从代码事件自动导出后当成通过。镜头分窗时，`frameAt` 可以读取第二个参数 `{windowId,t0,t1}`，仍只调用同一套生产求值。
+
+退出码：0 五条都通过；2 有未通过；1 输入不全或有无法测量。无法测量不是通过。任一条未通过即返修，不能改记未验证后交审。
+
+第 1 条用预览成片；第 2–5 条用源码求值，换算到参照画布，与预览分辨率无关。预览规格认模板 gates。禁止靠拉长已有动作压低静止统计。
+
 ## 许可
 
 本目录脚本以 MIT 许可发布，见仓库根目录的 [LICENSE-CODE](../LICENSE-CODE)。
