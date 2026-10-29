@@ -5,14 +5,20 @@
 //  coverage:{basis:'render-state-final-screen',objectIds:[id],scope:string,
 //    notApplicable?:{checkpoints?:{sourceFile,anchor,reason},relays?:{sourceFile,anchor,reason}}},
 //  frameAt(seconds):{objects:[{id,x,y,width,height,opacity,rotation?,contentVersion?,d1Category?,
-//    localGeometry?:{x,y,width,height,rotation?},screenFixed?:boolean,
+//    parentId?,localGeometry?:{x,y,width,height,rotation?},screenFixed?:boolean,
+//    observation?:{state:'visible'|'hidden'|'unknown',reason,visibleBounds?,basis?},hotspot?:{x,y},
 //    process?:{maskProgress?,pathProgress?,morphProgress?,occlusionProgress?},
 //    replacement?:{kind:'geometry'|'mask'|'path'|'morph'|'occlusion'|'source-copy',progress,fromVersion,toVersion}}],camera?:{cx,cy,z},
 //    semantic?:{[objectId]:string|number|boolean}}, // legacy scalar semantic[ID] is a contentVersion fallback
+// frameAt may also return renderedObjectIds from the actual production recorder; omitted draw IDs are gaps.
+// observation must come from production geometry/clip/layer computation. bbox-only stays unknown.
 //  sourceLinks?:[{id,sourceObjectId,targetObjectId,time,sourceTime?,sourceAnchor?:[x,y],targetAnchor?:[x,y],evidence}],
-//  actions:[{id,objectId,start,end,kind:'transfer'|'camera'|'realtime'|'reveal',channels?:[x|y|width|height|opacity],exception?}],
+//  actions:[{id,objectId,start,end,kind:'transfer'|'camera'|'realtime'|'reveal'|'process',channels?,motionGate?:'anticipation',exception?}],
 //  checkpoints:[{id,time,objectIds:[id],role:'pass'|'hold'|'cut',exception?}],
-//  relays:[{id,fromAction,toAction,exception?}]}
+//  relays:[{id,fromAction,toAction,motionGate?:'follow'|'rigid-feedback',exception?}]}
+// process actions reuse production actions and measure localGeometry channels or actual process progress.
+// parentId is the production container ID; localGeometry for parts excludes that parent's transport.
+// Neither declared parts nor sampled changes prove the script's semantic coverage or perceptual strength.
 // Exceptions: {kind:'reading'|'rhetorical'|'real-dependency'|'real-time'|'cut',
 //              evidence:{sourceFile:path,anchor:exactSourceSubstring,reason:string}}
 // They document attributable intent, not automatic proof of a necessary hold.
@@ -33,11 +39,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import {pathToFileURL,fileURLToPath} from 'node:url';
+import observation from './motion-observation.cjs';
+const {visibleState,measureFrameMotion}=observation;
 const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
 const finite=(v,label)=>{if(!Number.isFinite(v))throw Error('Expected finite '+label);return v;};
 const nonempty=(v,label)=>{if(typeof v!=='string'||!v.trim())throw Error('Missing '+label);return v;};
 const uniq=(xs,label)=>{if(!Array.isArray(xs)||new Set(xs).size!==xs.length)throw Error('Invalid/duplicate '+label);return xs;};
 const channels=['x','y','width','height','opacity','rotation'];
+const processChannels=['maskProgress','pathProgress','morphProgress','occlusionProgress'];
+const localChannels=['x','y','width','height','rotation'];
 const EPS={positionPx:1e-5,velocity:1e-3,relative:1e-6,derivativeStep:1e-4,cruiseIntervals:6};
 // D1 locator tolerances reject numerical noise; exceeding one never certifies perceptual quality.
 const D1={geometryProcessPx:1,processProgress:1e-3,tinySlidePx:24};
@@ -45,10 +55,7 @@ const D1_CATEGORIES=new Set(['mg','overlay','subtitle-cue','source-footage','dat
 const D1_EXCLUDED=new Set(['subtitle-cue','source-footage']);
 const bounds=b=>[b.x,b.y,b.width,b.height,b.opacity,b.rotation??0];
 function viewportVisibility(b,viewport){
-  if(b.opacity<=0||b.width<=0||b.height<=0)return 'hidden';
-  if(b.x<viewport.width&&b.x+b.width>0&&b.y<viewport.height&&b.y+b.height>0)return 'visible';
-  // The schema has no rotation pivot. Do not cull a rotated object using an unrotated rectangle.
-  return Math.abs(b.rotation??0)>EPS.relative?'unresolved-rotation':'hidden';
+  return visibleState(b,viewport).state;
 }
 const screenPoints=b=>[[b.x,b.y],[b.x+b.width,b.y],[b.x,b.y+b.height],[b.x+b.width,b.y+b.height],[b.x+b.width/2,b.y+b.height/2]];
 const sub=(a,b)=>a.map((x,i)=>x-b[i]);
@@ -64,6 +71,7 @@ function validateSpec(s){
   if(s.coverage?.basis!=='render-state-final-screen')throw Error('Declare final-screen render-state coverage; world coordinates cannot be audited as screen coordinates');
   nonempty(s.coverage.scope,'coverage.scope');
   const ids=uniq(s.coverage.objectIds,'coverage.objectIds');if(!ids.length)throw Error('No covered objects');ids.forEach(id=>nonempty(id,'objectId'));
+  if(s.coverage.mainContentIds!==undefined&&uniq(s.coverage.mainContentIds,'coverage.mainContentIds').some(id=>!ids.includes(id)))throw Error('Main content object not covered');
   if(!Array.isArray(s.sourceFiles)||!s.sourceFiles.length)throw Error('No render source files');
   for(const group of ['actions','checkpoints','relays']){if(!Array.isArray(s[group]))throw Error('Missing '+group+' (empty allowed with explicit coverage gap)');uniq(s[group].map(x=>nonempty(x.id,group+' id')),group+' ids');}
   if(s.coverage.notApplicable!==undefined){
@@ -84,9 +92,11 @@ function validateSpec(s){
   }
   for(const a of s.actions){
     if(!ids.includes(a.objectId))throw Error('Action object not covered: '+a.id);
-    if(!['transfer','camera','realtime','reveal'].includes(a.kind))throw Error('Unknown action kind '+a.id);
+    if(!['transfer','camera','realtime','reveal','process'].includes(a.kind))throw Error('Unknown action kind '+a.id);
     finite(a.start,'action start');finite(a.end,'action end');if(a.start<0||a.end>s.duration||a.end<=a.start)throw Error('Invalid action range '+a.id);
-    if(a.channels!==undefined&&(!Array.isArray(a.channels)||!a.channels.length||a.channels.some(c=>!(a.kind==='reveal'?['width','height','opacity']:['x','y','width','height']).includes(c))))throw Error('Invalid action channels '+a.id+'; reveal cannot exempt spatial translation');
+    if(a.channels!==undefined&&(!Array.isArray(a.channels)||!a.channels.length||a.channels.some(c=>!(a.kind==='process'?[...localChannels,...processChannels]:a.kind==='reveal'?['width','height','opacity']:['x','y','width','height']).includes(c))))throw Error('Invalid action channels '+a.id+'; reveal cannot exempt spatial translation');
+    if(a.kind==='process'&&!a.channels?.length)throw Error('Process action must name actual local/progress channels: '+a.id);
+    if(a.motionGate!==undefined&&a.motionGate!=='anticipation')throw Error('Unknown action motionGate '+a.id);
     if(a.kind==='realtime'&&a.exception?.kind!=='real-time')throw Error('Realtime action requires attributable real-time evidence: '+a.id);
   }
   for(const p of s.checkpoints){
@@ -97,12 +107,13 @@ function validateSpec(s){
     if(p.role==='cut'&&p.exception.kind!=='cut')throw Error('Cut exception kind mismatch');
   }
   const aset=new Set(s.actions.map(a=>a.id));
-  for(const r of s.relays)if(!aset.has(r.fromAction)||!aset.has(r.toAction)||r.fromAction===r.toAction)throw Error('Relay does not reference two actions: '+r.id);
+  for(const r of s.relays){if(!aset.has(r.fromAction)||!aset.has(r.toAction)||r.fromAction===r.toAction)throw Error('Relay does not reference two actions: '+r.id);if(r.motionGate!==undefined&&!['follow','rigid-feedback'].includes(r.motionGate))throw Error('Unknown relay motionGate '+r.id);}
 }
 export function auditMotion(spec,{baseDir=process.cwd(),adapterFile,requireVideo=true}={}){
+  const observationLock=fileLock(fileURLToPath(new URL('./motion-observation.cjs',import.meta.url)));
   validateSpec(spec);
   const visibility=b=>viewportVisibility(b,spec.viewport),visible=b=>visibility(b)==='visible';
-  const sameVisibleState=(a,b)=>!visible(a)&&!visible(b)||visible(a)&&visible(b)&&maxAbs(sub(bounds(a),bounds(b)))<=EPS.positionPx;
+  const sameVisibleState=(a,b)=>!visible(a)&&!visible(b)||visible(a)&&visible(b)&&maxAbs(sub(bounds(a),bounds(b)))<=EPS.positionPx&&processChannels.every(k=>Math.abs((a.process?.[k]??0)-(b.process?.[k]??0))<=D1.processProgress)&&localChannels.every(k=>Math.abs((a.localGeometry?.[k]??0)-(b.localGeometry?.[k]??0))<=EPS.positionPx);
   const sources=[...new Set(spec.sourceFiles.map(p=>resolveExisting(p,baseDir)))];
   if(adapterFile){const f=resolveExisting(adapterFile,baseDir);if(!sources.includes(f))sources.push(f);}
   const sourceLocks=sources.map(fileLock);
@@ -130,17 +141,22 @@ export function auditMotion(spec,{baseDir=process.cwd(),adapterFile,requireVideo
   }
   const hasSpatialActions=spec.actions.some(a=>['transfer','camera'].includes(a.kind));
   const revealOnly=spec.actions.length>0&&spec.actions.every(a=>a.kind==='reveal');
-  if(spec.actions.length&&!hasSpatialActions&&!revealOnly)coverageGaps.push('Only reveal/realtime actions declared; primary movement is not covered');
+  if(spec.actions.length&&!hasSpatialActions&&!revealOnly&&!spec.actions.some(a=>a.kind==='process'))coverageGaps.push('Only reveal/realtime actions declared; primary movement is not covered');
   const cache=new Map();
   function read(t){
     finite(t,'sample time');const key=t.toPrecision(15);if(cache.has(key))return cache.get(key);
     if(t<0||t>spec.duration)throw Error('Sample outside duration');
     const frame=spec.frameAt(t);if(!frame||!Array.isArray(frame.objects))throw Error('Missing objects at '+t);
+    if(frame.renderedObjectIds!==undefined)uniq(frame.renderedObjectIds,'renderedObjectIds').forEach(id=>nonempty(id,'rendered object ID'));
     uniq(frame.objects.map(o=>o.id),'sample object IDs');
     const map=new Map();
     for(const o of frame.objects){nonempty(o.id,'sample object id');for(const c of channels.slice(0,5))finite(o[c],`${o.id}.${c} at ${t}`);if(o.rotation!==undefined)finite(o.rotation,'rotation');if(o.width<0||o.height<0||o.opacity<0||o.opacity>1)throw Error('Invalid bounds/opacity at '+t);if(o.contentVersion!==undefined&&!['string','number','boolean'].includes(typeof o.contentVersion))throw Error('contentVersion must be a scalar');
       if(typeof o.contentVersion==='number')finite(o.contentVersion,'contentVersion');
       if(o.localGeometry){for(const k of ['x','y','width','height'])finite(o.localGeometry[k],'localGeometry.'+k);if(o.localGeometry.rotation!==undefined)finite(o.localGeometry.rotation,'localGeometry.rotation');}
+      if(o.observation&&!['visible','hidden','unknown'].includes(o.observation.state))throw Error('Invalid observation state '+o.id);
+      if(o.observation?.visibleBounds)for(const k of ['x','y','width','height'])finite(o.observation.visibleBounds[k],'visibleBounds.'+k);
+      if(o.hotspot){finite(o.hotspot.x,'hotspot.x');finite(o.hotspot.y,'hotspot.y');}
+      if(o.parentId!==undefined){nonempty(o.parentId,'parentId');if(o.parentId===o.id||!spec.coverage.objectIds.includes(o.parentId))throw Error('Part parent must be a distinct covered production object: '+o.id);}
       if(o.process)for(const [k,v] of Object.entries(o.process)){if(!['maskProgress','pathProgress','morphProgress','occlusionProgress'].includes(k))throw Error('Unknown process channel '+k);if(finite(v,'process.'+k)<0||v>1)throw Error('Process progress outside 0..1');}
       if(o.replacement){for(const key of ['fromVersion','toVersion'])if(!['string','number','boolean'].includes(typeof o.replacement[key]))throw Error('Replacement requires scalar '+key);if(!['geometry','mask','path','morph','occlusion','source-copy'].includes(o.replacement.kind))throw Error('Unknown replacement kind');if(finite(o.replacement.progress,'replacement.progress')<0||o.replacement.progress>1)throw Error('Replacement progress outside 0..1');}
       const fallback=frame.semantic?.[o.id];const contentVersion=o.contentVersion??(['string','number','boolean'].includes(typeof fallback)?fallback:undefined);
@@ -150,9 +166,21 @@ export function auditMotion(spec,{baseDir=process.cwd(),adapterFile,requireVideo
     const out={time:t,map,frame};cache.set(key,out);return out;
   }
   const samples=[];for(let f=0;f<=Math.floor(spec.duration*spec.fps);f++)samples.push(read(f/spec.fps));if(samples.at(-1).time!==spec.duration)samples.push(read(spec.duration));
+  const outside=new Set();
+  const omittedDraws=new Set(),unregisteredObjects=new Set();
+  for(const s of samples)for(const id of s.frame.renderedObjectIds??[])if(!s.map.has(id)||!spec.coverage.objectIds.includes(id))omittedDraws.add(id);
+  for(const s of samples)if(Array.isArray(s.frame.renderedObjectIds))for(const id of s.map.keys())if(!s.frame.renderedObjectIds.includes(id))unregisteredObjects.add(id);
+  if(omittedDraws.size)coverageGaps.push('Production draw inventory omitted from adapter/coverage: '+[...omittedDraws].join(', '));
+  if(unregisteredObjects.size)coverageGaps.push('Adapter objects absent from production draw inventory: '+[...unregisteredObjects].join(', '));
+  const inventorySamples=samples.filter(s=>s.time<spec.duration),inventoryCount=inventorySamples.filter(s=>Array.isArray(s.frame.renderedObjectIds)).length;
+  const renderInventory={status:inventoryCount===inventorySamples.length?'recorded':inventoryCount?'partial':'unexposed',recordedFrames:inventoryCount,omittedObjectIds:[...omittedDraws],basis:'Actual production submissions when exposed; absent inventory cannot prove all renderer nodes were covered'};
+  if(!inventoryCount)coverageGaps.push('Production draw inventory is not exposed; coordinate diagnostics remain available but complete renderer coverage is unproven');
+  if(inventoryCount&&inventoryCount!==inventorySamples.length)coverageGaps.push('Production draw inventory is only partially exposed');
+  for(const s of samples)if(s.time<spec.duration)for(const [id,b]of s.map)if(!spec.coverage.objectIds.includes(id)&&visibility(b)!=='hidden')outside.add(id);
+  if(outside.size)coverageGaps.push('Returned visible or unresolved objects outside declared coverage: '+[...outside].join(', '));
   for(const id of spec.coverage.objectIds){
-    const unresolved=samples.filter(s=>visibility(s.map.get(id))==='unresolved-rotation');
-    if(unresolved.length)coverageGaps.push(`Rotation/viewport visibility unresolved for ${id}: ${unresolved[0].time}–${unresolved.at(-1).time}; provide final rotated bounds or inspect encoded frames`);
+    const unresolved=samples.filter(s=>s.time<spec.duration&&visibility(s.map.get(id))==='unknown');
+    if(unresolved.length)coverageGaps.push(`Painted visibility unresolved for ${id}: ${unresolved[0].time}–${unresolved.at(-1).time}; bbox-only/unsupported paint retains coordinate statistics but cannot establish visible process or lifecycle coverage`);
   }
   // Independent repeated/reverse seeking checks a stateful adapter without assuming sequential playback.
   for(const t of [spec.duration/2,0,spec.duration,.371*spec.duration].reverse()){
@@ -191,8 +219,31 @@ export function auditMotion(spec,{baseDir=process.cwd(),adapterFile,requireVideo
         coverageGaps.push('Declared reveal has no sampled opacity change: '+action.id+'; a static hold does not establish a reveal');
     }
   }
+  const processCoverage={status:'unexposed',actions:[],exposedPartIds:[],unmeasuredPartIds:[],basis:'Declared production process actions and returned component IDs only; script meaning, omitted renderer objects and perceptual strength are not assessed'};
+  processCoverage.exposedPartIds=spec.coverage.objectIds.filter(id=>samples.some(s=>s.map.get(id).parentId));
+  processCoverage.unmeasuredPartIds=processCoverage.exposedPartIds.filter(id=>!spec.actions.some(a=>a.objectId===id&&a.kind==='process'));
   const actionMeasurements=[];
   for(const a of spec.actions){
+    if(a.kind==='process'){
+      // Internal change must exist on encoded frames. The analytic EOF and
+      // subframe action endpoints cannot invent an on-screen process.
+      const p=samples.filter(s=>s.time>=a.start&&s.time<=a.end&&s.time<spec.duration).map(s=>({t:s.time,b:s.map.get(a.objectId)})),active=p.filter(v=>visible(v.b));
+      const m={id:a.id,objectId:a.objectId,kind:a.kind,start:a.start,end:a.end,visibleSampleCount:active.length,status:'unmeasured',channels:{},visualAcceptance:'not-assessed'};
+      const gaps=[];
+      if(active.length<2)gaps.push('no consecutive visible process samples');
+      for(const c of a.channels){
+        const get=b=>processChannels.includes(c)?b.process?.[c]:b.localGeometry?.[c];
+        const values=active.map(v=>get(v.b));
+        if(!values.length||values.some(v=>!Number.isFinite(v))){gaps.push('missing actual '+(processChannels.includes(c)?'process.':'localGeometry.')+c);continue;}
+        const range=Math.max(...values)-Math.min(...values),tolerance=processChannels.includes(c)?D1.processProgress:EPS.positionPx;
+        const visibleChange=p.slice(1).some((v,i)=>visible(v.b)&&visible(p[i].b)&&Number.isFinite(get(v.b))&&Number.isFinite(get(p[i].b))&&Math.abs(get(v.b)-get(p[i].b))>tolerance);
+        m.channels[c]={range,unit:processChannels.includes(c)?'fraction':c==='rotation'?'degrees':'pixels',basis:processChannels.includes(c)?'production-process':'production-local-geometry',visibleChange};
+      }
+      if(!Object.values(m.channels).some(c=>c.visibleChange))gaps.push('no sampled visible internal change; container/camera transport does not count');
+      m.status=gaps.length?'unmeasured':'measured-change';m.uncovered=gaps;
+      for(const gap of gaps)coverageGaps.push('Process '+a.id+': '+gap);
+      processCoverage.actions.push(m);actionMeasurements.push(m);continue;
+    }
     const p=actionPoints(a);if(p.length<4){coverageGaps.push('Action too short for trajectory checks: '+a.id);continue;}
     const fullyHidden=p.every(p=>!visible(p.b));
     if(fullyHidden){coverageGaps.push('Action has no confirmed visible sampled object: '+a.id);continue;}
@@ -257,9 +308,12 @@ export function auditMotion(spec,{baseDir=process.cwd(),adapterFile,requireVideo
   }
   function sides(id,t){
     const h=Math.min(EPS.derivativeStep,1/spec.fps/100,t/2,(spec.duration-t)/2);if(h<=0)return null;
-    const b=tt=>bounds(read(tt).map.get(id)),at=b(t);
+    const internal=[...new Set(spec.actions.filter(a=>a.objectId===id&&a.kind==='process'&&a.start<=t&&a.end>=t).flatMap(a=>a.channels))];
+    const names=[...channels,...internal.map(c=>(processChannels.includes(c)?'process.':'localGeometry.')+c)];
+    const b=tt=>{const o=read(tt).map.get(id);return [...bounds(o),...internal.map(c=>processChannels.includes(c)?o.process?.[c]:o.localGeometry?.[c])];},at=b(t);
+    if([...at,...b(t-h),...b(t+h)].some(v=>!Number.isFinite(v)))return null;
     const L1=div(sub(at,b(t-h)),h),L2=div(sub(at,b(t-h/2)),h/2),R1=div(sub(b(t+h),at),h),R2=div(sub(b(t+h/2),at),h/2);
-    return {left:L2.map((v,i)=>2*v-L1[i]),right:R2.map((v,i)=>2*v-R1[i]),h};
+    return {left:L2.map((v,i)=>2*v-L1[i]),right:R2.map((v,i)=>2*v-R1[i]),h,channels:names};
   }
   const checkpointMeasurements=[];
   for(const p of spec.checkpoints){
@@ -267,7 +321,7 @@ export function auditMotion(spec,{baseDir=process.cwd(),adapterFile,requireVideo
     const valid=values.filter(v=>v.sides&&visible(read(p.time).map.get(v.id)));
     if(!valid.length){coverageGaps.push('Checkpoint has no visible object with measurable states on both sides: '+p.id);continue;}
     const allStopped=valid.every(v=>maxAbs(v.sides.left)<EPS.velocity&&maxAbs(v.sides.right)<EPS.velocity);
-    checkpointMeasurements.push({id:p.id,time:p.time,role:p.role,allCoveredObjectsStationaryAtNode:allStopped,objects:valid.map(({id,sides:s})=>({id,leftDerivative:s.left,rightDerivative:s.right,channels}))});
+    checkpointMeasurements.push({id:p.id,time:p.time,role:p.role,allCoveredObjectsStationaryAtNode:allStopped,objects:valid.map(({id,sides:s})=>({id,leftDerivative:s.left,rightDerivative:s.right,channels:s.channels}))});
     if(allStopped&&p.role==='pass')findings.push({code:'pass-node-common-stop',severity:'constraint-violation',checkpoint:p.id,time:p.time,objectIds:p.objectIds,note:'A declared pass node brings all audited final-screen object channels to zero. This checks declared objects, not the entire raster scene.'});
     if(p.role!=='cut')for(const {id,sides:s} of valid){
       const delta=maxAbs(sub(s.left,s.right)),scale=Math.max(maxAbs(s.left),maxAbs(s.right),1);
@@ -280,7 +334,7 @@ export function auditMotion(spec,{baseDir=process.cwd(),adapterFile,requireVideo
     const m={id:r.id,fromAction:a.id,toAction:b.id,declaredGapSeconds:gap,measuredAllCoveredStatic:false,basis:'viewport-intersecting covered-object states; hidden/offscreen-only changes ignored; unresolved rotated visibility is not a no-wait result'};
     if(gap>0){
       const ts=[a.end,...samples.filter(s=>s.time>a.end&&s.time<b.start).map(s=>s.time),b.start];
-      m.unresolvedVisibilityObjectIds=spec.coverage.objectIds.filter(id=>ts.some(t=>visibility(read(t).map.get(id))==='unresolved-rotation'));
+      m.unresolvedVisibilityObjectIds=spec.coverage.objectIds.filter(id=>ts.some(t=>visibility(read(t).map.get(id))==='unknown'));
       if(m.unresolvedVisibilityObjectIds.length){
         m.measuredAllCoveredStatic=null;
         coverageGaps.push('Relay has unresolved rotated-object viewport visibility: '+r.id+' ('+m.unresolvedVisibilityObjectIds.join(', ')+')');
@@ -295,7 +349,6 @@ export function auditMotion(spec,{baseDir=process.cwd(),adapterFile,requireVideo
   // D1 audits only encoded-frame times [0,duration). The analytic endpoint remains
   // available to the existing trajectory/derivative checks, never as an extra rendered frame.
   const lifecycleMeasurements=[],replacementMeasurements=[],sourceLinkMeasurements=[];
-  const processChannels=['maskProgress','pathProgress','morphProgress','occlusionProgress'];
   const lifecycleFrames=samples.filter(s=>s.time<spec.duration);
   const d1Classification={basis:'adapter-declared categories; authenticity and semantic correctness are not assessed',
     scope:'Only D1 lifecycle, content identity and source-link targets; trajectory, checkpoint and relay checks remain unchanged',
@@ -452,13 +505,17 @@ export function auditMotion(spec,{baseDir=process.cwd(),adapterFile,requireVideo
     return {id,visibleSamples:ps.length,widthFraction:ps.length?[Math.min(...ps.map(p=>p.b.width/spec.viewport.width)),Math.max(...ps.map(p=>p.b.width/spec.viewport.width))]:null,heightFraction:ps.length?[Math.min(...ps.map(p=>p.b.height/spec.viewport.height)),Math.max(...ps.map(p=>p.b.height/spec.viewport.height))]:null};
   });
   for(const lock of sourceLocks)if(sha(fs.readFileSync(lock.path))!==lock.sha256)throw Error('Source changed while sampling: '+lock.path);
+  if(sha(fs.readFileSync(observationLock.path))!==observationLock.sha256)throw Error('Observation tool changed while sampling');
   if(videoLock&&sha(fs.readFileSync(videoLock.path))!==videoLock.sha256)throw Error('Video changed while sampling');
+  processCoverage.status=processCoverage.actions.length?(processCoverage.unmeasuredPartIds.length||processCoverage.actions.some(a=>a.status!=='measured-change')?'partial':'declared-actions-measured'):processCoverage.exposedPartIds.length?'partial':'unexposed';
+  const motionObservations=measureFrameMotion(samples.filter(s=>s.time<spec.duration),spec.coverage.objectIds,spec.viewport,spec.fps,spec.actions);
   const status=coverageGaps.length?'incomplete':findings.length?'findings':'measured-no-findings';
-  return {schemaVersion:1,status,visualAcceptance:'not-assessed',basis:'engineering evaluation of final-screen render state; not decoded pixel tracking',coverage:spec.coverage,coverageGaps,locks:{tool:fileLock(fileURLToPath(import.meta.url)),sources:sourceLocks,video:videoLock},measurementTolerances:{...EPS,d1:D1,basis:'numerical locator tolerances, not cross-project visual quality thresholds'},sampling:{fps:spec.fps,duration:spec.duration,renderFrameSamples:samples.length,lifecycleEncodedFrames:lifecycleFrames.length,lifecycleLastFrameTime:lifecycleFrames.at(-1).time,lifecycleEndExclusive:true,allEvaluations:cache.size,repeatSeeking:'checked on sampled times only'},findings,exceptions,notApplicable,lifecycle:lifecycleMeasurements,replacements:replacementMeasurements,sourceLinks:sourceLinkMeasurements,contentVersionCoverage,d1Classification,actions:actionMeasurements,checkpoints:checkpointMeasurements,relays:relayMeasurements,framing:{viewport:spec.viewport,objects:objectScale,camera:cameraSamples.length?{sampleCount:cameraSamples.length,zoomRange:[Math.min(...cameraSamples.map(c=>c.z)),Math.max(...cameraSamples.map(c=>c.z))],centerRange:{x:[Math.min(...cameraSamples.map(c=>c.cx)),Math.max(...cameraSamples.map(c=>c.cx))],y:[Math.min(...cameraSamples.map(c=>c.cy)),Math.max(...cameraSamples.map(c=>c.cy))]}}:null},requiredNext:['Inspect corresponding encoded frames and confirm adapter/source/video association.','Review reading, semantics, sound alignment and 1x perception separately. No finding is not visual approval.']};
+  return {schemaVersion:1,status,visualAcceptance:'not-assessed',basis:'engineering evaluation of final-screen render state; not decoded pixel tracking',coverage:spec.coverage,coverageGaps,processCoverage,renderInventory,motionObservations,locks:{observationTool:observationLock,tool:fileLock(fileURLToPath(import.meta.url)),sources:sourceLocks,video:videoLock},measurementTolerances:{...EPS,d1:D1,basis:'numerical locator tolerances, not cross-project visual quality thresholds'},sampling:{fps:spec.fps,duration:spec.duration,renderFrameSamples:samples.length,lifecycleEncodedFrames:lifecycleFrames.length,lifecycleLastFrameTime:lifecycleFrames.at(-1).time,lifecycleEndExclusive:true,allEvaluations:cache.size,repeatSeeking:'checked on sampled times only'},findings,exceptions,notApplicable,lifecycle:lifecycleMeasurements,replacements:replacementMeasurements,sourceLinks:sourceLinkMeasurements,contentVersionCoverage,d1Classification,actions:actionMeasurements,checkpoints:checkpointMeasurements,relays:relayMeasurements,framing:{viewport:spec.viewport,objects:objectScale,camera:cameraSamples.length?{sampleCount:cameraSamples.length,zoomRange:[Math.min(...cameraSamples.map(c=>c.z)),Math.max(...cameraSamples.map(c=>c.z))],centerRange:{x:[Math.min(...cameraSamples.map(c=>c.cx)),Math.max(...cameraSamples.map(c=>c.cx))],y:[Math.min(...cameraSamples.map(c=>c.cy)),Math.max(...cameraSamples.map(c=>c.cy))]}}:null},requiredNext:['Inspect corresponding encoded frames and confirm adapter/source/video association.','Review reading, semantics, sound alignment and 1x perception separately. No finding is not visual approval.']};
 }
 const HELP=`node scripts/motion-audit.mjs --adapter <project/adapter.mjs> --out <project/new-audit.json>
 Adapter exports exportAudit() returning schemaVersion 1, fps/duration/viewport, sourceFiles, videoFile, coverage, actual frameAt(seconds), and timeline-derived actions/checkpoints/relays. See schema comments in this file.
 Frame objects MUST be final-screen {id,x,y,width,height,opacity,rotation?}; contentVersion identifies actual rendered text/identity (legacy frame.semantic[objectId] scalar supported). Optional localGeometry, process progress, and replacement {kind,progress,fromVersion,toVersion} must derive from production, not invented ramps; all coverage IDs must exist even while hidden. Camera is optional {cx,cy,z}. Never provide a second hand-authored state table.
+Internal process actions reuse the production timeline: kind:'process', objectId, start/end, channels. x/y/width/height/rotation are read from production localGeometry; maskProgress/pathProgress/morphProgress/occlusionProgress from process. Component parentId names its actual covered container and localGeometry excludes that parent's transport. Missing local state, hidden-only changes or no visible internal change are incomplete coverage. processCoverage lists measured changes, exposed parts with no process action and unexposed scope; parameter movement does not certify semantics or perceptual strength. Optional actions[].motionGate:'anticipation', relays[].motionGate:'follow'|'rigid-feedback', and coverage.mainContentIds are reused by motion-gates; no separate motionCast promises are needed for these measurements.
 Source and video are SHA-256 bound. Exceptions need kind plus evidence {sourceFile,anchor,reason} and remain human-review obligations.
 Empty checkpoints/relays may declare coverage.notApplicable[group]={sourceFile,anchor,reason}; sources must be hash-bound and anchors must exist. Unsupported or contradictory waivers fail. No primary actions remains incomplete.
 Per-channel uniformity is review-only; uniform-screen-motion tests combined final-screen bbox-point speeds for ordinary transfer/camera actions. Rotation-excluded intervals or insufficient consecutive visible samples are incomplete coverage, not a no-finding pass. Hidden/offscreen-only geometry cannot suppress a relay wait, while appearing/disappearing objects count as changes. Offscreen rotated bounds without a known pivot are visibility-unresolved and require review.

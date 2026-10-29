@@ -1,185 +1,32 @@
 <!doctype html>
-<!-- SPDX-License-Identifier: MIT -->
 <html lang="zh-CN">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>过程机制对照 · 可播放示例</title>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>原因、部件与指示运动</title>
 <style>
-:root{color-scheme:light;--ink:#253439;--muted:#586a71;--line:#d6dfe0;--paper:#fff;--bg:#f2f5f4;--good:#176d61;--bad:#a9523b}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1420px;margin:auto;padding:28px 28px 40px}h1{font-size:27px;line-height:1.3;margin:0 0 10px}p{margin:8px 0}.intro{max-width:1030px;color:var(--muted)}.eyebrow{font-size:12px;font-weight:650;letter-spacing:.12em;color:var(--good);margin-bottom:8px}.groups{display:flex;gap:10px;margin:24px 0 16px;flex-wrap:wrap}button,select,input{font:inherit}button{border:1px solid #bccaca;border-radius:8px;background:white;color:var(--ink);padding:9px 15px;cursor:pointer}button:hover{border-color:var(--good)}button:focus-visible,input:focus-visible{outline:3px solid #348d87;outline-offset:3px}button[aria-pressed="true"]{background:var(--ink);color:white;border-color:var(--ink)}.panels{display:grid;grid-template-columns:1fr 1fr;gap:18px}.panel{background:white;border:1px solid var(--line);border-radius:12px;overflow:hidden}.panel h2{font-size:16px;margin:0;padding:15px 18px 5px}.panel .hint{font-size:13px;color:var(--muted);margin:0 18px 10px}.badge{display:inline-block;font-size:12px;padding:1px 7px;border-radius:4px;margin-right:8px}.bad .badge{color:var(--bad);background:#faede7}.good .badge{color:var(--good);background:#e4f3ef}svg{display:block;width:100%;height:auto;background:#f9fbfa}.phase{min-height:53px;padding:12px 18px;font-size:14px;border-top:1px solid var(--line)}.controls{display:flex;align-items:center;gap:12px;margin-top:18px;padding:15px;background:white;border:1px solid var(--line);border-radius:10px}.controls button:first-child{min-width:86px;background:var(--good);border-color:var(--good);color:white}input[type="range"]{flex:1;min-width:80px;accent-color:var(--good)}output{min-width:96px;font-variant-numeric:tabular-nums;font-size:13px}.notes{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px;color:var(--muted);font-size:14px}.notes p{margin:0}.label{font-size:12px;fill:#5d7378}.object-label{font-size:12px;fill:#253439;font-weight:600}.fine{font-size:12px;color:var(--muted);margin-top:22px}details{margin-top:18px;font-size:13px;color:var(--muted)}code{font-family:ui-monospace,Consolas,monospace}summary{cursor:pointer}@media(max-width:800px){main{padding:20px 14px}.panels,.notes{grid-template-columns:1fr}.controls{flex-wrap:wrap}.controls input{order:2;flex-basis:100%}h1{font-size:24px}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
-</style>
-</head>
-<body>
-<main>
-<div class="eyebrow">PLAYABLE PROCESS STUDIES · 无音频</div>
-<h1>看过程怎样发生，再决定怎样呈现</h1>
-<p class="intro">这是中性几何的<strong>机制对照</strong>，不是第 05 期原片或已确认样式，也不是复制布局、镜头倍率和秒数的模板。复用因果与观察方法；本段的内容、配音和阅读任务决定具体实现。</p>
-<nav class="groups" aria-label="选择机制对照">
-<button type="button" data-group="paper" aria-pressed="true">① 同纸修改与交接</button>
-<button type="button" data-group="interface" aria-pressed="false">② 同一世界的接口近读</button>
-</nav>
-<div class="panels">
-<section class="panel bad"><h2><span class="badge">反例</span>辅助反馈代替主体过程</h2><p class="hint" id="bad-hint"></p><svg id="bad-view" viewBox="0 0 640 360" role="img" aria-label="反例动画"></svg><div class="phase" id="bad-phase"></div></section>
-<section class="panel good"><h2><span class="badge">正例</span>主体变化带着注意力前进</h2><p class="hint" id="good-hint"></p><svg id="good-view" viewBox="0 0 640 360" role="img" aria-label="正例动画"></svg><div class="phase" id="good-phase"></div></section>
-</div>
-<div class="controls">
-<button type="button" id="play" aria-label="播放两侧动画">播放</button>
-<button type="button" id="reset">回到开始</button>
-<input id="scrub" type="range" min="0" max="7.6" step="0.01" value="0" aria-label="动画时间，单位秒">
-<output id="time" for="scrub">0.00 / 7.60 s</output>
-</div>
-<div class="notes"><p id="bad-note"></p><p id="good-note"></p></div>
-<p class="fine">两侧共用时间轴。默认暂停；播放到末尾停稳，点击播放可重播。拖动可直接检查中间状态。静止本身不是错误：反例的问题是承诺了变化，却没有让主体发生相应变化。</p>
-<details><summary>给实现者：确定性状态接口</summary><p><code>ProcessPatterns.state('paper' | 'interface', 'bad' | 'good', seconds)</code> 每次只依赖输入，返回全新状态。<code>ProcessPatterns.project(point, camera)</code> 把世界坐标映射到 640 × 360 画布。所有运动使用有限区间的正弦缓入缓出；不从上一次播放帧累计对象状态。示意无需音频或外部资源。</p></details>
+:root{color-scheme:light;--ink:#26352f;--muted:#64756d;--line:#d7dfd8}*{box-sizing:border-box}body{margin:0;background:#f3f4f2;color:var(--ink);font:16px/1.6 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1480px;margin:auto;padding:28px}h1{font-size:27px;margin:0 0 8px}p{margin:8px 0}.intro{color:var(--muted);max-width:1100px}.groups{display:flex;gap:10px;flex-wrap:wrap;margin:22px 0 16px}button,input{font:inherit}button{padding:9px 15px;border:1px solid #b5c5ba;border-radius:8px;background:white;color:var(--ink);cursor:pointer}button[aria-pressed=true]{background:var(--ink);color:white}button:focus-visible,input:focus-visible{outline:3px solid #c9a516;outline-offset:3px}.panels{display:grid;grid-template-columns:1fr 1fr;gap:16px}.panel{background:white;border:1px solid var(--line);border-radius:10px;overflow:hidden}.panel h2{font-size:17px;margin:14px 16px 4px}.panel p{font-size:13px;color:var(--muted);margin:4px 16px 10px}.view svg{width:100%;height:auto;display:block}.phase{font-size:14px;border-top:1px solid var(--line);padding:10px 16px;min-height:48px}.controls{display:flex;align-items:center;gap:12px;margin:18px 0;padding:14px;background:white;border:1px solid var(--line);border-radius:10px}input{flex:1;accent-color:#517866}output{font-variant-numeric:tabular-nums;white-space:nowrap;font-size:14px}.notes{color:var(--muted);font-size:14px}code{font-family:Consolas,monospace}@media(max-width:850px){main{padding:16px}.panels{grid-template-columns:1fr}.controls{flex-wrap:wrap}.controls input{flex-basis:100%;order:2}}
+</style></head>
+<body><main>
+<h1>原因出现以后，具体部件怎样改变</h1>
+<p class="intro">同一条记录、同一格式要求、同一构图与总时长。比较信息顺序、修改对象和鼠标的完整运动。此页直接调用随包生产模型与绘制观察模块；不代表指定画风或新片的视觉验收。</p>
+<nav class="groups" aria-label="选择反例"><button data-group="timing" aria-pressed="true">信息顺序</button><button data-group="target" aria-pressed="false">修改对象</button><button data-group="pointer" aria-pressed="false">鼠标闪现</button></nav>
+<div class="panels"><section class="panel"><h2>反例</h2><p id="bad-hint"></p><div class="view" id="bad-view"></div><div class="phase" id="bad-phase"></div></section><section class="panel"><h2>正例</h2><p id="good-hint">要求先出现，修改对应字段，预览接收实际结果，鼠标完成移开。</p><div class="view" id="good-view"></div><div class="phase" id="good-phase"></div></section></div>
+<div class="controls"><button id="play" aria-label="播放两侧动画">播放</button><button id="reset">回到开始</button><input id="scrub" type="range" min="0" max="8.4" step="0.01" value="0" aria-label="时间（秒）"><output id="time">0.00 / 8.40 s</output></div>
+<p class="notes" id="comparison-note"></p><p class="notes">默认暂停，播放到结尾停止。两侧共用时间，拖动可独立求任意帧。此页无音频，不能证明配音同步或 1× 观感已通过；文字与复杂效果的实际可见性仍须看真实输出。</p>
+<details class="notes"><summary>实现入口与边界</summary><p><code>CausalEditScene.frameAt(seconds, {mode})</code> 同时返回真实 SVG、对象、裁切及层级记录；<code>CausalEditProcess.stateAt()</code> 是唯一内容与时序源。可在不需要指示时设置 <code>pointer:false</code>。日期转换是本例的具体内容，不是任意自然语言修改器。</p></details>
 </main>
+<script src="../scripts/motion-observation.cjs"></script>
+<script src="../assets/motion/causal-edit-process/process.cjs"></script>
+<script src="../assets/motion/causal-edit-process/scene.cjs"></script>
 <script id="process-state">
-/* SPDX-License-Identifier: MIT
- * Pure state model. Evaluate this script alone in a Node VM; no DOM or clock needed.
- * Times and layouts demonstrate this mechanism only, not production defaults.
- */
-(() => {
-  'use strict';
-  const duration = 7.6;
-  const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
-  const ease = x => (1 - Math.cos(Math.PI * clamp(x))) / 2;
-  const progress = (t, a, b) => ease((t - a) / (b - a));
-  const mix = (a, b, p) => a + (b - a) * p;
-  const project = (point, camera) => ({x:320 + (point.x - camera.x) * camera.zoom, y:180 + (point.y - camera.y) * camera.zoom});
-  function wavePoints(x, y, width, knot) {
-    // A deformed continuous path: the middle actually doubles back when tangled.
-    return Array.from({length:121}, (_, i) => {
-      const u = i / 120;
-      const v = clamp((u - .3) / .4);
-      const envelope = Math.sin(Math.PI * v) ** 2;
-      return {x:x + width*u + knot*55*Math.sin(6*Math.PI*v)*envelope,
-        y:y + 12*Math.sin(12*Math.PI*u) + knot*40*Math.sin(4*Math.PI*v)*envelope};
-    });
-  }
-  function paperState(mode, t) {
-    const good = mode === 'good';
-    const unfold = good ? progress(t,.25,1.15) : 1;
-    const shorten = good ? progress(t,3.55,4.55) : 0;
-    const yieldToWave = good ? progress(t,5.65,6.5) : 0;
-    const knot = good ? progress(t,2.4,3.1)*(1-progress(t,4.45,5.3)) : 0;
-    const paper = {id:'draft-01',x:mix(62,40,yieldToWave),y:mix(61,29,yieldToWave),width:206,
-      height:mix(88,246,unfold),scale:mix(1,.55,yieldToWave),unfold,shorten,
-      // The same content rows shorten; IDs never switch to a replacement page.
-      rows:[0,1,2,3].map((i)=>({id:'sentence-'+i,x:20,y:55+i*39*unfold,
-        length:mix([166,144,166,151][i],[104,89,104,94][i],shorten)}))};
-    const wave = {id:'reading-01',x:mix(315,219,yieldToWave),y:mix(190,194,yieldToWave),
-      width:mix(267,359,yieldToWave),knot,
-      reveal:good ? progress(t,1.15,2.45) : 1,
-      reading:progress(t,1.15,2.45),released:good ? progress(t,4.45,5.3) : 0};
-    wave.points=wavePoints(wave.x,wave.y,wave.width,knot);
-    return {group:'paper',mode,time:t,camera:{x:320,y:180,zoom:1},paper,wave,
-      auxiliary:good ? 0 : progress(t,1.15,2.45),
-      status:good ? (t<1.15?'展开':t<2.4?'朗读':t<3.55?'打结':t<4.55?'改短':t<5.65?'解结':'让位') : (t<2.4?'辅助点亮':t<4.55?'标记问题':'标签宣布完成')};
-  }
-  function interfaceState(mode,t) {
-    const good = mode === 'good';
-    const approach = good ? progress(t,.55,1.85) : 0;
-    const recoil = good ? progress(t,2.05,2.5) : 0;
-    const align = good ? progress(t,3.1,4.25) : 0;
-    const insert = good ? progress(t,4.4,5.4) : 0;
-    const outcome = good ? progress(t,5.55,6.35) : 0;
-    const zoomIn = good ? progress(t,.55,1.7) : 0;
-    const followResult = good ? progress(t,5.55,6.5) : 0;
-    const camera = {x:mix(mix(450,612,zoomIn),735,followResult),y:200,
-      zoom:mix(mix(.63,1.55,zoomIn),1.1,followResult)};
-    const card = {id:'payload-01',x:150+340*approach-20*recoil+40*insert,y:200,width:140,height:106,
-      // Pairwise merging changes real pin geometry, not just its label or color.
-      pins:[-35,-12,12,35].map((y,i)=>({id:'pin-'+i,y:mix(y,[-30,-18,18,30][i],align),height:12,width:20})),
-      aligned:align,insertion:insert};
-    const socket = {id:'socket-01',x:650,y:200,width:80,height:140,
-      slots:[{y:-24,height:24},{y:24,height:24}]};
-    return {group:'interface',mode,time:t,camera,card,socket,
-      result:{id:'result-01',x:820,y:200,width:84,height:80,fill:outcome},
-      blocked:good && t>=1.85 && t<4.25,
-      auxiliary:good?0:progress(t,1.7,2.4),
-      status:good?(t<.55?'建立全景':t<1.85?'进入接口近读':t<3.1?'受阻与退回':t<4.4?'结构对齐':t<5.55?'接入':'结果与关系'):(t<2.4?'全景不变':t<5.55?'只标记接口':'标签宣布完成')};
-  }
-  function state(group,mode,seconds) {
-    if (!['paper','interface'].includes(group) || !['good','bad'].includes(mode)) throw new TypeError('Unknown group or mode');
-    if (!Number.isFinite(seconds)) throw new TypeError('Time must be finite');
-    const t=clamp(seconds,0,duration);
-    return group==='paper' ? paperState(mode,t) : interfaceState(mode,t);
-  }
-  globalThis.ProcessPatterns=Object.freeze({duration,state,project,ease});
-})();
+(()=>{'use strict';const modes={timing:'premature',target:'wrong-target',pointer:'flash'};globalThis.ProcessPatterns=Object.freeze({duration:CausalEditProcess.duration,state:(group,mode,t)=>CausalEditProcess.stateAt(t,{mode:mode==='good'?'good':modes[group]}),render:(s)=>CausalEditScene.renderDocument(s),modes});})();
 </script>
 <script id="process-view">
-/* SPDX-License-Identifier: MIT */
-(() => {
-  'use strict';
-  const api=globalThis.ProcessPatterns;
-  const $=id=>document.getElementById(id);
-  const n=v=>Number(v.toFixed(3));
-  const colors={ink:'#30494f',line:'#b8c8ca',good:'#247d6d',bad:'#b25c42',paper:'#ffffff',bg:'#f9fbfa'};
-  const line=(x1,y1,x2,y2,stroke=colors.line,width=3)=>`<line x1="${n(x1)}" y1="${n(y1)}" x2="${n(x2)}" y2="${n(y2)}" stroke="${stroke}" stroke-width="${width}" stroke-linecap="round"/>`;
-  const rect=(x,y,w,h,fill,stroke=colors.line,r=5)=>`<rect x="${n(x)}" y="${n(y)}" width="${n(w)}" height="${n(h)}" rx="${r}" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`;
-  const label=(x,y,text,klass='label')=>`<text x="${n(x)}" y="${n(y)}" class="${klass}">${text}</text>`;
-  function paperScene(s) {
-    const p=s.paper,w=s.wave;
-    let paper=rect(0,0,p.width,p.height,colors.paper,colors.ink,7)+label(20,29,'01 · 同一份稿','object-label');
-    paper+=line(20,39,p.width-20,39);
-    p.rows.forEach((row,i)=>{paper+=line(row.x,row.y,row.x+row.length,row.y,colors.ink,5);
-      if(s.mode==='good'&&w.reading>0&&w.reading<1){const active=Math.min(3,Math.floor(w.reading*4));if(i===active)paper+=rect(13,row.y-10,row.length+14,20,'#d6eee6','none',3);}});
-    // Repaint ink over the reading wash so the main content remains visible.
-    p.rows.forEach(row=>{paper+=line(row.x,row.y,row.x+row.length,row.y,colors.ink,5)});
-    if(s.mode==='good'&&w.knot>.01)paper+=`<g opacity="${n(w.knot*(1-p.shorten))}">${line(125,55,186,55,colors.bad,8)}</g>`;
-    let out=`<g data-object-id="${p.id}" transform="translate(${n(p.x)} ${n(p.y)}) scale(${n(p.scale)})">${paper}</g>`;
-    const points=w.points.slice(0,Math.max(1,Math.ceil(w.reveal*w.points.length)));
-    out+=line(w.x,w.y,w.x+w.width,w.y,'#dce5e4',1);
-    out+=`<polyline data-object-id="${w.id}" points="${points.map(pt=>`${n(pt.x)},${n(pt.y)}`).join(' ')}" fill="none" stroke="${w.knot>.1?colors.bad:colors.good}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`;
-    if(s.mode==='bad'){out+=`<g opacity="${n(s.auxiliary)}"><circle cx="${w.x+133}" cy="${w.y}" r="61" fill="none" stroke="${colors.bad}" stroke-width="2" stroke-dasharray="5 7"/>${label(w.x+83,286,s.time<4.55?'发现问题':'已修改 ✓')}</g>`;}
-    else if(w.released>0){out+=`<g opacity="${n(w.released)}">${label(w.x,281,'同一条朗读波形')}</g>`;}
-    return out;
-  }
-  function interfaceScene(s) {
-    const {card:c,socket:p,result:r,camera:cam}=s;
-    let world=line(140,286,910,286,'#d1dcda',2)+label(140,312,'同一世界：稿件 → 接口 → 结果');
-    world+=line(p.x+p.width,p.y,r.x,p.y,'#c1cfca',3);
-    world+=rect(r.x,r.y-r.height/2,r.width,r.height,'#edf2ef');
-    world+=`<g opacity="${n(r.fill)}">${rect(r.x+7,r.y-r.height/2+7,r.width-14,r.height-14,'#b9ddcd','none')}${line(r.x+22,r.y+1,r.x+35,r.y+14,colors.good,5)}${line(r.x+35,r.y+14,r.x+63,r.y-17,colors.good,5)}</g>`;
-    world+=rect(p.x,p.y-p.height/2,p.width,p.height,'#dae4df',colors.ink,4);
-    p.slots.forEach(slot=>{world+=rect(p.x-1,p.y+slot.y-slot.height/2,31,slot.height,colors.bg,'none',0)+line(p.x+30,p.y+slot.y-slot.height/2,p.x+30,p.y+slot.y+slot.height/2,colors.ink,2)});
-    world+=`<g data-object-id="${c.id}" transform="translate(${n(c.x)} ${n(c.y)})">`+rect(0,-c.height/2,c.width,c.height,colors.paper,colors.ink,5)+label(15,-28,'01','object-label');
-    [0,1,2].forEach(i=>{world+=line(15,-10+i*19,109,-10+i*19,colors.ink,4)});
-    c.pins.forEach(pin=>{world+=rect(c.width,-pin.height/2+pin.y,pin.width,pin.height,colors.good,'none',0)});
-    world+='</g>';
-    if(s.blocked){world+=line(654,147,663,138,colors.bad,3)+line(665,156,676,156,colors.bad,3);}
-    if(s.mode==='bad'){world+=`<g opacity="${n(s.auxiliary)}">${rect(p.x-17,p.y-85,p.width+34,170,'none',colors.bad,4)}</g>`;}
-    let out=`<g transform="translate(320 180) scale(${n(cam.zoom)}) translate(${-n(cam.x)} ${-n(cam.y)})">${world}</g>`;
-    if(s.mode==='bad'&&s.time>=5.55)out+=label(473,48,'已对齐 ✓');
-    return out;
-  }
-  const copy={
-    paper:{badHint:'纸与波形保持原状，只让标记和状态亮起来。',goodHint:'展开 → 朗读 → 打结 → 改短 → 解结 → 让位。',badNote:'删去“已修改”之后，纸上的长句没有改变，波形也没有经历故障与恢复。辅助反馈不能证明修改发生。',goodNote:'编号 01 始终保留。长句实际缩短，打结的路径实际解开；最后纸张缩小退让，把观看位置交给结果。'},
-    interface:{badHint:'始终保留全景，靠框选和标签宣布接口变化。',goodHint:'全景建立关系 → 近读接口 → 受阻 → 对齐 → 接入与结果。',badNote:'选框指到了接口，却没有放大真正需要辨认的形状；稿件、齿形和结果始终没有变化。',goodNote:'先在同一世界认识双方，再用超过两倍的尺度进入接触点。四个分离齿块合为两组，匹配插槽后接入，镜头才交给结果。'}
-  };
-  let group='paper',seconds=0,playing=false,last=0,raf=0;
-  function draw(){
-    for(const mode of ['bad','good']){
-      const s=api.state(group,mode,seconds);
-      $(mode+'-view').innerHTML=group==='paper'?paperScene(s):interfaceScene(s);
-      $(mode+'-phase').textContent=s.status;
-      $(mode+'-hint').textContent=copy[group][mode+'Hint'];
-      $(mode+'-note').textContent=copy[group][mode+'Note'];
-    }
-    $('scrub').value=String(seconds);$('time').textContent=`${seconds.toFixed(2)} / ${api.duration.toFixed(2)} s`;
-    $('scrub').setAttribute('aria-valuetext',`${seconds.toFixed(2)} 秒`);
-    $('play').textContent=playing?'暂停':seconds>=api.duration?'重播':'播放';
-    $('play').setAttribute('aria-label',playing?'暂停两侧动画':'播放两侧动画');
-  }
-  function stop(){playing=false;cancelAnimationFrame(raf);raf=0;}
-  function tick(now){if(!playing)return;seconds=Math.min(api.duration,seconds+(now-last)/1000);last=now;if(seconds>=api.duration)stop();draw();if(playing)raf=requestAnimationFrame(tick);}
-  $('play').addEventListener('click',()=>{if(playing)stop();else{if(seconds>=api.duration)seconds=0;playing=true;last=performance.now();raf=requestAnimationFrame(tick);}draw();});
-  $('reset').addEventListener('click',()=>{stop();seconds=0;draw();});
-  $('scrub').addEventListener('input',event=>{stop();seconds=Number(event.target.value);draw();});
-  document.querySelectorAll('[data-group]').forEach(button=>button.addEventListener('click',()=>{stop();group=button.dataset.group;seconds=0;document.querySelectorAll('[data-group]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));draw();}));
-  document.addEventListener('visibilitychange',()=>{if(document.hidden){stop();draw();}});
-  draw();
-})();
-</script>
-</body>
-</html>
+(()=>{'use strict';const api=globalThis.ProcessPatterns,$=id=>document.getElementById(id);let group='timing',seconds=0,playing=false,raf=0,last=0;
+const hints={timing:'修改和准确定位先发生，具体要求之后才出现。',target:'要求修改日期，实际却改了数量，日期仍以原格式送出。',pointer:'字段改对了，鼠标却高速抢跑、被卡片遮住，并在画内硬消失。'};
+const notes={timing:'对照点：不是只看最终是否改对，还要看原因在何时出现。正反两侧最后得到相同日期。',target:'对照点：数量变化与落地动作不能证明日期格式已修改。结果直接来自实际日期字段，不能靠标签宣布成功。',pointer:'对照点：正例起步可追踪，层级稳定，真正离开画布后隐藏。快慢与显隐必须结合实际观看；所有时长只属于此示例。'};
+function render(){for(const mode of ['bad','good']){const s=api.state(group,mode,seconds);$(mode+'-view').innerHTML=api.render(s);$(mode+'-phase').textContent=s.phase;}$('bad-hint').textContent=hints[group];$('comparison-note').textContent=notes[group];$('scrub').value=seconds;$('time').textContent=seconds.toFixed(2)+' / '+api.duration.toFixed(2)+' s';}
+function stop(){playing=false;cancelAnimationFrame(raf);$('play').textContent='播放';}
+function tick(now){if(!playing)return;seconds=Math.min(api.duration,seconds+(now-last)/1000);last=now;render();if(seconds>=api.duration)stop();else raf=requestAnimationFrame(tick);}
+$('play').addEventListener('click',()=>{if(playing){stop();return;}if(seconds>=api.duration)seconds=0;playing=true;last=performance.now();$('play').textContent='暂停';raf=requestAnimationFrame(tick);});
+$('reset').addEventListener('click',()=>{stop();seconds=0;render();});$('scrub').addEventListener('input',event=>{stop();seconds=Number(event.target.value);render();});
+document.querySelectorAll('[data-group]').forEach(button=>button.addEventListener('click',()=>{stop();group=button.dataset.group;seconds=0;document.querySelectorAll('[data-group]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.group===group)));render();}));document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();});render();})();
+</script></body></html>

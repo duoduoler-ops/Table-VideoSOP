@@ -10,7 +10,8 @@ import {
 
 const self = fileURLToPath(import.meta.url);
 const anchor = 'fixture-anchor-motion-gates';
-const obj = (id, x, extra = {}) => ({id, x, y: 80, width: 100, height: 40, opacity: 1, ...extra});
+// These analytic fixtures represent painted, unobscured rectangles; legacy bbox-only has separate tests.
+const obj = (id, x, extra = {}) => ({id, x, y: 80, width: 100, height: 40, opacity: 1, observation:{state:'visible',reason:'fixture-painted-rectangle'}, ...extra});
 const cam = (cx = 0) => ({cx, cy: 0, z: 1});
 
 test('freeze ratio at 20% passes and above 20% fails; exceptions do not reduce the ratio', () => {
@@ -193,7 +194,8 @@ function passingSpec() {
         obj('main', 100, {width: 1400, height: 500}),
         obj('hero', heroX),
         obj('tag', tagX),
-        obj('body', bodyX),
+        // This fixture animates screen-space objects independently of its camera.
+        obj('body', bodyX, {screenFixed: true}),
       ],
       camera: cam(cx),
     };
@@ -208,9 +210,11 @@ function passingSpec() {
   };
 }
 
-test('exit code is 0 only when all five pass, 2 when any fails, 1 when something is unmeasured', () => {
+test('numeric-only exit codes describe the five declared measurements, never visual acceptance', () => {
   const freeze = {duration: 10, segments: [{start: 0, duration: 1, end: 1}]};
   const pass = evaluateSpec(passingSpec(), {freeze, baseDir: path.dirname(self)});
+  assert.equal(pass.visualAcceptance, 'not-assessed');
+  assert.notEqual(pass.status, '通过');
   assert.equal(pass.exitCode, 0, pass.gates.map(g => `${g.id}:${g.status}:${(g.reasons || []).join(';')}`).join(' | '));
   const fail = evaluateSpec(passingSpec(), {freeze: {duration: 10, segments: [{start: 0, duration: 3, end: 3}]}, baseDir: path.dirname(self)});
   assert.equal(fail.exitCode, 2);

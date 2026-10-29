@@ -8,6 +8,10 @@ import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {pathToFileURL, fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
+import crypto from 'node:crypto';
+import {auditMotion} from './motion-audit.mjs';
+import observation from './motion-observation.cjs';
+const {visibleState}=observation;
 
 export const DEFAULT_GATES = {
   freezeNoiseDb: -55,
@@ -358,35 +362,55 @@ function objectAt(frame, id) {
   return frame?.objects?.find(o => o.id === id) ?? null;
 }
 
+function visibleObject(o, viewport = {width: DEFAULT_GATES.refWidth, height: DEFAULT_GATES.refHeight}) {
+  return visibleState(o,viewport).state==='visible';
+}
+function localObject(o, frame, viewport = {width: DEFAULT_GATES.refWidth, height: DEFAULT_GATES.refHeight}) {
+  if (o.localGeometry) return {...o, ...o.localGeometry};
+  // A part without local geometry may still expose a real mask/path process;
+  // its inherited rectangle cannot establish its own movement.
+  if (o.parentId) return {...o, x: 0, y: 0, width: 0, height: 0, rotation: 0};
+  const c = frame?.camera;
+  if (c && !o.screenFixed) return {...o, x: (o.x - viewport.width / 2) / c.z + c.cx, y: (o.y - viewport.height / 2) / c.z + c.cy, width: o.width / c.z, height: o.height / c.z};
+  return o;
+}
+
 export function scoreFollow(samples, beat, gates = DEFAULT_GATES) {
+  const scope = {visualAcceptance: 'not-assessed', relationship: beat.timelineRelay ? 'timeline-declared-not-verified' : 'not-assessed', basis: 'Visible declared-object onset timing only; neither causal connection nor expressive strength is established'};
+  if (beat.subjectId === beat.attachmentId) return {id: beat.id, ...scope, status: '无法测量', reasons: ['主体与跟随件是同一个对象，不能测部件接力。']};
   const fps = gates.clockFps;
   if (samples.length < 3) return {id: beat.id, status: '无法测量', reasons: ['跟随窗口采样不足。']};
   let subjectOn = null;
   let attachOn = null;
   let receiveOn = null;
+  const withinAction = (range, i) => !range || (samples[i - 1].t >= range[0] - 1e-9 && samples[i].t <= range[1] + 1e-9);
   for (let i = 1; i < samples.length; i++) {
     const s0 = objectAt(samples[i - 1].frame, beat.subjectId);
     const s1 = objectAt(samples[i].frame, beat.subjectId);
     const a0 = objectAt(samples[i - 1].frame, beat.attachmentId);
     const a1 = objectAt(samples[i].frame, beat.attachmentId);
     if (!s0 || !s1 || !a0 || !a1) continue;
-    const sd = delta(s0, s1);
-    const ad = delta(a0, a1);
-    if (subjectOn == null && (sd.pos || sd.proc)) subjectOn = samples[i].t;
-    if (subjectOn != null && attachOn == null && samples[i].t + 1e-9 >= subjectOn && ad.causal) attachOn = samples[i].t;
-    if (attachOn != null && receiveOn == null && samples[i].t > attachOn + (gates.simultaneousFrames / fps) && (ad.proc || ad.scale || ad.rot)) receiveOn = samples[i].t;
+    const sd = delta(localObject(s0, samples[i - 1].frame, beat.viewport), localObject(s1, samples[i].frame, beat.viewport));
+    const ad = delta(localObject(a0, samples[i - 1].frame, beat.viewport), localObject(a1, samples[i].frame, beat.viewport));
+    const subjectVisible = visibleObject(s0, beat.viewport) && visibleObject(s1, beat.viewport);
+    const attachmentVisible = visibleObject(a0, beat.viewport) && visibleObject(a1, beat.viewport);
+    const subjectAction = withinAction(beat.timelineRelay?.fromRange, i);
+    const attachmentAction = withinAction(beat.timelineRelay?.toRange, i);
+    if (subjectOn == null && subjectVisible && subjectAction && (sd.pos || sd.proc)) subjectOn = samples[i].t;
+    if (subjectOn != null && attachOn == null && attachmentVisible && attachmentAction && samples[i].t + 1e-9 >= subjectOn && ad.causal) attachOn = samples[i].t;
+    if (attachOn != null && receiveOn == null && attachmentVisible && attachmentAction && samples[i].t > attachOn + (gates.simultaneousFrames / fps) && (ad.proc || ad.scale || ad.rot)) receiveOn = samples[i].t;
   }
-  if (subjectOn == null) return {id: beat.id, status: '无法测量', reasons: [`${beat.subjectId} 在窗口内没有位置或揭示变化。`]};
+  if (subjectOn == null) return {id: beat.id, ...scope, status: '无法测量', reasons: [`${beat.subjectId} 在窗口内没有可见的位置或揭示变化。`]};
   const reasons = [];
   if (attachOn == null || attachOn - subjectOn > gates.followWindowSec + 1e-6) {
     reasons.push(`${beat.attachmentId} 没有在主体启动后 ${gates.followWindowSec} 秒内发生位置、遮罩或形变。`);
-    return {id: beat.id, status: '未通过', reasons, measured: {subjectOn: round(subjectOn, 3)}};
+    return {id: beat.id, ...scope, status: '未通过', reasons, measured: {subjectOn: round(subjectOn, 3)}};
   }
   const delay = attachOn - subjectOn;
   const delayFrames = framesOf(delay, fps);
   const measured = {subjectOn: round(subjectOn, 3), attachmentOn: round(attachOn, 3), delaySec: round(delay, 4), delayFrames: round(delayFrames, 2), rigid: !!beat.rigid};
   if (beat.rigid) {
-    // 刚性组：同步启动（<3 帧）可以，但必须有接收反馈
+    // 测到的是后续遮罩/形变/旋转，是否真是接收反馈仍须看实际画面。
     if (receiveOn == null) reasons.push('刚性组同步或近同步启动，但没有随后的接收反馈（遮罩、形变或旋转）。');
     else measured.receiveOn = round(receiveOn, 3);
   } else if (delayFrames < gates.simultaneousFrames - 1e-6) {
@@ -397,7 +421,7 @@ export function scoreFollow(samples, beat, gates = DEFAULT_GATES) {
     measured.targetNote = delayFrames >= gates.followTargetMinFrames - 1e-6 && delayFrames <= gates.followTargetMaxFrames + 1e-6
       ? '在目标参照 6–9 帧内' : '不在目标参照 6–9 帧内（不判失败）';
   }
-  return {id: beat.id, status: reasons.length ? '未通过' : '通过', reasons, measured};
+  return {id: beat.id, ...scope, status: reasons.length ? '未通过' : '通过', reasons, measured};
 }
 
 function pathLength(samples, id, t0, t1) {
@@ -420,10 +444,13 @@ export function scoreAnticipation(samples, beat, gates = DEFAULT_GATES) {
   const inWindow = samples.filter(s => s.t >= beat.t0 - maxSec - 1e-9 && s.t <= beat.t1 + 1e-9);
   if (inWindow.length < 4) return {id: beat.id, status: '无法测量', reasons: ['预备窗口采样不足。']};
   const steps = [];
+  let visiblePairs = 0;
   for (let i = 1; i < inWindow.length; i++) {
-    const a = objectAt(inWindow[i - 1].frame, beat.subjectId);
-    const b = objectAt(inWindow[i].frame, beat.subjectId);
-    if (!a || !b) continue;
+    const sa = objectAt(inWindow[i - 1].frame, beat.subjectId);
+    const sb = objectAt(inWindow[i].frame, beat.subjectId);
+    if (!visibleObject(sa, beat.viewport) || !visibleObject(sb, beat.viewport)) continue;
+    visiblePairs++;
+    const a = localObject(sa, inWindow[i - 1].frame, beat.viewport), b = localObject(sb, inWindow[i].frame, beat.viewport);
     const dx = b.x - a.x;
     const dy = b.y - a.y;
     const len = Math.hypot(dx, dy);
@@ -432,6 +459,7 @@ export function scoreAnticipation(samples, beat, gates = DEFAULT_GATES) {
     steps.push({t0: inWindow[i - 1].t, t1: inWindow[i].t, dx, dy, len, squash, a, b});
   }
   const runs = [];
+  if (!visiblePairs) return {id: beat.id, status: '无法测量', reasons: ['预备窗口内没有连续可见的主体采样。'], visualAcceptance: 'not-assessed'};
   for (const step of steps) {
     const prev = runs[runs.length - 1];
     const aligned = prev && step.t0 - prev.t1 <= 1.5 / fps && (prev.dx * step.dx + prev.dy * step.dy) >= -1e-6;
@@ -472,15 +500,19 @@ export function scoreAnticipation(samples, beat, gates = DEFAULT_GATES) {
   return {id: beat.id, status: reasons.length ? '未通过' : '通过', reasons, measured};
 }
 
+function visibleContent(o, gates) {
+  return visibleState(o,{width:gates.refWidth,height:gates.refHeight}).state==='visible';
+}
+
 function unionWidth(frame, ids, gates) {
   let x0 = Infinity;
   let x1 = -Infinity;
   for (const id of ids) {
     const o = objectAt(frame, id);
-    if (!o || (o.opacity ?? 1) <= 0.05 || o.width <= 0 || o.height <= 0) continue;
-    if (o.x + o.width < 0 || o.x > gates.refWidth || o.y + o.height < 0 || o.y > gates.refHeight) continue;
-    x0 = Math.min(x0, o.x);
-    x1 = Math.max(x1, o.x + o.width);
+    if (!visibleContent(o, gates)) continue;
+    const measured=o.observation?.visibleBounds??o;
+    x0 = Math.min(x0, measured.x);
+    x1 = Math.max(x1, measured.x + measured.width);
   }
   if (!Number.isFinite(x0)) return null;
   return clamp(x1, 0, gates.refWidth) - clamp(x0, 0, gates.refWidth);
@@ -489,29 +521,55 @@ function unionWidth(frame, ids, gates) {
 export function scoreComposition(samples, cast, gates = DEFAULT_GATES) {
   const ids = cast?.mainContentIds;
   if (!ids?.length) return {status: '无法测量', reasons: ['没有声明主要内容对象，不能算外接框。'], measured: {}};
+  const unresolved=ids.filter(id=>samples.some(s=>visibleState(objectAt(s.frame,id),{width:gates.refWidth,height:gates.refHeight}).state==='unknown'));
   const cameraSamples = samples.filter(s => s.camera);
   const moving = new Set();
   for (let i = 1; i < cameraSamples.length; i++) {
     const dt = cameraSamples[i].t - cameraSamples[i - 1].t || 1 / 60;
     if (estSpeed(cameraSamples[i - 1].camera, cameraSamples[i].camera, dt) >= gates.moveOnPxPerSec) moving.add(cameraSamples[i].t);
   }
-  const stable = samples.filter(s => !moving.has(s.t));
+  // Stable display requires a neighboring unchanged content state as well as a quiet camera.
+  // Keep animated reveals out of this display-width check, but do not average a narrow hold away.
+  const sameContent = (a, b) => ids.every(id => {
+    const x = objectAt(a.frame, id), y = objectAt(b.frame, id);
+    const shownX = visibleContent(x, gates), shownY = visibleContent(y, gates);
+    if (!shownX && !shownY) return true;
+    if (shownX !== shownY) return false;
+    const d = delta(x, y);
+    return !d.causal && !d.opacity;
+  });
+  const stable = samples.filter((s, i) => !moving.has(s.t) &&
+    ((i > 0 && !moving.has(samples[i - 1].t) && sameContent(samples[i - 1], s)) ||
+     (i + 1 < samples.length && !moving.has(samples[i + 1].t) && sameContent(s, samples[i + 1]))));
   const ratios = [];
+  const narrowIntervals = [];
+  const sampleIndices = new Map(samples.map((s, i) => [s, i]));
+  let previousStableIndex = null;
+  let lastNarrow = false;
   for (const s of stable) {
-    if ((cast.emptyMood ?? []).some(ex => ex.valid !== false && s.t >= ex.t0 && s.t <= ex.t1)) continue;
+    const sampleIndex = sampleIndices.get(s);
+    if (previousStableIndex !== sampleIndex - 1) lastNarrow = false;
+    previousStableIndex = sampleIndex;
+    if ((cast.emptyMood ?? []).some(ex => ex.valid !== false && s.t >= ex.t0 && s.t <= ex.t1)) {lastNarrow = false; continue;}
     const w = unionWidth(s.frame, ids, gates);
-    if (w == null) continue;
-    ratios.push(w / gates.refWidth);
+    if (w == null) {lastNarrow = false; continue;}
+    const ratio = w / gates.refWidth;
+    ratios.push(ratio);
+    if (ratio < gates.contentWidthMin - 1e-9) {
+      if (lastNarrow) {const interval = narrowIntervals.at(-1); interval.end = s.t; interval.samples++; interval.minWidthRatio = Math.min(interval.minWidthRatio, ratio);}
+      else narrowIntervals.push({start: s.t, end: s.t, samples: 1, minWidthRatio: ratio});
+      lastNarrow = true;
+    } else lastNarrow = false;
   }
-  if (!ratios.length) return {status: '无法测量', reasons: ['没有可测量的稳定展示帧。'], measured: {}};
+  if (!ratios.length) return {status: '无法测量', reasons: ['没有可测量的稳定展示帧。',...(unresolved.length?['绘制可见性未决：'+unresolved.join(', ')]:[])], measured: {unresolvedVisibilityObjectIds:unresolved}};
   const med = median(ratios);
   const worst = Math.min(...ratios);
   const reasons = [];
-  if (med < gates.contentWidthMin - 1e-9) reasons.push(`稳定展示时主要内容外接框宽度中位 ${(med * 100).toFixed(1)}% < ${(gates.contentWidthMin * 100).toFixed(0)}%。`);
+  for (const interval of narrowIntervals) reasons.push(`稳定展示 ${round(interval.start, 3)}–${round(interval.end, 3)} 的主要内容外接框宽度最低 ${(interval.minWidthRatio * 100).toFixed(1)}% < ${(gates.contentWidthMin * 100).toFixed(0)}%，不能由全段中位数抵消。`);
   return {
-    status: reasons.length ? '未通过' : '通过',
-    reasons,
-    measured: {stableFrames: ratios.length, medianWidthRatio: round(med, 3), minWidthRatio: round(worst, 3)},
+    status: unresolved.length ? '无法测量' : reasons.length ? '未通过' : '通过',
+    reasons: [...reasons,...(unresolved.length?['绘制可见性未决：'+unresolved.join(', ')]:[])],
+    measured: {stableFrames: ratios.length, medianWidthRatio: round(med, 3), minWidthRatio: round(worst, 3), narrowIntervals, unresolvedVisibilityObjectIds:unresolved,basis: 'Stable confirmed-painted content width only; spacing, legibility and semantic composition not assessed'},
     reference: {minWidthRatio: gates.contentWidthMin},
   };
 }
@@ -553,8 +611,26 @@ function mergeGate(parts) {
   return {status: '通过', reasons: [], measured: {items: parts}};
 }
 
+// Reuse the production timeline and coverage. Legacy motionCast remains a limited
+// numeric input, never evidence that all promised component actions were covered.
+export function deriveMotionCast(spec) {
+  const cast = {...(spec.motionCast ?? {})};
+  const actions = spec.actions ?? [], relays = spec.relays ?? [];
+  const follows = relays.filter(r => ['follow', 'rigid-feedback'].includes(r.motionGate)).map(r => {
+    const from = actions.find(a => a.id === r.fromAction), to = actions.find(a => a.id === r.toAction);
+    const valid = !!from && !!to && from.objectId !== to.objectId && (spec.coverage?.objectIds ?? []).includes(from.objectId) && (spec.coverage?.objectIds ?? []).includes(to.objectId);
+    return {id: r.id, subjectId: from?.objectId, attachmentId: to?.objectId, t0: from && to ? Math.max(0, Math.min(from.start, to.start) - 1 / spec.fps) : 0,
+      t1: from && to ? Math.max(from.end, to.end) : 0, rigid: r.motionGate === 'rigid-feedback', timelineRelay: {fromAction: r.fromAction, toAction: r.toAction, fromRange: from ? [from.start, from.end] : null, toRange: to ? [to.start, to.end] : null}, viewport: spec.viewport,
+      valid, anchorReason: valid ? null : '接力没有指向两个不同且已覆盖的生产动作对象。'};
+  });
+  const anticipations = actions.filter(a => a.motionGate === 'anticipation').map(a => ({id: a.id, subjectId: a.objectId, t0: a.start, t1: a.end, reveal: a.kind === 'reveal', rigid: a.rigid === true, timelineAction: a.id, viewport: spec.viewport,
+    valid: (spec.coverage?.objectIds ?? []).includes(a.objectId), anchorReason: '预备动作对象不在生产 coverage 中。'}));
+  const origin = {follows: follows.length ? 'timeline-relays' : 'legacy-motionCast', anticipations: anticipations.length ? 'timeline-actions' : 'legacy-motionCast', mainContentIds: spec.coverage?.mainContentIds ? 'coverage' : 'legacy-motionCast'};
+  return {...cast, ...(follows.length ? {follows} : {}), ...(anticipations.length ? {anticipations} : {}), mainContentIds: spec.coverage?.mainContentIds ?? cast.mainContentIds, origin};
+}
+
 export function evaluateSpec(spec, {freeze, gates = DEFAULT_GATES, baseDir = process.cwd()} = {}) {
-  const cast = spec.motionCast ?? {};
+  const cast = deriveMotionCast(spec);
   const windows = cast.cameraWindows?.length ? cast.cameraWindows : [{id: 'all', t0: 0, t1: spec.duration}];
   const fps = spec.fps;
   let cameraError = null;
@@ -594,9 +670,9 @@ export function evaluateSpec(spec, {freeze, gates = DEFAULT_GATES, baseDir = pro
     : scoreCamera({moves: allMoves, duration: spec.duration, gates, roles, readings, windowStats});
   if (!cameraError) gate2.measured.windows = windowStats;
 
-  const follows = bindList(cast.follows, baseDir);
+  const follows = cast.origin.follows === 'timeline-relays' ? cast.follows : bindList(cast.follows, baseDir);
   let gate3;
-  if (!follows.length) gate3 = {status: '无法测量', reasons: ['没有从剧本反查来的跟随承诺，不能把自动对象差分当成通过。'], measured: {}};
+  if (!follows.length) gate3 = {status: '无法测量', reasons: ['没有要测启动时差的生产接力标记或旧适配器条目。'], measured: {}};
   else if (follows.some(f => !f.valid)) gate3 = {status: '无法测量', reasons: follows.filter(f => !f.valid).map(f => f.anchorReason), measured: {}};
   else {
     const parts = [];
@@ -611,7 +687,7 @@ export function evaluateSpec(spec, {freeze, gates = DEFAULT_GATES, baseDir = pro
     gate3 = mergeGate(parts);
   }
 
-  const anticipations = bindList(cast.anticipations, baseDir);
+  const anticipations = cast.origin.anticipations === 'timeline-actions' ? cast.anticipations : bindList(cast.anticipations, baseDir);
   let gate4;
   if (!anticipations.length) gate4 = {status: '无法测量', reasons: ['没有声明要检查的主体位移或主要物件揭示。'], measured: {}};
   else if (anticipations.some(a => !a.valid)) gate4 = {status: '无法测量', reasons: anticipations.filter(a => !a.valid).map(a => a.anchorReason), measured: {}};
@@ -648,16 +724,18 @@ export function evaluateSpec(spec, {freeze, gates = DEFAULT_GATES, baseDir = pro
   if (freeze?.source) gate1.measured.source = freeze.source;
 
   const gatesOut = [
-    {id: 1, name: '静止', ...gate1},
-    {id: 2, name: '镜头速度', ...gate2},
-    {id: 3, name: '部件跟随', ...gate3},
-    {id: 4, name: '预备与重量', ...gate4},
-    {id: 5, name: '构图', ...gate5},
+    {id: 1, name: '全帧静止比例', ...gate1},
+    {id: 2, name: '声明窗口的镜头数值', ...gate2},
+    {id: 3, name: '声明对象的启动时差', ...gate3},
+    {id: 4, name: '触发动作的预备时长', ...gate4},
+    {id: 5, name: '稳定主内容外接框宽度', ...gate5},
   ];
   const exitCode = gatesOut.some(g => g.status === '未通过') ? 2 : gatesOut.some(g => g.status !== '通过') ? 1 : 0;
   return {
-    status: exitCode === 0 ? '通过' : exitCode === 2 ? '未通过' : '无法测量',
+    status: exitCode === 0 ? '已测数值满足约束' : exitCode === 2 ? '已测数值未满足约束' : '数值测量不完整',
     exitCode,
+    visualAcceptance: 'not-assessed',
+    scope: {markerOrigin: cast.origin, componentSemantics: 'not-assessed', weight: 'not-assessed', note: '数值结果仅限报告中的对象、动作与窗口；没有测到问题不代表整体质量或部件表达通过。'},
     gates: gatesOut,
     reference: EP05_REFERENCE,
     thresholds: gates,
@@ -676,6 +754,70 @@ export function runFreezeDetect(video, gates = DEFAULT_GATES, ffmpeg = 'ffmpeg')
   const parsed = parseFreezeLog(text);
   if (parsed.duration == null) throw new Error('freezedetect 日志里没有时长。');
   return {...parsed, raw: text, source: video};
+}
+
+function fileLock(file) {
+  const resolved = fs.realpathSync(file), bytes = fs.readFileSync(resolved);
+  return {path: resolved, bytes: bytes.length, sha256: crypto.createHash('sha256').update(bytes).digest('hex')};
+}
+
+// One entry for old and new adapters: numeric measurements plus the existing
+// source/video-bound engineering audit when that production contract is exposed.
+export function evaluateMotion(spec, {freeze, gates = DEFAULT_GATES, baseDir = process.cwd(), adapterFile, video, requireVideo = !!video} = {}) {
+  const hasAuditContract = !!(spec.coverage || spec.sourceFiles || spec.actions);
+  const coverage = {mode: hasAuditContract ? 'production-audit' : 'legacy-declared-numeric-scope', internalProcess: 'unexposed', scriptSemantics: 'not-assessed'};
+  let inputLocks;
+  // Capture these before the first frameAt call, not after numeric sampling.
+  // The later audit must bind the very same versions.
+  try {
+    if (video && spec.videoFile && fs.realpathSync(path.resolve(baseDir, spec.videoFile)) !== fs.realpathSync(video)) throw new Error('适配器 videoFile 与本次 --video 不同，不能混用证据。');
+    const sources = [...new Set([...(spec.sourceFiles ?? []), ...(adapterFile ? [adapterFile] : [])].map(f => fs.realpathSync(path.resolve(baseDir, f))))];
+    const selectedVideo = video ?? (spec.videoFile ? path.resolve(baseDir, spec.videoFile) : null);
+    inputLocks = {tool: fileLock(fileURLToPath(import.meta.url)), observationTool:fileLock(fileURLToPath(new URL('./motion-observation.cjs',import.meta.url))),sources: sources.map(fileLock), video: selectedVideo ? fileLock(selectedVideo) : null};
+  } catch (err) {
+    return {status: '测量不完整', exitCode: 1, visualAcceptance: 'not-assessed', coverage, gates: [], engineeringAudit: {status: 'incomplete', visualAcceptance: 'not-assessed', coverageGaps: [String(err.message || err)]}};
+  }
+  const result = evaluateSpec(spec, {freeze, gates, baseDir});
+  result.coverage = coverage;
+  result.locks = inputLocks;
+  function checkInputLocks() {
+    for (const [kind, lock] of [...inputLocks.sources.map(lock => ['Source', lock]),['Observation tool',inputLocks.observationTool], ...(inputLocks.video ? [['Video', inputLocks.video]] : [])]) {
+      let current;
+      try { current = fileLock(lock.path); } catch { throw new Error(`${kind} changed while sampling: ${lock.path} is no longer readable`); }
+      if (current.sha256 !== lock.sha256 || current.path !== lock.path) throw new Error(`${kind} changed while sampling: ${lock.path}`);
+    }
+  }
+  function rejectChangedInputs(err) {
+    const reason = String(err.message || err);
+    result.engineeringAudit = {status: 'incomplete', visualAcceptance: 'not-assessed', coverageGaps: [reason]};
+    result.locks = inputLocks;
+    result.gates = result.gates.map(g => ({id: g.id, name: g.name, status: '无法测量', reasons: [reason + '; mixed-version numeric measurements discarded.'], measured: {}}));
+    result.exitCode = 1;
+    result.status = '测量不完整';
+    return result;
+  }
+  try { checkInputLocks(); } catch (err) { return rejectChangedInputs(err); }
+  if (hasAuditContract) {
+    try {
+      const audit = auditMotion({...spec, ...(video ? {videoFile: video} : {})}, {baseDir, adapterFile, requireVideo});
+      if (audit.locks.sources.length !== inputLocks.sources.length || inputLocks.sources.some(lock => !audit.locks.sources.some(a => a.path === lock.path && a.sha256 === lock.sha256))) throw new Error('Source changed between numeric sampling and engineering audit bindings.');
+      if (audit.locks.video?.path !== inputLocks.video?.path || audit.locks.video?.sha256 !== inputLocks.video?.sha256) throw new Error('Video changed between numeric sampling and engineering audit bindings.');
+      result.engineeringAudit = audit;
+      result.locks = {...audit.locks, sources: inputLocks.sources, video: inputLocks.video, gatesTool: inputLocks.tool};
+      result.coverage.internalProcess = audit.processCoverage;
+      if (audit.findings.length) result.exitCode = 2;
+      else if (audit.status === 'incomplete' && result.exitCode !== 2) result.exitCode = 1;
+    } catch (err) {
+      if (/Source changed|Video changed/.test(String(err.message || err))) return rejectChangedInputs(err);
+      result.engineeringAudit = {status: 'incomplete', visualAcceptance: 'not-assessed', coverageGaps: [String(err.message || err)]};
+      if (result.exitCode !== 2) result.exitCode = 1;
+    }
+  } else {
+    result.coverage.limitations = ['Legacy motionCast checks only its selected IDs and windows.', 'Internal parts, script promises and production-source association are not covered.'];
+  }
+  try { checkInputLocks(); } catch (err) { return rejectChangedInputs(err); }
+  result.status = result.exitCode === 0 ? '已测约束无异常' : result.exitCode === 2 ? '发现约束失败或待核问题' : '测量不完整';
+  return result;
 }
 
 export async function loadAdapter(file) {
@@ -713,8 +855,9 @@ function readGates(file) {
 }
 
 const HELP = `node scripts/motion-gates.mjs --adapter <adapter.mjs|cjs> --video <preview.mp4> --out <report.json> [--gates <overrides.json>] [--freeze-log <ffmpeg.txt>]
-退出码：0 五条都通过；2 有未通过；1 输入不全或有无法测量。无法测量不是通过。
---freeze-log 使用已经跑完的 freezedetect 日志，不再解码该视频。第 1 条仍按日志计分。`;
+退出码：0 已声明范围的已测约束无异常；2 数值失败或工程审计待核问题；1 输入或覆盖不完整。都不是视觉验收。
+优先复用 actions[].motionGate / relays[].motionGate 与 coverage.mainContentIds。完整生产适配器同步运行 motion-audit 并绑定源码/成片 SHA-256；旧 motionCast 只保留有限数值检测。
+--freeze-log 使用已经跑完的 freezedetect 日志，不再解码该视频；日志与视频的来源关联未验证，会明确记录。`;
 
 export async function main(argv = process.argv.slice(2)) {
   const args = parseArgs(argv);
@@ -758,18 +901,24 @@ export async function main(argv = process.argv.slice(2)) {
     fs.writeFileSync(args.out, JSON.stringify(report, null, 2));
     return 1;
   }
-  const result = evaluateSpec(spec, {freeze, gates, baseDir: path.dirname(adapterFile)});
+  const result = evaluateMotion(spec, {freeze, gates, baseDir: path.dirname(adapterFile), adapterFile, video});
+  if (args['freeze-log'] && freeze) {
+    result.freezeEvidence = {log: fileLock(path.resolve(args['freeze-log'])), videoAssociation: 'not-verified', note: '日志文件哈希只锁定输入；日志时长和来源文字不能证明它来自当前视频。'};
+    if (Math.abs(freeze.duration - spec.duration) > 1 / spec.fps + 0.01) {
+      freezeError = '静止日志时长与适配器时长不一致，不能混用。';
+    }
+  } else if (freeze) result.freezeEvidence = {videoAssociation: 'decoded-current-video', videoSha256: result.locks?.video?.sha256 ?? null};
   if (freezeError) {
     result.gates[0] = {id: 1, name: '静止', status: '无法测量', reasons: [freezeError], measured: {}};
-    result.exitCode = result.gates.some(g => g.status === '未通过') ? 2 : 1;
-    result.status = result.exitCode === 2 ? '未通过' : '无法测量';
+    result.exitCode = result.exitCode === 2 || result.gates.some(g => g.status === '未通过') ? 2 : 1;
+    result.status = result.exitCode === 2 ? '发现约束失败或待核问题' : '测量不完整';
   }
   result.video = video;
   result.adapter = adapterFile;
   fs.mkdirSync(path.dirname(path.resolve(args.out)), {recursive: true});
   fs.writeFileSync(args.out, JSON.stringify(result, null, 2));
   const brief = result.gates.map(g => `${g.id}:${g.status}`).join(' ');
-  console.log(`${result.status} ${brief}`);
+  console.log(`${result.status}；视觉验收未执行；范围 ${result.coverage.mode}。 ${brief}`);
   return result.exitCode;
 }
 

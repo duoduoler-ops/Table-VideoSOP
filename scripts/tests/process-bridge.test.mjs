@@ -7,17 +7,19 @@ import {auditMotion} from '../motion-audit.mjs';
 import {locate} from '../process-locate.mjs';
 const self=fileURLToPath(import.meta.url),root=path.resolve(path.dirname(self),'../..');
 const smooth=t=>t<=0?0:t>=1?1:3*t*t-2*t*t*t;
-const box=(id,x=0,y=0)=>({id,x,y,width:120,height:80,opacity:1});
+// Analytic painted-rectangle fixture; unsupported/offscreen rotation removes this visibility proof below.
+const box=(id,x=0,y=0)=>({id,x,y,width:120,height:80,opacity:1,observation:{state:'visible',reason:'fixture-painted-rectangle'}});
 const exception=(kind)=>({kind,evidence:{sourceFile:self,anchor:'fixture intent evidence',reason:'Fixture verifies an attributable exception, not arbitrary text bypass.'}});
 // fixture intent evidence: necessary reading / true clock progression / explicit cut
-function spec(frameAt,duration=2){return {schemaVersion:1,fps:60,duration,viewport:{width:1920,height:1080},sourceFiles:[self],coverage:{basis:'render-state-final-screen',objectIds:['main'],scope:'Fixture only; not a visual example'},frameAt,actions:[{id:'a',objectId:'main',start:0,end:duration,kind:'transfer'}],checkpoints:[{id:'middle',time:duration/2,objectIds:['main'],role:'pass'}],relays:[{id:'same-object-relay',fromAction:'a',toAction:'b'}]};}
+// The analytic fixture itself is the complete renderer; real legacy adapters cannot infer this inventory.
+function spec(frameAt,duration=2){return {schemaVersion:1,fps:60,duration,viewport:{width:1920,height:1080},sourceFiles:[self],coverage:{basis:'render-state-final-screen',objectIds:['main'],scope:'Fixture only; not a visual example'},frameAt:t=>{const frame=frameAt(t);return {...frame,renderedObjectIds:frame.objects.map(o=>o.id)};},actions:[{id:'a',objectId:'main',start:0,end:duration,kind:'transfer'}],checkpoints:[{id:'middle',time:duration/2,objectIds:['main'],role:'pass'}],relays:[{id:'same-object-relay',fromAction:'a',toAction:'b'}]};}
 function run(s){if(!s.actions.some(a=>a.id==='b'))s.actions.push({id:'b',objectId:'main',start:s.duration*.8,end:s.duration,kind:'transfer'});return auditMotion(s,{requireVideo:false});}
 test('relation matching includes actual EP05/D04/v4 sources and executable source states',()=>{
   const found=locate({root,relation:'处理,比较',sample:true});
   assert(found.processes.some(p=>p.id.startsWith('ep05-d04')));
   assert(found.processes.some(p=>p.id.startsWith('ep05-d06')));
   assert(found.processes.some(p=>p.id.startsWith('relay-v4')));
-  for(const p of found.processes){assert.equal(p.samples.length,3);assert(p.implementation.every(f=>fs.existsSync(f.absolutePath)&&f.sha256.length===64));}
+  for(const p of found.processes){assert.equal(p.samples.length,p.sampleSeconds.length);assert(p.samples.length>=3);assert(p.implementation.every(f=>fs.existsSync(f.absolutePath)&&f.sha256.length===64));}
 });
 test('whole-topic mismatch cannot silently claim a source match',()=>assert.throws(()=>locate({root,relation:'unmatched topic'}),/No local causal/));
 test('actual 8.15–9.25 linear x with curved y is detected',()=>{
@@ -93,7 +95,7 @@ test('relabeling a transfer as reveal cannot exempt its x/y motion',()=>{
 });
 test('all indexed relation sources have valid anchors and real executable samples',()=>{
   const index=JSON.parse(fs.readFileSync(path.join(root,'assets/motion/process-index.json'),'utf8'));
-  for(const p of index.processes){const result=locate({root,id:p.id,sample:true});assert.equal(result.processes[0].samples.length,3);}
+  for(const p of index.processes){const result=locate({root,id:p.id,sample:true});assert.equal(result.processes[0].samples.length,p.sampleSeconds.length);assert.deepEqual(result.processes[0].samples.map(s=>s.sourceSeconds),p.sampleSeconds);}
 });
 test('stateful evaluation and invalid realtime bypass are rejected',()=>{
   let n=0;assert.throws(()=>run(spec(()=>({objects:[box('main',++n)]}))),/Non-deterministic/);
@@ -222,10 +224,10 @@ test('crossing the viewport boundary is a genuine relay change',()=>{
 });
 
 test('rotated bounds near the viewport are unresolved instead of incorrectly culled',()=>{
-  const r=auditMotion(gapFixture(t=>({...box('hidden',1925+10*t,500),rotation:90})),{requireVideo:false});
+  const r=auditMotion(gapFixture(t=>({...box('hidden',1925+10*t,500),rotation:90,observation:undefined})),{requireVideo:false});
   assert.equal(r.status,'incomplete');assert.equal(r.relays[0].measuredAllCoveredStatic,null);
   assert.deepEqual(r.relays[0].unresolvedVisibilityObjectIds,['hidden']);
-  assert(r.coverageGaps.some(g=>g.includes('Rotation/viewport visibility unresolved')));
+  assert(r.coverageGaps.some(g=>g.includes('visibility unresolved')));
   assert(!r.findings.some(f=>f.code==='relay-empty-wait'));
 });
 
@@ -274,6 +276,7 @@ test('a static hold labeled reveal or missing node evidence cannot become a comp
 });
 test('pure fade applicability preserves realtime limits and ignores truly invisible helper geometry',()=>{
   let s=fadeOnly(t=>({objects:[{...box('main',100,100),opacity:smooth(t)},{...box('invisible',100*t,100),opacity:0}]}));
+  s.coverage.objectIds.push('invisible'); // Submitted fixture identity remains covered even while hidden.
   assert.equal(auditMotion(s,{requireVideo:false}).status,'findings');
   s=fadeOnly();s.actions[0].kind='realtime';delete s.actions[0].channels;s.actions[0].exception=exception('real-time');
   assert.equal(auditMotion(s,{requireVideo:false}).status,'incomplete');
@@ -285,17 +288,18 @@ test('pure fade applicability preserves realtime limits and ignores truly invisi
 const d1Codes=new Set(['opacity-only-lifecycle','instant-element-visibility','content-replaced-without-process']);
 const d1=s=>auditMotion(s,{requireVideo:false});
 test('natural modification aliases locate D04 and retain its successful-repair semantic boundary',()=>{
-  for(const relation of ['修改','改写','修订','局部修改','反复修改']){
+  for(const relation of ['修改','改写','修订','局部修改','明确改法','成功修订']){
     const r=locate({root,relation});assert.equal(r.processes.length,1);assert.equal(r.processes[0].id,'ep05-d04-inspect-rewrite-handoff');
     assert(r.processes[0].limits.includes('诊断后改好'));assert(r.processes[0].limits.includes('反复修改仍不解决'));
     assert.deepEqual(r.processes[0].matchedRelations,[relation]);assert(!r.processes[0].samples);
   }
+  const failure=locate({root,relation:'反复修改'});assert.equal(failure.processes[0].id,'whole-result-return');assert(!failure.processes.some(p=>p.id==='ep05-d04-inspect-rewrite-handoff'));
 });
 test('locator default is concise and partial matches expose unmatched terms',()=>{
   const r=locate({root,relation:'修改,未收录关系'});assert.equal(r.detail,'concise');assert.deepEqual(r.query.unmatchedTerms,['未收录关系']);
   assert(!Object.hasOwn(r.processes[0].implementation[0],'absolutePath'));assert(!Object.hasOwn(r.processes[0],'sampleSeconds'));
   const full=locate({root,relation:'修改',full:true});assert.equal(full.processes[0].implementation[0].sha256.length,64);assert(!full.processes[0].samples);
-  assert.equal(locate({root,relation:'修改',sample:true}).processes[0].samples.length,3);
+  const sampled=locate({root,relation:'修改',sample:true}).processes[0];assert.equal(sampled.samples.length,sampled.sampleSeconds.length);assert(sampled.samples[0].sourceSeconds<16.1,'Default samples include the unresolved state before revision, not only the repaired outcome');
 });
 test('pure alpha entry and exit are review-only findings even if mislabeled transfer',()=>{
   const r=d1(standalone(t=>({objects:[{...box('main',100,100),opacity:t<=.5?smooth(t*2):1-smooth((t-.5)/.4)}]})));

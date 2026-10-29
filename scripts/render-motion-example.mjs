@@ -10,10 +10,11 @@ const here=path.dirname(fileURLToPath(import.meta.url));
 const exampleEntry=path.resolve(here,'../assets/motion/whole-result-return/src/entry.jsx');
 export const help=`Render an editable motion example using an existing local runtime.
 Required: --runtime PATH_TO_NODE_MODULES --browser PATH_TO_CHROME --out NEW_DIRECTORY
-Optional: --entry FILE --composition ID --mode stills|video --scale NUMBER
+Select:   --entry FILE --composition ID | --example whole-result-return
+Optional: --mode stills|video --scale NUMBER
           --frames 0,96,228 (stills) | --frames 0-119 (video, inclusive)
           --props JSON_FILE --public-dir DIRECTORY --concurrency INTEGER
-Defaults: bundled example / WholeResultReturn / stills / scale 0.5 / concurrency 2.
+Defaults: stills / scale 0.5 / concurrency 2. No process is selected implicitly.
 Example-local frame selection is used only for the bundled entry. A custom entry
 defaults to its first, middle and last frame. Video mode is explicitly requested.
 All generated files, browser temporary files and logs go under the NEW_DIRECTORY.
@@ -22,7 +23,7 @@ No output is overwritten. A new run requires a new --out directory.`;
 
 export function parseArgs(argv){
   if(argv.includes('--help')||argv.includes('-h'))return {help:true};
-  const allowed=new Set(['runtime','browser','out','entry','composition','mode','scale','frames','props','public-dir','concurrency']);
+  const allowed=new Set(['runtime','browser','out','entry','composition','example','mode','scale','frames','props','public-dir','concurrency']);
   const raw={};
   for(let i=0;i<argv.length;i+=2){
     const key=argv[i]?.replace(/^--/,'');
@@ -38,6 +39,9 @@ export function parseArgs(argv){
   if(!Number.isFinite(scale)||scale<=0||scale>4)throw new Error('--scale must be > 0 and <= 4');
   if(!Number.isInteger(concurrency)||concurrency<1||concurrency>32)throw new Error('--concurrency must be an integer from 1 to 32');
   if(raw.entry&&!raw.composition)throw new Error('A custom --entry requires its --composition ID');
+  if(raw.example&&(raw.entry||raw.composition))throw new Error('--example cannot be combined with --entry or --composition');
+  if(raw.example&&raw.example!=='whole-result-return')throw new Error('Unknown --example; use an explicit --entry and --composition');
+  if(!raw.example&&!raw.entry)throw new Error('Select --entry with --composition, or explicit --example whole-result-return');
   return {...raw,mode,scale,concurrency,entry:path.resolve(raw.entry??exampleEntry),composition:raw.composition??'WholeResultReturn',
     runtime:path.resolve(raw.runtime),browser:path.resolve(raw.browser),out:path.resolve(raw.out),
     ...(raw.props?{props:path.resolve(raw.props)}:{}),...(raw['public-dir']?{publicDir:path.resolve(raw['public-dir'])}:{})};

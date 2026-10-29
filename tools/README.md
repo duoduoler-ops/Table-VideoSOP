@@ -14,17 +14,19 @@
 node scripts/process-locate.mjs --relation 接收,处理 --out '_work/D01/source-process.json'
 ```
 
-- 默认只输出命中的关系、未命中的词、短因果摘要、实现锚点和语义边界。需要完整保留／重算项与源码 SHA-256 时加 `--full`；需要调用包内真实函数取状态时再加 `--sample`（显式要求完整采样，输出可能很长，按需分段读）。父目录须已存在，输出用新文件名。
-- 查“修改／改写／修订／局部修改／反复修改”可命中 D04；它演的是“诊断后改好”。只复用内部修改及关联响应，不能把成功结局照搬到“反复改仍不解决”。
+- 默认输出命中的关系、未命中词、部件链 componentChain、驱动字段 driverFields、保留关系 preserve、独立入口 portableEntry 及实现锚点。需要完整保留／重算项与源码 SHA-256 时加 `--full`；需要调用包内真实函数取状态时再加 `--sample`（显式要求完整采样，输出可能很长，按需分段读）。父目录须已存在，输出用新文件名。
+- 按结果含义选例：未定位用搜索／笼统反馈，多次返回仍不满意保留独立失败结果；具体依据驱动成功修订才取 D04。关系词命中不等于结局适用，不能只改字符串照搬相反含义。
 - 打开命中函数及关联相机、场景源码，记录“来源关系 → 本段对象与实现入口”，实际改编起因、主变化、结果与交接，不只抄曲线。设计阶段用共享部件与动作初排核实必要状态，再展开正式实现；静帧编号不驱动动画，也不要求每张图全部停稳。
 - 多个局部关系可组合。无同题材整段不等于无匹配；定位器无命中只说明当前索引未覆盖。相关候选确实不适用时，写明因果、对象职责、观看或素材条件哪里不符，保留可复用部分，自行设计未覆盖部分，按现有风险预演处理。
 - 定位器退出 0 表示取得源码事实；退出 1 表示输入、索引、锚点或取样失败。它不安装依赖、不渲染，也不判断本段语义匹配。
 
 #### 2. 让检查读取真正的渲染实现
 
-在本段工程放薄适配器，导出 `exportAudit()`，直接调用渲染使用的状态函数。对象变换叠加相机后的最终屏幕边界才进入 `frameAt(seconds)`；不能为测试另写一份理想轨迹。动作、经过／停留点和交接引用实际时间线，不从设计图号生成一套独立时序。
+在本段工程放薄适配器，导出 `exportAudit()`，从渲染使用的同一对象／状态入口提供 `frameAt(seconds)`；含指针、遮罩与局部部件，使用最终屏幕坐标，动作和交接引用实际时间线。不能另写理想轨迹或漏掉实际绘制对象。renderInventory 汇总 recorded／partial／unexposed 及遗漏 ID；每帧均暴露 renderedObjectIds 才能记 recorded，未暴露仍报覆盖缺口，不因手填 visible 而通过。raw 内部仍不能据此宣称无遗漏。
 
-输入与可选字段以 [motion-audit.mjs 的契约注释和 --help](../scripts/motion-audit.mjs) 为准：提供采用帧率／时长／画布、覆盖对象、实际源码与视频路径，以及上述取样函数。隐藏物件保留 ID 与零透明度，避免对象从检查中无声退出。阅读、反问、真实依赖、数据计时或有意切镜例外须绑定来源文件、可定位文本和具体理由；这只使理由可追溯，不自动证明例外成立。
+SVG 工程可用 [motion-observation.cjs](../scripts/motion-observation.cjs) 的 `createObservedScene({width,height,camera?})`，在同次 `rect/polygon/raw(spec,paint)` 调用中登记并绘制，`finish()` 返回 svg、objects、renderedObjectIds 与 camera。polygon 只接受无自交且非退化的简单多边形；只对支持的填充几何、轴向变换／矩形裁切及不透明矩形遮挡判断可见性；stroke、filter、mask、blendMode 等不支持效果须用附保守绘制边界的 raw 保留 unknown，或拆为支持的填充几何，不能静默忽略。其它引擎沿用实际渲染及观察范围，不为检测另造场景。
+
+输入以 [motion-audit.mjs 契约与 --help](../scripts/motion-audit.mjs) 为准：提供实际帧率、时长、画布、覆盖对象、源码／视频路径及采样函数。隐藏对象保留身份与真实绘制状态。`objects[].observation.state` 为 visible／hidden／unknown，附 reason、visibleBounds 和 basis；`hotspot` 是最终屏幕操作点。审计与门禁共用可见性判断；旧 bbox-only 适配器可保留坐标统计，但可见性未决须报覆盖缺口，不静默升级成已见，也不自动迁移旧工程。例外仍绑定源码、锚点和具体理由，由实际范围判断是否适用。
 
 简单动画确无经过节点或接力时（例如单一完整动作），可让相应数组为空，并在 `coverage.notApplicable.checkpoints`／`coverage.notApplicable.relays` 提供 `{sourceFile, anchor, reason}`。来源须在 `sourceFiles` 哈希范围内、锚点须实际存在，理由说明本段为什么没有该类关系；不得为过检虚构节点，也不能豁免主要动作或同时保留该组非空数组。未声明或无有效证据仍报覆盖不完整／输入失效。报告将声明列为 `attributed-not-applicable-requires-scope-review`，它只证明理由可追溯，适用性仍须人工核实。仅有 reveal 且生产采样确认可见对象没有平移、缩放或旋转、相机不变时，不因缺 transfer／camera 报漏测；所有可见对象及显现变化仍须被相应动作区间覆盖。实际移动、漏对象或漏显现区间仍报覆盖不足，不以改标签绕过检查；显现效果另与实际编码帧核对。
 
@@ -34,14 +36,20 @@ node scripts/motion-audit.mjs --adapter 'project/05_制作工程/motion-audit-ad
 
 - 覆盖：单轴位移／尺度恒速与中段巡航只列为待核线索；普通转移／运镜的硬违例须同时满足最终屏幕包围框四角与中心的合成速度恒定、各采样点速度序列也稳定，不能因一轴或一个角点恒速就硬判。旋转变化区间无法仅凭包围框重建物质点运动，不作该硬判，并在报告列明排除区间与覆盖缺口；连续可见且可测区间不足检测窗（当前 6 个采样间隔）也报缺测，不得以速度为空宣称已测无疑点。这是数值检测所需样本量，不是镜头最短时长；仍须对照编码帧与适用的非匀速规则。
 - 经过节点检查共同归零／速度跳变；交接空隙只比较与画布正面积相交的可见对象状态；持续透明、零面积或完全画外的坐标变化不能消除空等，真实显现／消失／出入画仍计入变化。旋转对象若包围范围在画外且缺旋转中心，保守标可见性未决与覆盖缺口，交接静止结果为 `null`，不得当作确定画外或已核无空等。输出主体占屏与相机范围供核实近读／拉开承诺；尺度统计本身不判断字可读或构图合格。
-- 报告锁定源码与视频 SHA-256，列出覆盖对象、数值容差、疑点和例外。容差只用于数值定位，不是跨项目的观感阈值；未声明的对象、遮挡和实际像素运动不在覆盖结论内。
+- 报告锁定源码与视频 SHA-256，列覆盖、容差、疑点与例外。`motionObservations` 报实际屏幕路程、最大单帧位移、峰速、走完 50%／80% 路程的时间和前四分之一窗口路程占比，并给出可见／未决帧数与 reviewFrames。objects[] 是整段轨迹，actions[] 按原动作窗口统计；多次动作优先看单次窗口，避免汇总掩盖快移。peakFrame 为全段从 0 起的生产帧号，取证仍用上述真实解码 PTS。单位为 px、px/s、秒及比例；qualityAssessment 为 not-assessed，speedThreshold 为 null，不能把统计量变成统一过快阈值。无可见性证据的运动保留为坐标观察，不据此宣称光标可辨或遮挡已核。
 - 退出 **0**：声明范围已测，未触发所覆盖疑点；**2**：有已知约束违例或待核疑点；**1**：输入失效、覆盖不完整或未测成。不能把 1 当“不适用”，也不能把 0 写成“画面通过”。
 
 有意跟拍可固定主体的屏幕位置，须结合其世界位移、来源／接收方的相对运动和取景任务判断；单对象屏幕零速不能推断整场停顿，也不能仅填“跟随”标签豁免，未核实的疑点仍保留。
 
+#### 内部部件过程的测量范围
+
+沿用同一 `exportAudit()`，不另建承诺表。真实部件可返回 `parentId` 及相对父容器的 `localGeometry`；内部过程在既有 `actions` 写 `kind:'process'`，`channels` 指向实际局部 x/y/width/height/rotation，或 `process` 中的 maskProgress/pathProgress/morphProgress/occlusionProgress。它们必须来自生产函数；外层卡片和相机移动不能充当内部状态变化。
+
+`processCoverage` 列出 `unexposed`、`partial` 或 `declared-actions-measured`，逐动作区分 `measured-change`／`unmeasured`；缺局部状态、隐藏或全静态列覆盖缺口。已暴露却无过程动作的子件列 `unmeasuredPartIds`，不根据名字推断它必须动。参数变过只证明该参数发生变化，仍须检查真正承担含义的部件、可见性、画面大小与过程；不等于语义或表现力通过。
+
 #### D1 进出场、内容版本与来源关系契约
 
-以下字段只扩展审计适配器，不改变项目 state 的存储格式。默认动作语言和例外边界见[默认进出场与替换](../experience/视觉叙事与连续MG.md#默认进出场与替换)。工具列的是疑点，不自动判定观感失败。
+以下字段扩展审计适配器，不另建制作状态。默认动作语言和例外边界见[默认进出场与替换](../experience/视觉叙事与连续MG.md#默认进出场与替换)。工具列的是疑点，不自动判定观感失败。
 
 - 按上述[D1边界](../experience/视觉叙事与连续MG.md#默认进出场与替换)，字幕 cue、素材内部原画面通常不登记为D1对象；确需留在适配器中时，给各 `frameAt(t).objects[]` 的同一ID逐帧提供 `d1Category`：`mg`／`overlay` 保留全部D1，`subtitle-cue`／`source-footage` 排除全部D1；`data-readout` **只排除真实数据的内容版本更新**，数值对象自身的进出场、复制及来源关系仍检查。这不是外层包装的豁免；后期包装层使用独立ID，不能继承素材层或数据层的排除。默认、未知值、缺帧或同ID混用类别一律保留全部D1检查。分类只是声明，真实性／适用性仍需核对现有素材与证据。
 - `d1Classification` 分别列出 `excludedObjectIds`（全部D1排除）、`contentOnlyExcludedObjectIds`（仅内容更新排除）、`contentCheckedObjectIds`（实际检查内容身份），并记录逐对象的显隐／内容／来源检查范围和未知类别。`contentVersionCoverage` 只描述 `contentCheckedObjectIds`。全排除仅用于字幕／素材原画面；`sourceLinks` 的目标是MG／overlay／data-readout时，即便来源是素材层也仍检查。全排除的目标关系另列 `excludedSourceLinks`，不悄悄丢弃。任何类别都不豁免原轨迹、经过节点、空等、源摘要等检查。
@@ -69,45 +77,44 @@ D1 只采用 `0 ≤ t < duration` 的编码帧，`duration` 的区间终点仍�
 
 先核实当前工具确实提供连续视听输入，再承诺 1× 播放或要求上传；可打开播放器不等于助手能观看，抽帧不冒充连续播放。技术测试、助手审看与用户确认分别记录；未完成的 1× 观感、听校或语义检查各自记“未验证”，不能盖掉已经确认的失败。没有疑点也不证明表现力；修动作后回看直到下一处有依据的停顿，防止把空等推到后段。检查数据只是原 QA 的证据，不成为第二份独立维护的时序或验收结论。
 
-## motion-check.ps1｜动态自检
+## motion-check.mjs｜动态自检
 
-多数 Agent 不能以正常速度观看或收听自己渲染的视频，只能看静帧。这个脚本把一段成片变成少量可看的证据，帮助在交给用户前先发现明显问题。它只调用本机 FFmpeg／FFprobe，不调用模型，也不删除任何文件。
+样片或整段交用户前，用已有 Node.js、FFmpeg／FFprobe 对当前实际视频定位疑点；同一文件已有有效证据可复用，不要求每轮调参重跑。输出用项目 QA 下不存在的新目录，父目录须存在；不安装依赖或调用生成服务。
 
-输出到 `-OutDir`：
-
-- `overview.png`：整段约 48 格总览，带时间码。
-- `summary.txt`／`summary.json`：连续静止区间（默认 ≥0.75 秒、-55dB 视为静止），≥2 秒的区间标出待确认用途。
-- `strip_NN_<起>-<止>.png`：`-Ranges` 指定时段的密集帧（默认 10fps），用来确认变形、接触、焦点交接等过程是否真的可见。
-- `_filters/`：生成图片用的滤镜文本，便于复现。
-
-```powershell
-pwsh -NoProfile -File tools/motion-check.ps1 -Video 'renders/D01_sample.mp4' -OutDir '_work/motion-check/D01_v01' -Ranges '2.5-4.2'
+```text
+node scripts/motion-check.mjs --input renders/D01_sample.mp4 --out _work/motion-check/D01_v01 --ranges 2.5:4.2 --audit _work/D01/motion-audit.json
 ```
 
-- 何时跑：样片或整段渲染后、交用户前各一次；中间调参不必跑。先看文字统计，只对标出区间和关键动作看图。
-- 怀疑反复短停时，可将 `-StillMin` 临时调到疑似停顿长度以下，用相同参数对照前后版本，并结合密集帧与工程事件核对；字幕或小动可能掩盖主体全停。阈值只用于定位，不是新的质量上限。连看前一动作减速、检测到的全停及下一动作缓入；非零微动可能让统计漏报，却仍有明显停顿。局部提前后检查到下一处必要停顿，防止把空等挪到尾部；脚本不能替代这项判断。
-- 同名输出会被覆盖，每个版本用新的输出目录。时间码字体使用 Windows 自带 Arial，找不到时省略时间码。
-- 边界：只定位，不判通过。静止少不等于合格，必要阅读也会形成静止；作者系列中曾有静止约 25%、最长 1.4 秒的版本，仍因动态不足、表述不准被否。结论仍靠与对标片连看和用户 1× 观看。
+默认约 48 帧总览，关键区间密集帧为 10fps，静止定位为 0.75 秒／-55dB；--purpose-at 2、--rework-over 3 是按 DESIGN 使用的疑点分级，不是通用质量线。怀疑短停可降低定位阈值，以同参数对照；非零微动可能掩盖停顿，必要阅读也可能被检出。
 
-时间采样、静止统计只用于查漏，不构成设计图配额，也不替代[关键状态覆盖](../templates/镜头剧本.template.md#关键状态覆盖)。本脚本不检查对象身份、历史快照或连接的确定性；这些按[工程检查](../docs/04_验收与返修.md#程序化动画的确定性与连续性)在实际工程中完成，未覆盖项如实记录。
+- summary.json／txt 绑定视频 SHA、工具、参数、时长及静止区间，analysis-complete 只表示定位完成。
+- overview-page-*.jpg、dense-*、frames.html 和 frame-index.json 提供总览及过程帧，普通抽帧记录请求时间，不声称精确源 PTS。
+- 可选 `--audit <motion-audit或motion-gates.json>` 先核视频 SHA，再用 FFprobe 真实帧 PTS 提取风险附近源帧；frame-index.json 的 exact[] 记录 sourceFrame、sourcePtsSeconds、relativeSeconds，不把生产名义帧当解码 PTS。`exactCoverage` 记录末帧 PTS 与可信显示时长；超出实际覆盖区间明确报错，不夹到末帧冒充取证。
+- commands.json、freeze.log、events.jsonl 供复现；长时任务每分钟写心跳，异常保留 error.json，不把残留文件当成功。
 
-上面的动态自检只定位区间。它标出的用途不能抵消下一节工具已算出的未通过。已登记例外只免除它所覆盖的超长单段，不从累计占比里扣除。
+先看总览及主风险全过程，再核接触、遮挡、主体实际尺度与阅读。抽帧不规定设计图配额，也不代替对象身份、跳帧确定性及 1× 审看。连看减速、全停和下一动作缓入；局部提前后检查到下一必要停顿，防止空等挪到尾部。已证实缺陷记未通过并修，未完成的正常速度观感、听校另记未验证，统计少或零告警不证明效果好。
+
+### 旧 PowerShell 入口
+
+`tools/motion-check.ps1` 保留原参数及 overview.png／strip_NN／summary 等输出，供兼容旧总览用法；它不支持 `--audit` 或精确源帧取证，不与 Node 入口等价。旧脚本可能覆盖同名输出，各版本仍用新目录。
+
+```powershell
+pwsh -NoProfile -File tools/motion-check.ps1 -Video 'renders/D01_sample.mp4' -OutDir '_work/motion-check/D01_legacy' -Ranges '2.5-4.2'
+```
 
 ## 运动量化门禁
 
-交审前对程序化 MG 运行：
+交审前运行，默认阈值仍来自 DESIGN 模板的 `motion.gates`；本期覆盖值只能取已确认 DESIGN，可用 `--gates <overrides.json>`：
 
-```powershell
+```text
 node scripts/motion-gates.mjs --adapter <adapter.cjs> --video <preview.mp4> --out <qa/motion-gates.json>
 ```
 
-已有 freezedetect 日志时加 `--freeze-log <ffmpeg.txt>`，不再解码该片。可选 `--gates <overrides.json>` 只覆盖本期 DESIGN 里已经用户确认的字段。默认值就是模板 `motion.gates`。数值权威在系列 DESIGN「运动量化门禁」，本页不另抄通过线。
+适配器仍是 `schemaVersion:1` 与 `exportAudit()`。优先复用现有动作／交接：`actions[].motionGate:'anticipation'`、`relays[].motionGate:'follow'|'rigid-feedback'`，直接使用实际动作 ID、对象与起止；构图对象来自 `coverage.mainContentIds`。旧 `motionCast` 保持兼容并明确标为 legacy 覆盖，只测已有声明，不能代表内部过程或剧本已核。镜头分窗可用 `frameAt(t,{windowId,t0,t1})`，仍调用生产求值。
 
-适配器沿用上一节的 `exportAudit()`：`schemaVersion` 为 1，`frameAt(seconds)` 返回最终屏幕坐标的 `objects` 与 `camera`。跟随、预备、阅读、构图和静止例外写在 `motionCast`，每条须有能在源文件中找到的锚点。缺声明记无法测量，不能从代码事件自动导出后当成通过。镜头分窗时，`frameAt` 可以读取第二个参数 `{windowId,t0,t1}`，仍只调用同一套生产求值。
+完整适配器同步执行工程审计，复用动作覆盖与源码／视频摘要。报告是约束测量，`visualAcceptance:'not-assessed'`：退出 0 表示已声明范围未发现所测约束异常；2 表示数值失败或待核工程问题；1 表示输入／覆盖不完整。已算出的约束未通过仍须返修，不能改记未验证；全部数值通过也不等于内部过程、重量、阅读或 1× 观感通过。
 
-退出码：0 五条都通过；2 有未通过；1 输入不全或有无法测量。无法测量不是通过。任一条未通过即返修，不能改记未验证后交审。
-
-第 1 条用预览成片；第 2–5 条用源码求值，换算到参照画布，与预览分辨率无关。预览规格认模板 gates。禁止靠拉长已有动作压低静止统计。
+第 1 条取实际视频，第 2–5 条按源码换算到参照画布；不能拉长已有动作压低静止统计。`--freeze-log` 可复用现存日志，但报告 `videoAssociation:'not-verified'`，日志哈希不能证明来自本视频；本次实际解码标 `decoded-current-video`。局部内容大小与覆盖对象分别核对，全局占比不能证明每个阅读部件够大。
 
 ## 许可
 

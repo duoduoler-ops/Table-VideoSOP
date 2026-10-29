@@ -181,10 +181,10 @@
         "source": "B3: assets/motion/ep05-d06-task-relay/src/timeline.cjs; camera: assets/motion/ep07-entry-follow-v8/src/camera.cjs"
       },
       "curveUsage": {
-        "travel": "位置或尺度移动（含部件移位、副本传递、归档移动）用 travel；短距时长参照 B3 的 calibration.phasesFrames.travel（46f@60fps），不是固定时长。",
-        "process": "ease-in-out-cubic 只用于需要看清变化本身的过程，如形变、生长、颜色或材质渐变；位置或尺度移动不属于这类过程。",
+        "travel": "主要辨认去向、落点的转交或重排用 travel 候选；B3 46f@60fps 只作短距手感参照，按实际路程和观看任务定窗口。",
+        "process": "搜索、拖动、剥离、擦写或展开等需要读清路径或局部变化时，process 是候选；位移和尺度也可承担过程，不按几何属性排除。",
         "anticipation": "预备另按 B3 短、可读地安排（参照24f@60fps），让意图或受力可辨；不能用预备曲线替代主位移。",
-        "examples": "沙发右移8%：travel (0.22,0.72,0.22,1)；墙面白变浅蓝：process ease-in-out-cubic。"
+        "examples": "同是位移：快速归位主要读落点，可用 travel；拖开贴纸必须读清接触、路径与露出内容，可用 process 并给足可读窗口。"
       },
       "linearUseCases": [
         "需保持匀速的时间指示；按实际场景采用"
@@ -309,7 +309,7 @@
 
 ## Motion（视频扩展）
 
-这些职责曲线与模板默认候选一致，JSON 的 `curveUsage` 说明使用边界：reveal 用于出现，anticipation 另按 B3 安排短、可读的预备（参照24f@60fps）；**位置或尺度移动**，包括部件移位、副本传递、归档移动，用 travel `(0.22,0.72,0.22,1)`，短距时长参照 B3 约46f@60fps；settle 用于到位。process `ease-in-out-cubic` 只用于需看清变化本身的形变、生长、颜色或材质渐变，不能用于位置或尺度移动。例如沙发右移8%用 travel，墙面由白变浅蓝用 process；镜头另按 camera 职责选择。没有预备、接触或附属件的动作不强补阶段。跨镜运动匹配需承接切点两侧的方向和速度，不机械地两边各缓入缓出。
+职责曲线按[默认动作设计基线](../templates/DESIGN.template.md#职责曲线与校准)的观看任务选择，JSON 的 `curveUsage` 与 [DESIGN 模板](../templates/DESIGN.template.md#职责曲线与校准)保持一致：快速转交主要看去向与落点；搜索、拖动和局部变化需要可追踪的过程。位移、尺度都可能属于后一类。B3 帧数只描述原例手感，不是新任务的时间配额；跨镜运动匹配仍承接实际切点的方向和速度。
 
 本例暂不采用形变，因此 squashStretch.enabled 为 false；这不禁止其他项目经测试后采用。曲线参数只定义速度变化的候选方式，不决定本期动作时长或镜头选择。
 
@@ -323,7 +323,7 @@
 
 ## Exceptions & Evidence（视频扩展）
 
-`evidence.static` 和 `evidence.motion` 分别填写真实文件路径；`confirmation` 记录用户确认的范围和依据。只确认静态时，不登记运动已确认。
+`evidence.static` 填写已确认静态的真实文件；`evidence.motion` 在实际制作片段或按需小样产生后补充，之前可为空并注明待验证，不阻塞前期规划。`confirmation` 只记录真实用户确认的范围和依据；静态确认不能登记为运动已确认。
 
 正式采用前检查参数引用与单位、组件实际用值、文字可读性、对象因果、接触遮挡、阅读窗口及前后衔接。某段的例外写明范围和确认依据，不自动升级为系列默认。
 
