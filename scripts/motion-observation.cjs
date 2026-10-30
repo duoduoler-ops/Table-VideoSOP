@@ -49,10 +49,14 @@
   let rest=p;const out=[];for(const [k,v,greater]of [[0,r.x,true],[0,r.x+r.width,false],[1,r.y,true],[1,r.y+r.height,false]]){const exterior=half(rest,k,v,!greater);if(area(exterior)>EPS)out.push(exterior);rest=half(rest,k,v,greater);if(area(rest)<=EPS)break;}return out;
  }
  function visibleState(o,viewport={width:1920,height:1080}){
-  if(!o||(o.opacity??1)<=0||o.width<=0||o.height<=0)return{state:'hidden',reason:'not-drawn-or-empty'};
-  const on=intersects(o,{x:0,y:0,...viewport});
+  if(!o)return{state:'hidden',reason:'not-drawn-or-empty'};
   const observation=o.observation,record=observation&&recordedObservations.get(observation);
   if(record&&record.key===geometryKey(o)&&record.viewport.width===viewport.width&&record.viewport.height===viewport.height)return record.observation;
+  if((o.opacity??1)<=0)return{state:'hidden',reason:'not-drawn-or-empty'};
+  // An empty author bbox does not prove empty paint (raw SVG can fill the screen).
+  // Recorded primitive emptiness was resolved above by the actual draw geometry.
+  if(o.width<=0||o.height<=0)return{state:'unknown',reason:'unverified-empty-bounds'};
+  const on=intersects(o,{x:0,y:0,...viewport});
   if(!on){if(Math.abs(o.rotation??0)>EPS)return{state:'unknown',reason:'unresolved-rotation'};return{state:'hidden',reason:'outside-viewport'};}
   return{state:'unknown',reason:observation?'unverified-author-observation':'bbox-only-no-painted-visibility'};
  }

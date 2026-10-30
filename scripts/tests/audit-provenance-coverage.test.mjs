@@ -91,3 +91,38 @@ test('raw sparse or out-of-bounds paint cannot certify opaque hiding or uncovere
  s.rect({id:'cover',x:0,y:0,width:50,height:50,z:2},{fill:'#fff'});
  assert.equal(visibleState(s.finish().objects[0],viewport).state,'unknown');
 });
+
+
+test('zero author bbox cannot hide positive-area raw paint or erase its recorded unknown',()=>{
+ for(const bounds of [{width:0,height:0},{width:0,height:100},{width:100,height:0}]){
+  const s=createObservedScene(viewport);
+  s.raw({id:'raw-fullscreen',x:0,y:0,...bounds},'<rect width="1920" height="1080" fill="black"/>');
+  const frame=s.finish(),o=frame.objects[0];
+  assert(frame.svg.includes('<rect width="1920" height="1080" fill="black"/>'));
+  assert.equal(recordedFrameState(frame).status,'recorded');
+  assert.equal(o.observation.state,'unknown');
+  assert.equal(visibleState(o,viewport).state,'unknown');
+  assert.equal(visibleState(JSON.parse(JSON.stringify(o)),viewport).state,'unknown');
+ }
+});
+test('actual primitive zero area and actual zero opacity remain hidden',()=>{
+ for(const bounds of [{width:0,height:0},{width:0,height:100},{width:100,height:0}]){
+  const s=createObservedScene(viewport);s.rect({id:'empty-primitive',x:0,y:0,...bounds},{fill:'#000'});
+  assert.equal(visibleState(s.finish().objects[0],viewport).state,'hidden');
+ }
+ const s=createObservedScene(viewport);
+ s.raw({id:'transparent-raw',x:0,y:0,width:0,height:0,opacity:0},'<rect width="1920" height="1080" fill="black"/>');
+ const o=s.finish().objects[0];
+ assert.equal(visibleState(o,viewport).state,'hidden');
+ assert.equal(visibleState(JSON.parse(JSON.stringify(o)),viewport).state,'hidden');
+});
+test('zero-bbox raw paint remains an explicit engineering visibility gap',()=>{
+ const spec=production();
+ spec.coverage.objectIds=['raw-fullscreen'];spec.coverage.mainContentIds=['raw-fullscreen'];
+ spec.actions=[{id:'raw-event',objectId:'raw-fullscreen',kind:'transfer',start:0,end:2}];
+ spec.checkpoints=[];spec.relays=[];
+ spec.frameAt=()=>{const s=createObservedScene(viewport);s.raw({id:'raw-fullscreen',x:0,y:0,width:0,height:0},'<rect width="1920" height="1080" fill="black"/>');return s.finish();};
+ const a=auditMotion(spec,{requireVideo:false});
+ assert(a.coverageGaps.some(g=>g.startsWith('Painted visibility unresolved for raw-fullscreen')));
+ assert(a.motionObservations.objects[0].unknownVisibilityFrames>0);
+});
