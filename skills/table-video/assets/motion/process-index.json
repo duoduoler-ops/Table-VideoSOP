@@ -1,0 +1,831 @@
+{
+  "schemaVersion": 1,
+  "basis": "Actual distributed source; source times belong to each example, not the new project. Match local causal relations, not whole-topic similarity.",
+  "processes": [
+    {
+      "id": "causal-field-edit",
+      "relations": [
+        "要求驱动修改",
+        "字段修改",
+        "指示对象",
+        "鼠标操作",
+        "因果顺序",
+        "requirement-driven-edit",
+        "pointer-operation"
+      ],
+      "causalChain": "具体格式要求完整出现→定位它指向的字段→原处改变该字段→实际值复制到预览→指示对象真正离场；附同内容的因果、对象及闪现反例",
+      "sourceSeconds": [
+        0,
+        8.4
+      ],
+      "implementation": [
+        {
+          "path": "assets/motion/causal-edit-process/process.cjs",
+          "anchors": [
+            "function applyRequirement(",
+            "function eventWindows(",
+            "function stateAt(",
+            "function actions("
+          ]
+        },
+        {
+          "path": "assets/motion/causal-edit-process/scene.cjs",
+          "anchors": [
+            "function build(",
+            "function frameAt("
+          ]
+        },
+        {
+          "path": "assets/motion/causal-edit-process/audit-adapter.cjs",
+          "anchors": [
+            "function exportAudit("
+          ]
+        }
+      ],
+      "sampler": {
+        "path": "assets/motion/causal-edit-process/process.cjs",
+        "export": "stateAt",
+        "unit": "sourceSeconds"
+      },
+      "sampleSeconds": [
+        0.9,
+        1.8,
+        3.7,
+        5.8
+      ],
+      "componentChain": [
+        "格式要求与实际字段ID",
+        "被要求修改的字段及旧新内容遮罩",
+        "保留不变的其它字段",
+        "复制实际修改值的预览",
+        "连续指示对象热点与绘制层级"
+      ],
+      "driverFields": {
+        "requirement": [
+          "targetId",
+          "operation",
+          "separator",
+          "progress"
+        ],
+        "rows": [
+          "id",
+          "value",
+          "after",
+          "edit"
+        ],
+        "cursor": [
+          "x",
+          "y",
+          "drawn",
+          "layer",
+          "pressed"
+        ],
+        "result": [
+          "value",
+          "complete",
+          "matchesRequirement"
+        ]
+      },
+      "portableEntry": {
+        "path": "assets/motion/causal-edit-process/scene.cjs",
+        "stateExport": "stateAt",
+        "renderExport": "renderSvg",
+        "documentExport": "renderDocument",
+        "sourceRange": [
+          0,
+          8.4
+        ],
+        "meaning": "具体字段格式转换的可执行正反例；支持更换字段与日期分隔符，不自动解释任意自然语言要求。pointer可关闭。"
+      },
+      "preserve": [
+        "要求先于本例对应修改",
+        "实际结果来自被修改字段",
+        "渲染与审计使用同一次对象提交",
+        "鼠标从目标最终位置求值并在实际出画后隐藏"
+      ],
+      "recompute": [
+        "新内容的真实状态转换和字段依赖",
+        "新配音的动作时段",
+        "屏幕路径与尺寸",
+        "未知遮挡的实际像素"
+      ],
+      "limits": "这不是通用视觉预设；示例时长、布局、指示对象与日期题材均不强制继承。反例仅供回归；字体可读性、因果理解和1×观感须实际审查，原生记录中的raw文本可能为未决。"
+    },
+    {
+      "id": "ep05-d06-receive-process-deliver",
+      "relations": [
+        "接收",
+        "处理",
+        "交付",
+        "扩展",
+        "receive",
+        "process",
+        "deliver",
+        "expand"
+      ],
+      "causalChain": "同一行卡脱出，来源线钩住并牵往依据，原卡展开为提示词，副本接入工具，发送后接出结果",
+      "sourceSeconds": [
+        0,
+        15.266666666666667
+      ],
+      "implementation": [
+        {
+          "path": "assets/motion/ep05-d06-task-relay/src/timeline.cjs",
+          "anchors": [
+            "function cardFlight(T)",
+            "function camS1(T)",
+            "function cam(t)",
+            "function pAt(T)"
+          ]
+        },
+        {
+          "path": "assets/motion/ep05-d06-task-relay/src/scenes.jsx",
+          "anchors": [
+            "function Composer(",
+            "function GenImage(",
+            "function Slip("
+          ]
+        }
+      ],
+      "sampler": {
+        "path": "assets/motion/ep05-d06-task-relay/src/timeline.cjs",
+        "export": "pAt",
+        "unit": "sourceSeconds"
+      },
+      "sampleSeconds": [
+        2.1,
+        3.7,
+        4.6
+      ],
+      "preserve": [
+        "主卡身份与线根",
+        "先接收再产生结果的因果",
+        "对象、相机和线各自时段"
+      ],
+      "recalculate": [
+        "新配音时段",
+        "最终屏幕布局与尺度",
+        "接触与取景"
+      ],
+      "limits": "结果媒体为占位；源码采样不是像素跟踪、配音听校或原片观感复刻。",
+      "componentChain": [
+        "来源行卡保留身份",
+        "线根牵引到依据",
+        "原行横纵展开成文件并逐段写入",
+        "Composer 接收副本、发送后得到结果"
+      ],
+      "driverFields": {
+        "timeline": [
+          "cardFlight(T)",
+          "pAt(T)"
+        ],
+        "components": [
+          "Composer.attachK/textK/press",
+          "GenImage.p/doneK",
+          "Slip.rows/flow"
+        ]
+      }
+    },
+    {
+      "id": "ep05-d06-adapt-return",
+      "relations": [
+        "适配",
+        "交付",
+        "回收",
+        "adapt",
+        "deliver",
+        "return",
+        "重排",
+        "内容重排",
+        "接口适配",
+        "读取要求",
+        "rearrange",
+        "requirement"
+      ],
+      "causalChain": "旧接口碰撞短退，保留原件，依据新要求改副本，接口接入后回归原任务",
+      "sourceSeconds": [
+        24.6,
+        34.4
+      ],
+      "implementation": [
+        {
+          "path": "assets/motion/ep05-d06-task-relay/src/timeline.cjs",
+          "anchors": [
+            "function pAt(T)",
+            "function morphS6(x)",
+            "function camS6(x)"
+          ]
+        },
+        {
+          "path": "assets/motion/ep05-d06-task-relay/src/scenes.jsx",
+          "anchors": [
+            "function Slip(",
+            "function DocCard(",
+            "const teeth =",
+            "function Morph("
+          ]
+        },
+        {
+          "path": "assets/motion/ep05-d06-task-relay/internal-process.cjs",
+          "anchors": [
+            "function stateAt(",
+            "function renderSvg("
+          ]
+        }
+      ],
+      "sampler": {
+        "path": "assets/motion/ep05-d06-task-relay/src/timeline.cjs",
+        "export": "pAt",
+        "unit": "sourceSeconds"
+      },
+      "sampleSeconds": [
+        26.8,
+        31.5,
+        34.1
+      ],
+      "preserve": [
+        "旧副本和新副本各自身份",
+        "真实不兼容后才适配",
+        "收回与相机共同落位"
+      ],
+      "recalculate": [
+        "本项目是否确有不兼容关系",
+        "新内容接口及动作时间"
+      ],
+      "limits": "不能把齿形不兼容当通用审核关卡；历史工具文档不是当前指令。",
+      "componentChain": [
+        "DocCard 读取并取出要求",
+        "Slip 副本内的旧行退、新行逐行写入",
+        "同一 Slip 的齿形按要求适配",
+        "接触压缩后回到原任务"
+      ],
+      "driverFields": {
+        "DocCard": [
+          "readP",
+          "readO",
+          "pickK"
+        ],
+        "Slip": [
+          "rewrite",
+          "teethK",
+          "headerK",
+          "squash"
+        ],
+        "portable": [
+          "document.read/pick",
+          "rows[].erase/reveal",
+          "teeth[].y/height",
+          "dockX",
+          "contact"
+        ]
+      },
+      "portableEntry": {
+        "path": "assets/motion/ep05-d06-task-relay/internal-process.cjs",
+        "state": "stateAt(sourceSeconds, {before[3], after[3], requirements[10]})",
+        "render": "renderSvg(state, {idPrefix}) or renderDocument(state)",
+        "sourceSeconds": [
+          32.2,
+          33.75
+        ],
+        "meaning": "依据实际要求索引绑定 duration/dimensions/sound 行，只修改绑定部件；齿形表示本例输入格式适配，不是通用审核。"
+      }
+    },
+    {
+      "id": "ep05-d04-inspect-rewrite-handoff",
+      "relations": [
+        "检查",
+        "观察",
+        "处理",
+        "交付",
+        "修改",
+        "改写",
+        "修订",
+        "局部修改",
+        "阅读",
+        "关联响应",
+        "inspect",
+        "observe",
+        "process",
+        "deliver",
+        "rewrite",
+        "revision",
+        "read",
+        "linked-response",
+        "明确改法",
+        "成功修订"
+      ],
+      "causalChain": "原稿读取遇阻，波形在原处打结，圈出同句并改短，原线接通，稿纸让位交给配音字幕",
+      "sourceSeconds": [
+        9.4,
+        19.033333333333335
+      ],
+      "implementation": [
+        {
+          "path": "assets/motion/ep05-d04-revision-process/model.cjs",
+          "anchors": [
+            "function cam(t)",
+            "function pageXform(t)",
+            "function reading(t)",
+            "function state(t)",
+            "function wavePts(",
+            "function knotPts("
+          ]
+        },
+        {
+          "path": "assets/motion/ep05-d04-revision-process/Scene.jsx",
+          "anchors": [
+            "function Paper(",
+            "function VoiceStrip(",
+            "function ProblemMarks("
+          ]
+        },
+        {
+          "path": "assets/motion/ep05-d04-revision-process/source-timeline.cjs",
+          "anchors": []
+        },
+        {
+          "path": "assets/motion/ep05-d04-revision-process/internal-process.cjs",
+          "anchors": [
+            "function stateAt(",
+            "function renderSvg("
+          ]
+        }
+      ],
+      "sampler": {
+        "path": "assets/motion/ep05-d04-revision-process/model.cjs",
+        "export": "state",
+        "unit": "sourceSeconds"
+      },
+      "sampleSeconds": [
+        15.6,
+        16.2,
+        16.6,
+        17.3
+      ],
+      "preserve": [
+        "同句修改与原处波形的因果",
+        "改句、接通、让位交叠",
+        "必要阅读"
+      ],
+      "recalculate": [
+        "句长、字框、阅读落点",
+        "新配音下的接管与收势"
+      ],
+      "limits": "语义是诊断后改好，与反复修改仍不解决不同；可复用内部修改与关联响应，不能照搬成功结局。摘编不包含原G02媒体；不与另一独立入口硬拼。",
+      "componentChain": [
+        "Paper 原句读取到卡点",
+        "VoiceStrip 延迟跟读并在同句打结",
+        "Paper 局部换句与段落回流",
+        "VoiceStrip 原处替换、接通"
+      ],
+      "driverFields": {
+        "Paper": [
+          "reading.c/c5/c5n",
+          "longSentence.oldOpacity/newReveal/paragraphHeight"
+        ],
+        "VoiceStrip": [
+          "wave.readCount/knot/oldRemove/newConnect",
+          "wavePts/knotPts"
+        ],
+        "portable": [
+          "reading",
+          "sentence.remove/reveal/height",
+          "wave.smooth/rough/knot/fresh",
+          "result.check"
+        ]
+      },
+      "portableEntry": {
+        "path": "assets/motion/ep05-d04-revision-process/internal-process.cjs",
+        "state": "stateAt(sourceSeconds, {title, context[4], before, after})",
+        "render": "renderSvg(state, {idPrefix}) or renderDocument(state)",
+        "sourceSeconds": [
+          10.3,
+          17.05
+        ],
+        "meaning": "成功修订句子与朗读关联；不能替代反复失败或任意摘要关系。新内容须重算本段时间，SVG示意波形不是真实音频。"
+      }
+    },
+    {
+      "id": "relay-v4-compare-receive-return",
+      "relations": [
+        "比较",
+        "接收",
+        "回收",
+        "compare",
+        "receive",
+        "return"
+      ],
+      "causalChain": "候选仍共同可辨时载体先回接，按钮让位，计时下落，统计合回，末尾保留反问",
+      "sourceSeconds": [
+        17.266666666666666,
+        25.666666666666668
+      ],
+      "implementation": [
+        {
+          "path": "assets/motion/relay-receive-v4/src/timeline-v4.cjs",
+          "anchors": [
+            "function cameraAt(t)",
+            "function state(t)"
+          ]
+        },
+        {
+          "path": "assets/motion/relay-receive-v4/src/scene.cjs",
+          "anchors": []
+        },
+        {
+          "path": "assets/motion/relay-receive-v4/src/timeline-v3.cjs",
+          "anchors": [
+            "function state(t)"
+          ]
+        }
+      ],
+      "sampler": {
+        "path": "assets/motion/relay-receive-v4/src/timeline-v4.cjs",
+        "export": "state",
+        "unit": "sourceSeconds"
+      },
+      "sampleSeconds": [
+        21.05,
+        21.8,
+        22.5
+      ],
+      "preserve": [
+        "比较期间回接",
+        "按当前最终变换补偿",
+        "固定反问不取消"
+      ],
+      "recalculate": [
+        "候选的可读尺度和遮挡",
+        "接点屏幕位置、切线与速度"
+      ],
+      "limits": "只继承本次局部有效修法；v3是反例；源码状态不能替代新内容审看。",
+      "componentChain": [
+        "候选同时可辨",
+        "原载体回接",
+        "按钮/计时/统计关联让位",
+        "保留反问"
+      ],
+      "driverFields": {
+        "timeline": [
+          "state(t)",
+          "cameraAt(t)"
+        ],
+        "binding": [
+          "回接位置须取最终屏幕变换，不能只读容器坐标"
+        ]
+      }
+    },
+    {
+      "id": "ep07-v8-causal-entrance",
+      "relations": [
+        "入场",
+        "复制",
+        "展开",
+        "路径显现",
+        "entrance",
+        "copy",
+        "unfold",
+        "path-reveal"
+      ],
+      "causalChain": "原处复制保留来源，接收区展开，纸面从零面积折开，连接沿真实路径前缀出现",
+      "sourceSeconds": [
+        0.54,
+        7.3
+      ],
+      "implementation": [
+        {
+          "path": "assets/motion/ep07-entry-follow-v8/src/scene.cjs",
+          "anchors": [
+            "function frameAt(t)",
+            "function linePrefix(d,q)"
+          ]
+        }
+      ],
+      "sampler": {
+        "path": "assets/motion/ep07-entry-follow-v8/src/state.cjs",
+        "export": "state",
+        "unit": "sourceSeconds"
+      },
+      "sampleSeconds": [
+        0.55,
+        3.08,
+        5.7
+      ],
+      "preserve": [
+        "来源与副本身份",
+        "物件生命周期与真实显现分开",
+        "生产像素中线条确实从起点增长"
+      ],
+      "recalculate": [
+        "新内容的来源与接收端",
+        "首个可见帧和遮挡",
+        "路径及渲染器支持"
+      ],
+      "limits": "完整场景实例，非所有元素都必须复制或折纸；原本在场者无需入场。几何不能替代实际像素，依 verify.cjs --runtime 检查。",
+      "componentChain": [
+        "来源保留",
+        "同位副本",
+        "接收区展开",
+        "路径前缀显现"
+      ],
+      "driverFields": {
+        "source": [
+          "frameAt(t)",
+          "linePrefix(d,q)"
+        ]
+      }
+    },
+    {
+      "id": "ep07-v8-subject-follow",
+      "relations": [
+        "跟随",
+        "主体绑定",
+        "follow",
+        "subject-bound"
+      ],
+      "causalChain": "先求同一操作载体最终位置，再按观看锚点反求相机，接收端在跟随中展开",
+      "sourceSeconds": [
+        3.08,
+        7.1
+      ],
+      "implementation": [
+        {
+          "path": "assets/motion/ep07-entry-follow-v8/src/scene.cjs",
+          "anchors": [
+            "function carrierAt(t)",
+            "const cam=cameraAt(t,"
+          ]
+        },
+        {
+          "path": "assets/motion/ep07-entry-follow-v8/src/camera.cjs",
+          "anchors": [
+            "function followCarrier(",
+            "function cameraAt(t,anchors={})"
+          ]
+        }
+      ],
+      "sampler": {
+        "path": "assets/motion/ep07-entry-follow-v8/src/state.cjs",
+        "export": "state",
+        "unit": "sourceSeconds"
+      },
+      "sampleSeconds": [
+        3.55,
+        3.9,
+        6.95
+      ],
+      "preserve": [
+        "实际主体变换传给相机",
+        "观看目标与接收关系",
+        "近读窗口"
+      ],
+      "recalculate": [
+        "新配音窗口",
+        "屏幕距离及字大小",
+        "曲线和落点"
+      ],
+      "limits": "0.74/0.78秒仅为本例，不能把所有运镜统一缩短；相机范围不是景别任务或语义通过。",
+      "componentChain": [
+        "主体最终姿态",
+        "观看锚点",
+        "反求相机",
+        "接收端展开"
+      ],
+      "driverFields": {
+        "source": [
+          "carrierAt(t)",
+          "followCarrier",
+          "cameraAt(t,anchors)"
+        ]
+      }
+    },
+    {
+      "id": "ep07-v8-follow-to-wide",
+      "relations": [
+        "拉全景",
+        "跟随到拉全景",
+        "到达接力",
+        "follow-to-wide",
+        "arrival-relay"
+      ],
+      "causalChain": "原件留在归档，副本前往备份；接近到达时相机开始拉开，交给新旧步骤与两个结果共同比较",
+      "sourceSeconds": [
+        10.76,
+        13.2
+      ],
+      "implementation": [
+        {
+          "path": "assets/motion/ep07-entry-follow-v8/src/scene.cjs",
+          "anchors": [
+            "const copyProgress=ap(t,"
+          ]
+        },
+        {
+          "path": "assets/motion/ep07-entry-follow-v8/src/camera.cjs",
+          "anchors": [
+            "function mixCam(a,b,q)",
+            "function cameraAt(t,anchors={})"
+          ]
+        }
+      ],
+      "sampler": {
+        "path": "assets/motion/ep07-entry-follow-v8/src/state.cjs",
+        "export": "state",
+        "unit": "sourceSeconds"
+      },
+      "sampleSeconds": [
+        11.2,
+        12.06,
+        12.6
+      ],
+      "preserve": [
+        "原件不随副本离开",
+        "跟随和拉开有实际交叠",
+        "最终比较和阅读停顿"
+      ],
+      "recalculate": [
+        "本项目是否需要比较",
+        "主物件与接收端屏幕位置",
+        "拉开起点与最终可读尺度"
+      ],
+      "limits": "适用于到达后需要展示关系全貌；不要求每个结尾拉全景。用户仅确认本次13.2秒v08，助手未1×审看。",
+      "componentChain": [
+        "归档原件",
+        "备份副本",
+        "到达前拉开",
+        "两个结果共同可比"
+      ],
+      "driverFields": {
+        "source": [
+          "copyProgress",
+          "mixCam(a,b,q)",
+          "cameraAt(t,anchors)"
+        ]
+      }
+    },
+    {
+      "id": "whole-result-return",
+      "relations": [
+        "整份退回",
+        "三版比较",
+        "期待降低",
+        "落地跟随",
+        "whole-return",
+        "version-compare",
+        "expectation",
+        "反复修改",
+        "反复改仍不满意",
+        "修改仍不解决",
+        "failed-revisions"
+      ],
+      "causalChain": "同一结果整份退回；模糊请求继续生成不同版面；三版共同比较后期待下降，接受仍未改好的结果",
+      "componentChain": [
+        "请求接入→Machine 接收形变",
+        "输出纸接触→主体压缩回弹→尾角延迟跟随",
+        "三版版面保持各自内容差异",
+        "用户拖低期待，纸面不因此被修好"
+      ],
+      "driverFields": {
+        "Machine": [
+          "pulse"
+        ],
+        "Paper": [
+          "outputs[].sx/sy/tail",
+          "outputs[].version/history"
+        ],
+        "Expectation": [
+          "expectY",
+          "pointer.press"
+        ],
+        "result": [
+          "accept",
+          "focus"
+        ]
+      },
+      "sourceSeconds": [
+        0,
+        11.8
+      ],
+      "implementation": [
+        {
+          "path": "assets/motion/whole-result-return/src/timeline.cjs",
+          "anchors": [
+            "function outputs(t)",
+            "function state(seconds)"
+          ]
+        },
+        {
+          "path": "assets/motion/whole-result-return/src/Transfer.jsx",
+          "anchors": [
+            "function Paper({p})",
+            "function Machine({s})",
+            "function Expectation({s})"
+          ]
+        }
+      ],
+      "sampler": {
+        "path": "assets/motion/whole-result-return/src/timeline.cjs",
+        "export": "state",
+        "unit": "sourceSeconds"
+      },
+      "sampleSeconds": [
+        3.85,
+        6.55,
+        9.05
+      ],
+      "preserve": [
+        "版本差异来自内容版式，不只是整卡姿态",
+        "接触驱动主体压缩和尾角延迟",
+        "降低期待不等于改好作品"
+      ],
+      "recalculate": [
+        "新作品每版的实际差异",
+        "比较尺度与字幕/配音时段"
+      ],
+      "limits": "三版是不同结果的呈现；整卡回传不能代表画面内部修改。源 Poster 各版是静态布局，并未提供通用内部版式变形。"
+    },
+    {
+      "id": "semantic-inspection",
+      "relations": [
+        "观察",
+        "检查",
+        "局部检查",
+        "范围扩大",
+        "问题说不清",
+        "observe",
+        "inspect",
+        "selection",
+        "uncertain-problem"
+      ],
+      "causalChain": "同一未修改结果被近看；选区从局部扩大到整份，最终仍只能提交模糊反馈",
+      "componentChain": [
+        "cursor 搜索问题",
+        "selection 从局部扩大",
+        "同一 version-3 响应取看姿态",
+        "整份附件与模糊反馈"
+      ],
+      "driverFields": {
+        "inspection": [
+          "paper",
+          "cursor",
+          "selection",
+          "selectionOpacity"
+        ],
+        "feedback": [
+          "feedback",
+          "feedbackText"
+        ],
+        "Poster": [
+          "version=3 保持不变"
+        ]
+      },
+      "sourceSeconds": [
+        0,
+        8.4
+      ],
+      "implementation": [
+        {
+          "path": "assets/motion/semantic-inspection/src/timeline.cjs",
+          "anchors": [
+            "function inspectionPose(t)",
+            "function selection(t)",
+            "function state(seconds)"
+          ]
+        },
+        {
+          "path": "assets/motion/semantic-inspection/src/Scene.jsx",
+          "anchors": [
+            "export function Scene("
+          ]
+        },
+        {
+          "path": "assets/motion/semantic-inspection/src/Poster.jsx",
+          "anchors": [
+            "function Layout3()",
+            "export function Poster("
+          ]
+        }
+      ],
+      "sampler": {
+        "path": "assets/motion/semantic-inspection/src/timeline.cjs",
+        "export": "state",
+        "unit": "sourceSeconds"
+      },
+      "sampleSeconds": [
+        4.25,
+        4.85,
+        6.7
+      ],
+      "preserve": [
+        "同一版未被修改",
+        "选区变大不代表正确定位",
+        "模糊反馈保持问题未解"
+      ],
+      "recalculate": [
+        "真实作品的选区范围",
+        "取看距离与屏幕可读性"
+      ],
+      "limits": "语义是找不准问题；不能用此例的取看/选区代替实际修订，不可加成功勾或假修复。"
+    }
+  ]
+}

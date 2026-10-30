@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "sourceEpisode": "EP05",
+  "sourceVersion": "D06 dynamic v4",
+  "adoption": {
+    "authority": "第05期_AI视频制作思路与SOP/00_本期控制/制作大段表.md",
+    "row": "D06; 用户2026-09-26确认; 2164帧; v4，CH05一个主动作",
+    "sourceVideo": "第05期_AI视频制作思路与SOP/04_素材/分段/D06_手动生图生视频与IP/动态_20260925/D06_整段动态_20260925_纯画面.mp4",
+    "recordedVideoSha256": "e66a737da8c9329cfc09901f67051966fe102802a1201d9c04860f251d9a76da"
+  },
+  "composition": "EP05D06TaskRelay",
+  "width": 1920,
+  "height": 1080,
+  "fps": 60,
+  "frames": 2164,
+  "sourceGlobalStartFrame": 13450,
+  "sourceGlobalEndFrameExclusive": 15614,
+  "sourceStateSequenceSha256": "0897d9daad5d2ea78d3bd5f83bea1846950620439439cacc09732f79ccc6e942",
+  "stateDigestMethod": "SHA256 of JSON.stringify(pAt(frame / 60)) + LF, frames 0 through 2163 in ascending order, original adopted timeline vs this localized timeline",
+  "sourceCodeRoot": "第05期_AI视频制作思路与SOP/05_制作工程/分段/D06_手动生图生视频与IP/src",
+  "sources": [
+    {"path": "dyn-20260925/timeline.cjs", "sha256": "de3ccb39bbae0579a315e1537bcf4c8c87c27db543927e3c36c811cc90c456f7"},
+    {"path": "dyn-20260925/parts.jsx", "sha256": "790aca878d7f851a6b0db2b2290a79b343a8e7282f2aabeed2b79e97decc3bc4"},
+    {"path": "dyn-20260925/docs.jsx", "sha256": "821c27442613248923698606a391b8af36c99d886f7ac320bb78fcb96d20d383"},
+    {"path": "dyn-20260925/md.jsx", "sha256": "fa133fdab1473f069206e6632056ce6ea162a79f45864798631be08dde6adcc3"},
+    {"path": "dyn-20260925/d05plate.jsx", "sha256": "a5b80cabb0f1a5f974761f3a2598aa3c36cbdec7198149a5af546de468c8a228"},
+    {"path": "dyn-20260925/scenes.jsx", "sha256": "16e964d5346e211a1354fce260f074cffdcc292adcc217d7aa397e7804270603"},
+    {"path": "dyn-20260925/DynRoot.jsx", "sha256": "706a07e9c914ac9d617cc5f4c98243fc79c5eb6c808f860014bb92a84476456f"},
+    {"path": "redo-20260924/source-data.json", "sha256": "43126c987aa0bc552a33a3ef0549927a3b497e1e9e9c24b13284e8b7c60d933a"}
+  ],
+  "authorityFiles": [
+    {"path": "第05期_AI视频制作思路与SOP/00_本期控制/制作大段表.md", "sha256": "bee09e951c63fd7b29b85857bd03492a4bdeb98bb767d4f6221e7f87e3d6b6ea"},
+    {"path": "第05期_AI视频制作思路与SOP/06_审片与QA/分段/D06_手动生图生视频与IP/接入说明.md", "sha256": "7333c75e85880fe2ffbcc0e1979cef86ac6a4c8fd2bfdd933a52436646abe40a"}
+  ],
+  "preserved": [
+    "Original complete absolute-time state function and camera; all 2164 frame states match the source digest",
+    "Task row and document geometry, source/target relationships, exact motion and reading windows",
+    "Short rejection recoil, retained original, independent adapted copy, unchanged role rows, changed interface/writing structure",
+    "Original HTML/SVG parts, markdown layout, frame count and event table"
+  ],
+  "changes": [
+    "Localized the data import to ./example-data.json",
+    "Removed source metadata and input-path inventory; private absolute links in historical document text replaced with example-reference",
+    "Replaced every source image with a newly drawn neutral labeled SVG; no source character design or raster data copied",
+    "Removed original video playback node; its window and state choreography stay unchanged",
+    "Added a small screen-fixed notice identifying placeholder media and missing audio",
+    "Added an independent Composition entry, documentation and state tests"
+  ],
+  "mediaExcluded": ["source images", "character artwork", "source video", "source narration", "music", "SFX", "font files"],
+  "processWindows": [
+    {"name": "task-rules-experience-prompt-tool-result", "localStartFrame": 0, "localEndFrameExclusive": 916, "scope": "Complete first task chain, with explicitly substituted result image"},
+    {"name": "mismatch-official-requirement-structural-adaptation-return", "localStartFrame": 1476, "localEndFrameExclusive": 2064, "scope": "Complete mismatch and adaptation chain, including retained original and return to task row"}
+  ],
+  "limitations": [
+    "Historical document text is a visual layout snapshot, not current production instructions or current platform documentation",
+    "Frames 916–1475 retain image-to-video and result-window choreography but not the original IP performance or media meaning",
+    "System font availability can change line wrapping; no font files are bundled",
+    "Original automatic word timing was not manually heard in this extraction",
+    "Extraction agent did not render video, watch at 1x or certify aesthetic equivalence"
+  ]
+}

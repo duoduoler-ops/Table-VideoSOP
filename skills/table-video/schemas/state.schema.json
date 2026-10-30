@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Table Video P0 state",
+  "type": "object",
+  "required": ["schemaVersion", "toolVersion", "workflowMode", "projectId", "testOnly", "revision", "currentStage", "stageStatus", "choices", "artifacts", "adopted", "segments", "pendingReviews", "approvals", "permissions", "dependencies", "qaPath", "deliveryStatus", "operations"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {"type": "string", "enum": ["1.0"]},
+    "toolVersion": {"type": "string"},
+    "workflowMode": {"type": "string", "enum": ["skill-v1"]},
+    "projectId": {"type": "string", "minLength": 1},
+    "testOnly": {"type": "boolean"},
+    "revision": {"type": "integer", "minimum": 0},
+    "currentStage": {"type": "string", "enum": ["S01", "S02", "S03", "S04", "S05", "S06", "S07", "S08", "S09", "S10"]},
+    "stageStatus": {"type": "string", "enum": ["ready", "running", "waiting_input", "waiting_review", "blocked", "done"]},
+    "choices": {"type": "object"},
+    "artifacts": {"type": "object"},
+    "adopted": {"type": "object", "required": ["script", "narration", "design", "storyboard", "visualOverview", "mainProject", "finalVideo"]},
+    "segments": {"type": "array"},
+    "pendingReviews": {"type": "array"},
+    "approvals": {"type": "array"},
+    "permissions": {"type": "array"},
+    "dependencies": {"type": "array"},
+    "riskValidations": {"type": "array"},
+    "qaPath": {"type": "string", "enum": ["06_审片与QA/QA状态表.md"]},
+    "deliveryStatus": {"type": "string", "enum": ["awaiting_review", "delivered_with_limits", "accepted"]},
+    "operations": {"type": "array"},
+    "migration": {"type": "object"},
+    "deliveryEvidence": {"type": "object"}
+  }
+}

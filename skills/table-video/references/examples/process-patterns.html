@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>原因、部件与指示运动</title>
+<style>
+:root{color-scheme:light;--ink:#26352f;--muted:#64756d;--line:#d7dfd8}*{box-sizing:border-box}body{margin:0;background:#f3f4f2;color:var(--ink);font:16px/1.6 system-ui,"Microsoft YaHei",sans-serif}main{max-width:1480px;margin:auto;padding:28px}h1{font-size:27px;margin:0 0 8px}p{margin:8px 0}.intro{color:var(--muted);max-width:1100px}.groups{display:flex;gap:10px;flex-wrap:wrap;margin:22px 0 16px}button,input{font:inherit}button{padding:9px 15px;border:1px solid #b5c5ba;border-radius:8px;background:white;color:var(--ink);cursor:pointer}button[aria-pressed=true]{background:var(--ink);color:white}button:focus-visible,input:focus-visible{outline:3px solid #c9a516;outline-offset:3px}.panels{display:grid;grid-template-columns:1fr 1fr;gap:16px}.panel{background:white;border:1px solid var(--line);border-radius:10px;overflow:hidden}.panel h2{font-size:17px;margin:14px 16px 4px}.panel p{font-size:13px;color:var(--muted);margin:4px 16px 10px}.view svg{width:100%;height:auto;display:block}.phase{font-size:14px;border-top:1px solid var(--line);padding:10px 16px;min-height:48px}.controls{display:flex;align-items:center;gap:12px;margin:18px 0;padding:14px;background:white;border:1px solid var(--line);border-radius:10px}input{flex:1;accent-color:#517866}output{font-variant-numeric:tabular-nums;white-space:nowrap;font-size:14px}.notes{color:var(--muted);font-size:14px}code{font-family:Consolas,monospace}@media(max-width:850px){main{padding:16px}.panels{grid-template-columns:1fr}.controls{flex-wrap:wrap}.controls input{flex-basis:100%;order:2}}
+</style></head>
+<body><main>
+<h1>原因出现以后，具体部件怎样改变</h1>
+<p class="intro">同一条记录、同一格式要求、同一构图与总时长。比较信息顺序、修改对象和鼠标的完整运动。此页直接调用随包生产模型与绘制观察模块；不代表指定画风或新片的视觉验收。</p>
+<nav class="groups" aria-label="选择反例"><button data-group="timing" aria-pressed="true">信息顺序</button><button data-group="target" aria-pressed="false">修改对象</button><button data-group="pointer" aria-pressed="false">鼠标闪现</button></nav>
+<div class="panels"><section class="panel"><h2>反例</h2><p id="bad-hint"></p><div class="view" id="bad-view"></div><div class="phase" id="bad-phase"></div></section><section class="panel"><h2>正例</h2><p id="good-hint">要求先出现，修改对应字段，预览接收实际结果，鼠标完成移开。</p><div class="view" id="good-view"></div><div class="phase" id="good-phase"></div></section></div>
+<div class="controls"><button id="play" aria-label="播放两侧动画">播放</button><button id="reset">回到开始</button><input id="scrub" type="range" min="0" max="8.4" step="0.01" value="0" aria-label="时间（秒）"><output id="time">0.00 / 8.40 s</output></div>
+<p class="notes" id="comparison-note"></p><p class="notes">默认暂停，播放到结尾停止。两侧共用时间，拖动可独立求任意帧。此页无音频，不能证明配音同步或 1× 观感已通过；文字与复杂效果的实际可见性仍须看真实输出。</p>
+<details class="notes"><summary>实现入口与边界</summary><p><code>CausalEditScene.frameAt(seconds, {mode})</code> 同时返回真实 SVG、对象、裁切及层级记录；<code>CausalEditProcess.stateAt()</code> 是唯一内容与时序源。可在不需要指示时设置 <code>pointer:false</code>。日期转换是本例的具体内容，不是任意自然语言修改器。</p></details>
+</main>
+<script src="../../scripts/motion-observation.cjs"></script>
+<script src="../../assets/motion/causal-edit-process/process.cjs"></script>
+<script src="../../assets/motion/causal-edit-process/scene.cjs"></script>
+<script id="process-state">
+(()=>{'use strict';const modes={timing:'premature',target:'wrong-target',pointer:'flash'};globalThis.ProcessPatterns=Object.freeze({duration:CausalEditProcess.duration,state:(group,mode,t)=>CausalEditProcess.stateAt(t,{mode:mode==='good'?'good':modes[group]}),render:(s)=>CausalEditScene.renderDocument(s),modes});})();
+</script>
+<script id="process-view">
+(()=>{'use strict';const api=globalThis.ProcessPatterns,$=id=>document.getElementById(id);let group='timing',seconds=0,playing=false,raf=0,last=0;
+const hints={timing:'修改和准确定位先发生，具体要求之后才出现。',target:'要求修改日期，实际却改了数量，日期仍以原格式送出。',pointer:'字段改对了，鼠标却高速抢跑、被卡片遮住，并在画内硬消失。'};
+const notes={timing:'对照点：不是只看最终是否改对，还要看原因在何时出现。正反两侧最后得到相同日期。',target:'对照点：数量变化与落地动作不能证明日期格式已修改。结果直接来自实际日期字段，不能靠标签宣布成功。',pointer:'对照点：正例起步可追踪，层级稳定，真正离开画布后隐藏。快慢与显隐必须结合实际观看；所有时长只属于此示例。'};
+function render(){for(const mode of ['bad','good']){const s=api.state(group,mode,seconds);$(mode+'-view').innerHTML=api.render(s);$(mode+'-phase').textContent=s.phase;}$('bad-hint').textContent=hints[group];$('comparison-note').textContent=notes[group];$('scrub').value=seconds;$('time').textContent=seconds.toFixed(2)+' / '+api.duration.toFixed(2)+' s';}
+function stop(){playing=false;cancelAnimationFrame(raf);$('play').textContent='播放';}
+function tick(now){if(!playing)return;seconds=Math.min(api.duration,seconds+(now-last)/1000);last=now;render();if(seconds>=api.duration)stop();else raf=requestAnimationFrame(tick);}
+$('play').addEventListener('click',()=>{if(playing){stop();return;}if(seconds>=api.duration)seconds=0;playing=true;last=performance.now();$('play').textContent='暂停';raf=requestAnimationFrame(tick);});
+$('reset').addEventListener('click',()=>{stop();seconds=0;render();});$('scrub').addEventListener('input',event=>{stop();seconds=Number(event.target.value);render();});
+document.querySelectorAll('[data-group]').forEach(button=>button.addEventListener('click',()=>{stop();group=button.dataset.group;seconds=0;document.querySelectorAll('[data-group]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.group===group)));render();}));document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();});render();})();
+</script></body></html>

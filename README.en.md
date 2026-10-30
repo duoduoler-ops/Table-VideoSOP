@@ -6,6 +6,30 @@
 
 # Table-Video SOP
 
+https://github.com/user-attachments/assets/3f7cf82a-3609-448f-a3a3-08331c593ed0
+
+## Simplify production with the Skill
+
+`table-video` packages this SOP as a Skill. The agent reads the relevant guides, organizes production, and records progress by stage, so you spend less time finding documents and copying prompts. Reuse valid approvals; review key plans and the actual video yourself.
+
+**Install in Codex:** Download this repository and copy the entire [skills/table-video](skills/table-video) folder into `.agents/skills/table-video` inside your video project. `SKILL.md` must sit directly inside that folder. Open the project in Codex; restart if the Skill does not appear. [Installation locations](https://learn.chatgpt.com/docs/build-skills#where-to-save-skills)
+
+**Start:** Provide your script, available voiceover, and references, then send:
+
+```text
+Use the table-video Skill to produce this video.
+Script: [path]; voiceover: [path / not ready]; references: [paths or links / none].
+Read the materials, check the current stage, and guide me through the decisions.
+```
+
+**Simplified flow:** Script and voiceover → references and style → section, storyboard, and design review → first version → human review and revisions → assembly and delivery. You do not need to send every prompt below, but you still review key plans. Production tools are checked as needed; generate images or videos manually when prompted, then return the files.
+
+> **Plan for human review and revisions. Do not expect a good video on the first attempt.** Watch the complete output at normal speed. Check whether the visuals explain the content, camera speed and pacing feel right, and component changes convey meaning. Keep the first version, revise specific problems, and watch the complete result again. Successful rendering, passing tests, and sampled frames cannot replace watching. Anything the agent has not viewed must remain marked as unverified.
+
+You can also follow the complete SOP below without the Skill.
+
+## About these materials
+
 **SOPs, project rules, production notes, templates, and prompts for making videos with AI.**
 
 Turn an approved script and voiceover into a video whose visuals add meaning, whose sections can be produced in parallel, and whose source files remain editable. These materials come from my production and revision work. They suit narration-led explainers, commentary, and product demonstrations.
@@ -459,12 +483,13 @@ Fill in bracketed fields in templates and prompts. The coordinator supplies actu
 
 ## Validation and license status
 
-The main task routes have been checked and revised using Windows and Codex tasks that did not inherit the original conversation. The shot-storyboard, reference-matching, and motion self-check flow was tested once in my own series on a roughly 18-second section, using a new task that did not inherit the original conversation: it wrote the storyboard, chose a reference clip, ran the self-check before delivery, and flagged the missing whole-video overview; motion and meaning improved clearly. The test revealed camera moves happening only inside a window frame; the window-frame rule was added afterward and has not been retested. Fresh-machine setup, a complete audiovisual production, and independent reproduction of visual quality remain unverified.
+These materials come from production and revision work, developed and checked primarily on Windows with Codex. The 2026-10-30 update adds a shared starting point for spatial camera curves, timing, and component expression. Independent tests used two different subjects: order merging and branching water supply. First versions and revisions were preserved.
 
-The 2026-10-15 update extends the main-action, viewing-progression, handoff, and reference guidance with key-state coverage, complete process previews, reading and time budgets, targeted revisions, determinism checks, and synchronized design versions in both README entries. Documentation, links, and logic were checked; improved video quality and cross-model effects have not been tested with these new rules. The earlier trial does not validate this update. Keep an actual comparison from the next applicable representative section. Cross-model comparisons are optional and use the same inputs and iteration budget; they neither guarantee model performance nor authorize extra spending. [Rule effects and model comparisons](docs/04_验收与返修.md#规则效果与模型对照)
+Engineering checks, rendered frames, and component pixel differences provide partial evidence. Complete normal-speed viewing, voiceover synchronization, and some motion measurements remain unverified; these checks do not establish overall visual quality. Codex CLI has discovered the project Skill. A complete fresh-machine installation and production workflow, desktop hot reload, and cross-model effects remain unverified. Produce, review, and revise using your own content.
 
 Licensing:
 
+- `skills/table-video/`: prose and code follow the bundled [CC BY 4.0 / MIT attribution and licenses](skills/table-video/LICENSES/ATTRIBUTION.md).
 - Guides, templates, prompts, and written examples: [CC BY 4.0](LICENSE). You may copy, adapt, and use them commercially, provided you give credit, link to the license, and indicate whether you made changes, for example: "Based on [Table-Video SOP](https://github.com/duoduoler-ops/Table-VideoSOP) by 一只桌子, CC BY 4.0, modified."
 - Scripts in `tools/` and `scripts/`, plus programs and runtime/regression data in `assets/motion/`: [MIT](LICENSE-CODE). Process documentation uses the prose license.
 - The cover and screenshots in `assets/` (including the Heidan character): all rights reserved. They are not covered by the licenses above; please do not copy or reuse them without permission.

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Table Video P0 request envelope; per-operation fields validated by schema.mjs",
+  "type": "object",
+  "required": ["operationId", "expectedRevision", "type", "payload"],
+  "additionalProperties": false,
+  "properties": {
+    "operationId": {"type": "string", "minLength": 1},
+    "expectedRevision": {"type": "integer", "minimum": 0},
+    "type": {"type": "string", "enum": ["choices", "register", "dependency", "risk-proof", "narration-gain-adopt", "review", "approve", "adopt", "qa", "stage", "rebind", "revoke", "segment", "finalize"]},
+    "payload": {"type": "object"}
+  }
+}

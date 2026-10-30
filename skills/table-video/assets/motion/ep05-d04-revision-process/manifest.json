@@ -1,0 +1,47 @@
+[
+  {
+    "file": "entry.jsx",
+    "bytes": 1009,
+    "sha256": "4d018b498063bd27058e46a04a39318efcf7b4bc30d2f475e6d6ab87dcefaea2"
+  },
+  {
+    "file": "model.cjs",
+    "bytes": 8765,
+    "sha256": "a3ae760a1cb8ccebe257eec969f842252f5f857089874ed526afa2000fc50fdf"
+  },
+  {
+    "file": "provenance.json",
+    "bytes": 2363,
+    "sha256": "1d7b178f8e679cfa9496761d20df206fc47ff2a52fa71cc82eb7d0651641619c"
+  },
+  {
+    "file": "README.md",
+    "bytes": 5512,
+    "sha256": "f79984b0435e47f84b28a5d95659803e3af7c316bf3ad9b9666aa018e62d2f59"
+  },
+  {
+    "file": "Scene.jsx",
+    "bytes": 17319,
+    "sha256": "dbb6dba1db0758cf684929a1be9920ccdc540b90671089ff21b9e61b37d369c2"
+  },
+  {
+    "file": "source-data.json",
+    "bytes": 21178,
+    "sha256": "e4a3b543cab47a2aacae83bb2cd232e46c84852a319b670b9ec572977b52ac61"
+  },
+  {
+    "file": "source-timeline.cjs",
+    "bytes": 9998,
+    "sha256": "a960480d873088cf1880e992dd1cf40fe2346da7776780ae5f2d31ac0df5fd43"
+  },
+  {
+    "file": "timeline.cjs",
+    "bytes": 2560,
+    "sha256": "3122f7f5425d5ccde6927e72e304a46f1628d829daad1a79c735bee754ecb764"
+  },
+  {
+    "file": "verification.json",
+    "bytes": 554,
+    "sha256": "df947456e47e4a6f2978cbc65579cca713b41a81c37e8fde23b002e8a3e15e44"
+  }
+]

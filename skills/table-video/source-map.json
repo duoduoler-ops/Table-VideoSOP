@@ -1,0 +1,1936 @@
+{
+  "schemaVersion": 1,
+  "packageName": "table-video",
+  "packageVersion": "0.1.0-p0",
+  "status": "public-preview-not-visually-accepted",
+  "repository": "https://github.com/duoduoler-ops/Table-VideoSOP",
+  "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+  "attribution": "一只桌子",
+  "excludePolicy": [
+    "upstream README images",
+    "private project media",
+    "user runs",
+    "prompts with duplicate state",
+    "machine absolute paths",
+    "credentials",
+    "node_modules",
+    "symlinks",
+    "render outputs"
+  ],
+  "packageFiles": [
+    "LICENSES/ATTRIBUTION.md",
+    "LICENSES/CC-BY-4.0.txt",
+    "LICENSES/MIT.txt",
+    "SKILL.md",
+    "assets/motion/causal-edit-process/README.md",
+    "assets/motion/causal-edit-process/audit-adapter.cjs",
+    "assets/motion/causal-edit-process/process.cjs",
+    "assets/motion/causal-edit-process/scene.cjs",
+    "assets/motion/ep05-d04-revision-process/README.md",
+    "assets/motion/ep05-d04-revision-process/Scene.jsx",
+    "assets/motion/ep05-d04-revision-process/entry.jsx",
+    "assets/motion/ep05-d04-revision-process/internal-process.cjs",
+    "assets/motion/ep05-d04-revision-process/manifest.json",
+    "assets/motion/ep05-d04-revision-process/model.cjs",
+    "assets/motion/ep05-d04-revision-process/provenance.json",
+    "assets/motion/ep05-d04-revision-process/source-data.json",
+    "assets/motion/ep05-d04-revision-process/source-timeline.cjs",
+    "assets/motion/ep05-d04-revision-process/timeline.cjs",
+    "assets/motion/ep05-d04-revision-process/verification.json",
+    "assets/motion/ep05-d06-task-relay/README.md",
+    "assets/motion/ep05-d06-task-relay/internal-process.cjs",
+    "assets/motion/ep05-d06-task-relay/provenance.json",
+    "assets/motion/ep05-d06-task-relay/src/DynRoot.jsx",
+    "assets/motion/ep05-d06-task-relay/src/d05plate.jsx",
+    "assets/motion/ep05-d06-task-relay/src/docs.jsx",
+    "assets/motion/ep05-d06-task-relay/src/entry.jsx",
+    "assets/motion/ep05-d06-task-relay/src/example-data.json",
+    "assets/motion/ep05-d06-task-relay/src/md.jsx",
+    "assets/motion/ep05-d06-task-relay/src/parts.jsx",
+    "assets/motion/ep05-d06-task-relay/src/scenes.jsx",
+    "assets/motion/ep05-d06-task-relay/src/timeline.cjs",
+    "assets/motion/ep05-d06-task-relay/test/timeline.test.cjs",
+    "assets/motion/ep07-entry-follow-v8/README.md",
+    "assets/motion/ep07-entry-follow-v8/manifest.json",
+    "assets/motion/ep07-entry-follow-v8/provenance.json",
+    "assets/motion/ep07-entry-follow-v8/render-frame.cjs",
+    "assets/motion/ep07-entry-follow-v8/src/camera.cjs",
+    "assets/motion/ep07-entry-follow-v8/src/mg-primitives.cjs",
+    "assets/motion/ep07-entry-follow-v8/src/scene.cjs",
+    "assets/motion/ep07-entry-follow-v8/src/state.cjs",
+    "assets/motion/ep07-entry-follow-v8/verify.cjs",
+    "assets/motion/process-index.json",
+    "assets/motion/production-core/README.md",
+    "assets/motion/production-core/audit-adapter.cjs",
+    "assets/motion/production-core/camera.cjs",
+    "assets/motion/production-core/entry.jsx",
+    "assets/motion/production-core/parts.cjs",
+    "assets/motion/production-core/render.cjs",
+    "assets/motion/production-core/scene.cjs",
+    "assets/motion/production-core/space.cjs",
+    "assets/motion/production-core/stage.cjs",
+    "assets/motion/production-core/timing.cjs",
+    "assets/motion/relay-receive-v4/README.md",
+    "assets/motion/relay-receive-v4/manifest.json",
+    "assets/motion/relay-receive-v4/provenance.json",
+    "assets/motion/relay-receive-v4/src/design.cjs",
+    "assets/motion/relay-receive-v4/src/entry.jsx",
+    "assets/motion/relay-receive-v4/src/original/full-timeline.cjs",
+    "assets/motion/relay-receive-v4/src/original/pilot.cjs",
+    "assets/motion/relay-receive-v4/src/scene.cjs",
+    "assets/motion/relay-receive-v4/src/state.cjs",
+    "assets/motion/relay-receive-v4/src/timeline-v3.cjs",
+    "assets/motion/relay-receive-v4/src/timeline-v4.cjs",
+    "assets/motion/relay-receive-v4/verify.cjs",
+    "assets/motion/semantic-inspection/README.md",
+    "assets/motion/semantic-inspection/provenance.json",
+    "assets/motion/semantic-inspection/src/Poster.jsx",
+    "assets/motion/semantic-inspection/src/Scene.jsx",
+    "assets/motion/semantic-inspection/src/entry.jsx",
+    "assets/motion/semantic-inspection/src/motion-math.cjs",
+    "assets/motion/semantic-inspection/src/timeline.cjs",
+    "assets/motion/whole-result-return/motion-math.cjs",
+    "assets/motion/whole-result-return/src/Poster.jsx",
+    "assets/motion/whole-result-return/src/Transfer.jsx",
+    "assets/motion/whole-result-return/src/entry.jsx",
+    "assets/motion/whole-result-return/src/timeline.cjs",
+    "assets/motion/whole-result-return/state-regression.json",
+    "assets/templates/DESIGN.template.md",
+    "assets/templates/QA状态表.template.md",
+    "assets/templates/alignment-record.template.md",
+    "assets/templates/external-voice-task.template.md",
+    "assets/templates/manual-generation-task.template.md",
+    "assets/templates/review-card.template.md",
+    "assets/templates/screen-recording-task.template.md",
+    "assets/templates/制作大段表.template.md",
+    "assets/templates/动作与声音标记.template.md",
+    "assets/templates/复盘.template.md",
+    "assets/templates/审稿建议.template.md",
+    "assets/templates/开工任务.template.md",
+    "assets/templates/接入说明.template.md",
+    "assets/templates/本期说明.template.md",
+    "assets/templates/素材来源.template.md",
+    "assets/templates/角色说明.template.md",
+    "assets/templates/镜头剧本.template.md",
+    "references/complete-motion.md",
+    "references/examples/01_两段演示.md",
+    "references/examples/02_生图生视频提示词示例.md",
+    "references/examples/03_DESIGN填写示例.md",
+    "references/examples/04_连续MG正反过程.md",
+    "references/examples/05_完整过程源码.md",
+    "references/examples/05_慢镜头与同构图回归.md",
+    "references/examples/process-patterns.html",
+    "references/experience/字幕与封面.md",
+    "references/experience/录屏剪辑.md",
+    "references/experience/手动生图生视频.md",
+    "references/experience/视觉叙事与连续MG.md",
+    "references/experience/镜头推进与转场.md",
+    "references/intake.md",
+    "references/library.md",
+    "references/motion-check-method.md",
+    "references/planning.md",
+    "references/production.md",
+    "references/project-rules.md",
+    "references/review-and-repair.md",
+    "references/self-diagnosis.md",
+    "references/sop/01_快速开始.md",
+    "references/sop/02_制作SOP.md",
+    "references/sop/03_目录与并行协作.md",
+    "references/sop/04_验收与返修.md",
+    "references/sop/05_文案检查_可选.md",
+    "references/sop/06_音效与配乐_可选.md",
+    "references/sop/07_工具与环境.md",
+    "references/sop/08_来源与许可.md",
+    "references/sop/09_DESIGN建立与校验.md",
+    "references/state-contract.md",
+    "references/style-and-motion.md",
+    "schemas/request.schema.json",
+    "schemas/state.schema.json",
+    "scripts/cli.mjs",
+    "scripts/core.mjs",
+    "scripts/gain-proof.mjs",
+    "scripts/init-project.mjs",
+    "scripts/motion-audit.mjs",
+    "scripts/motion-check.mjs",
+    "scripts/motion-gates.mjs",
+    "scripts/motion-observation.cjs",
+    "scripts/preflight.mjs",
+    "scripts/process-locate.mjs",
+    "scripts/render-motion-example.mjs",
+    "scripts/save-reference-image.mjs",
+    "scripts/schema.mjs",
+    "scripts/storage.mjs",
+    "scripts/tests/audit-provenance-coverage.test.mjs",
+    "scripts/tests/causal-edit-process.test.mjs",
+    "scripts/tests/internal-process.test.mjs",
+    "scripts/tests/motion-coverage.test.mjs",
+    "scripts/tests/motion-gates.test.mjs",
+    "scripts/tests/motion-observation.test.mjs",
+    "scripts/tests/paint-fixture.mjs",
+    "scripts/tests/process-bridge.test.mjs",
+    "scripts/tests/production-starter.test.mjs",
+    "scripts/tests/reference-image.test.mjs",
+    "scripts/tests/spatial-camera.test.mjs",
+    "scripts/workflow.mjs",
+    "source-map.json"
+  ],
+  "entries": [
+    {
+      "destination": "scripts/save-reference-image.mjs",
+      "origin": "upstream-derived",
+      "source": "scripts/save-reference-image.mjs",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "538bd6bdd18cb57952512b2d49d4f97211c32153f01f1984f93c471b51d0cf68",
+      "sha256": "538bd6bdd18cb57952512b2d49d4f97211c32153f01f1984f93c471b51d0cf68",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "scripts/tests/reference-image.test.mjs",
+      "origin": "upstream-derived",
+      "source": "scripts/tests/reference-image.test.mjs",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "5862e3c2fece86e241dcecfe7433923667b30481bd64484b11e001bb111da070",
+      "sha256": "5862e3c2fece86e241dcecfe7433923667b30481bd64484b11e001bb111da070",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/ep07-entry-follow-v8/README.md",
+      "origin": "upstream-derived",
+      "source": "assets/motion/ep07-entry-follow-v8/README.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "8c5ba9ef5556da7df3909031d3eeec7b813fed055ec8279585bda7f4416a420d",
+      "sha256": "8c5ba9ef5556da7df3909031d3eeec7b813fed055ec8279585bda7f4416a420d",
+      "license": "CC-BY-4.0",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/ep07-entry-follow-v8/manifest.json",
+      "origin": "upstream-derived",
+      "source": "assets/motion/ep07-entry-follow-v8/manifest.json",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "e6fe4f2b98876707eb264b27cc489d2c2a04a7ee113cc4e974983c28d600da6d",
+      "sha256": "e6fe4f2b98876707eb264b27cc489d2c2a04a7ee113cc4e974983c28d600da6d",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/ep07-entry-follow-v8/provenance.json",
+      "origin": "upstream-derived",
+      "source": "assets/motion/ep07-entry-follow-v8/provenance.json",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "b6e4ac1d84c057a1a3837a944253bda6a77b55781c6932320eccd43f09eb2eae",
+      "sha256": "b6e4ac1d84c057a1a3837a944253bda6a77b55781c6932320eccd43f09eb2eae",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/ep07-entry-follow-v8/verify.cjs",
+      "origin": "upstream-derived",
+      "source": "assets/motion/ep07-entry-follow-v8/verify.cjs",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "9a08377770dbd0840b2382f99d8eb2f4061f97b89ba6c9e7486826c1ec0267f8",
+      "sha256": "9a08377770dbd0840b2382f99d8eb2f4061f97b89ba6c9e7486826c1ec0267f8",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/ep07-entry-follow-v8/render-frame.cjs",
+      "origin": "upstream-derived",
+      "source": "assets/motion/ep07-entry-follow-v8/render-frame.cjs",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "df5d82387771852caa17324220945e446315847212f6a5ca8c0925f1988569a0",
+      "sha256": "df5d82387771852caa17324220945e446315847212f6a5ca8c0925f1988569a0",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/ep07-entry-follow-v8/src/scene.cjs",
+      "origin": "upstream-derived",
+      "source": "assets/motion/ep07-entry-follow-v8/src/scene.cjs",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "961d5b507be0a454a71fa1696761341a277f94eb01350f9c26dc6149bc55aeda",
+      "sha256": "961d5b507be0a454a71fa1696761341a277f94eb01350f9c26dc6149bc55aeda",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/ep07-entry-follow-v8/src/camera.cjs",
+      "origin": "upstream-derived",
+      "source": "assets/motion/ep07-entry-follow-v8/src/camera.cjs",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "fe5e6ad9becaca4f9131ea394834421dd177ee1641b72650a08edb6a9158f245",
+      "sha256": "fe5e6ad9becaca4f9131ea394834421dd177ee1641b72650a08edb6a9158f245",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/ep07-entry-follow-v8/src/mg-primitives.cjs",
+      "origin": "upstream-derived",
+      "source": "assets/motion/ep07-entry-follow-v8/src/mg-primitives.cjs",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "455615bb1e9750f7d3d7186456e725f39c04311dd418c070af578fde054891b4",
+      "sha256": "455615bb1e9750f7d3d7186456e725f39c04311dd418c070af578fde054891b4",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/ep07-entry-follow-v8/src/state.cjs",
+      "origin": "upstream-derived",
+      "source": "assets/motion/ep07-entry-follow-v8/src/state.cjs",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "b8ab8a3f86db8455ab6fd142f9d56e3c7c8fe8144548e41c2901aa243809ee65",
+      "sha256": "b8ab8a3f86db8455ab6fd142f9d56e3c7c8fe8144548e41c2901aa243809ee65",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "scripts/tests/process-bridge.test.mjs",
+      "origin": "upstream-derived",
+      "source": "scripts/tests/process-bridge.test.mjs",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "4adf2d50adb195243515e32c0d978057fb228dc944e8c6fd586f92e63fdaf805",
+      "sha256": "4adf2d50adb195243515e32c0d978057fb228dc944e8c6fd586f92e63fdaf805",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/relay-receive-v4/README.md",
+      "origin": "upstream-derived",
+      "source": "assets/motion/relay-receive-v4/README.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "8f8f8d517738e7d30f53604ff6fa9d246d627b5fe48fa8bc367a6a424b596707",
+      "sha256": "8f8f8d517738e7d30f53604ff6fa9d246d627b5fe48fa8bc367a6a424b596707",
+      "license": "CC-BY-4.0",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/relay-receive-v4/manifest.json",
+      "origin": "upstream-derived",
+      "source": "assets/motion/relay-receive-v4/manifest.json",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "6c2e7b17268fa27fe500ca9937028d2f062e5858e61b4ae3b75985677ce41d14",
+      "sha256": "6c2e7b17268fa27fe500ca9937028d2f062e5858e61b4ae3b75985677ce41d14",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/relay-receive-v4/provenance.json",
+      "origin": "upstream-derived",
+      "source": "assets/motion/relay-receive-v4/provenance.json",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "4ed8c0c39331a6e87df565e85399bce169143356c76bb0d45a0e799b7e9f5279",
+      "sha256": "4ed8c0c39331a6e87df565e85399bce169143356c76bb0d45a0e799b7e9f5279",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/relay-receive-v4/verify.cjs",
+      "origin": "upstream-derived",
+      "source": "assets/motion/relay-receive-v4/verify.cjs",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "7f64af3be49bebbec8e6f2a06207a39a04a1107b49678266e40c1f409f1103f9",
+      "sha256": "7f64af3be49bebbec8e6f2a06207a39a04a1107b49678266e40c1f409f1103f9",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/relay-receive-v4/src/design.cjs",
+      "origin": "upstream-derived",
+      "source": "assets/motion/relay-receive-v4/src/design.cjs",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "cc6c9b132acf0c724fc62fae9092cf04b3351300d05a2af58d900f0ddc9c1730",
+      "sha256": "cc6c9b132acf0c724fc62fae9092cf04b3351300d05a2af58d900f0ddc9c1730",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/relay-receive-v4/src/entry.jsx",
+      "origin": "upstream-derived",
+      "source": "assets/motion/relay-receive-v4/src/entry.jsx",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "f26a63bc7bd970d1278655bd0b19726576109e544b431710326584e8f6e6be02",
+      "sha256": "f26a63bc7bd970d1278655bd0b19726576109e544b431710326584e8f6e6be02",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/relay-receive-v4/src/scene.cjs",
+      "origin": "upstream-derived",
+      "source": "assets/motion/relay-receive-v4/src/scene.cjs",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "ad7c875dc882016b5ad3a28b8da78543128cc97282457bc13782404a3b2be880",
+      "sha256": "ad7c875dc882016b5ad3a28b8da78543128cc97282457bc13782404a3b2be880",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/relay-receive-v4/src/state.cjs",
+      "origin": "upstream-derived",
+      "source": "assets/motion/relay-receive-v4/src/state.cjs",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "160fe6e503cbf0f63a0c37a5445898837aff107858c57ea3c9ef1de4c065c0ff",
+      "sha256": "160fe6e503cbf0f63a0c37a5445898837aff107858c57ea3c9ef1de4c065c0ff",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/relay-receive-v4/src/timeline-v3.cjs",
+      "origin": "upstream-derived",
+      "source": "assets/motion/relay-receive-v4/src/timeline-v3.cjs",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "f849b3e5de911d766c62beddc64cc154ce2d0cb154d834fae15cbedefd576443",
+      "sha256": "f849b3e5de911d766c62beddc64cc154ce2d0cb154d834fae15cbedefd576443",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/relay-receive-v4/src/timeline-v4.cjs",
+      "origin": "upstream-derived",
+      "source": "assets/motion/relay-receive-v4/src/timeline-v4.cjs",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "b76457f38bce46ac91fc0a939185668d9c15c8f168125038dff99942456fa4f4",
+      "sha256": "b76457f38bce46ac91fc0a939185668d9c15c8f168125038dff99942456fa4f4",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/relay-receive-v4/src/original/full-timeline.cjs",
+      "origin": "upstream-derived",
+      "source": "assets/motion/relay-receive-v4/src/original/full-timeline.cjs",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "eb8c2fe36192d068e8ea4598952194c2ff30405424c421cd799bdd25854b1980",
+      "sha256": "eb8c2fe36192d068e8ea4598952194c2ff30405424c421cd799bdd25854b1980",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/relay-receive-v4/src/original/pilot.cjs",
+      "origin": "upstream-derived",
+      "source": "assets/motion/relay-receive-v4/src/original/pilot.cjs",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "2e4ad897682be3630fdba8388583e2180379b2b9f91b10cc0b16281c58135b2f",
+      "sha256": "2e4ad897682be3630fdba8388583e2180379b2b9f91b10cc0b16281c58135b2f",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/ep05-d04-revision-process/verification.json",
+      "origin": "upstream-derived",
+      "source": "assets/motion/ep05-d04-revision-process/verification.json",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "df947456e47e4a6f2978cbc65579cca713b41a81c37e8fde23b002e8a3e15e44",
+      "sha256": "df947456e47e4a6f2978cbc65579cca713b41a81c37e8fde23b002e8a3e15e44",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/ep05-d04-revision-process/manifest.json",
+      "origin": "upstream-derived",
+      "source": "assets/motion/ep05-d04-revision-process/manifest.json",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "b31588ae5397972c3d5590ed6bf1bc24cc0cee072b87935cbedc0de5be4277fa",
+      "sha256": "b31588ae5397972c3d5590ed6bf1bc24cc0cee072b87935cbedc0de5be4277fa",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/whole-result-return/motion-math.cjs",
+      "origin": "upstream-derived",
+      "source": "assets/motion/whole-result-return/motion-math.cjs",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "1a48abe83331c475393fc05a87e4c12a9ce1b12a9b52f8d974571b11f2e076f8",
+      "sha256": "1a48abe83331c475393fc05a87e4c12a9ce1b12a9b52f8d974571b11f2e076f8",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/whole-result-return/src/entry.jsx",
+      "origin": "upstream-derived",
+      "source": "assets/motion/whole-result-return/src/entry.jsx",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "901928cbc3c24ef92ba53edd01935ed65a2032e929eb8c6f04db716e9f7edaae",
+      "sha256": "901928cbc3c24ef92ba53edd01935ed65a2032e929eb8c6f04db716e9f7edaae",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/whole-result-return/src/Poster.jsx",
+      "origin": "upstream-derived",
+      "source": "assets/motion/whole-result-return/src/Poster.jsx",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "d889b6152aea84d729ba95b435720ce8ab677d01a6e35cc3b798df55aa187d40",
+      "sha256": "d889b6152aea84d729ba95b435720ce8ab677d01a6e35cc3b798df55aa187d40",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/whole-result-return/src/timeline.cjs",
+      "origin": "upstream-derived",
+      "source": "assets/motion/whole-result-return/src/timeline.cjs",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "195aed036e6e5ff61f267e00394712d9c8139447ccfc3ece6a896799650c1a9b",
+      "sha256": "195aed036e6e5ff61f267e00394712d9c8139447ccfc3ece6a896799650c1a9b",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/whole-result-return/src/Transfer.jsx",
+      "origin": "upstream-derived",
+      "source": "assets/motion/whole-result-return/src/Transfer.jsx",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "825f3e9cb65cebf988e6266c34f38a442cc4cc3f02bf87f4d9127579a5bfba22",
+      "sha256": "825f3e9cb65cebf988e6266c34f38a442cc4cc3f02bf87f4d9127579a5bfba22",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/whole-result-return/state-regression.json",
+      "origin": "upstream-derived",
+      "source": "assets/motion/whole-result-return/state-regression.json",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "b516bd72bdec4224834d4ef344d1a9d1b9ae903da573d7a74f1cbed525f2d842",
+      "sha256": "b516bd72bdec4224834d4ef344d1a9d1b9ae903da573d7a74f1cbed525f2d842",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/semantic-inspection/provenance.json",
+      "origin": "upstream-derived",
+      "source": "assets/motion/semantic-inspection/provenance.json",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "8bc87b286d4fd59608f3853162884e13a2064e00c338df8e5a4f20ecd828f384",
+      "sha256": "8bc87b286d4fd59608f3853162884e13a2064e00c338df8e5a4f20ecd828f384",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/semantic-inspection/README.md",
+      "origin": "upstream-derived",
+      "source": "assets/motion/semantic-inspection/README.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "d887993b9030de76f18be61060e3865e3d83c89cbc1d782dad9449d6249d9fa0",
+      "sha256": "d887993b9030de76f18be61060e3865e3d83c89cbc1d782dad9449d6249d9fa0",
+      "license": "CC-BY-4.0",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/semantic-inspection/src/entry.jsx",
+      "origin": "upstream-derived",
+      "source": "assets/motion/semantic-inspection/src/entry.jsx",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "0e13cd77d08e684d5259c24a9f2696e943c737e0f2c69d3b5d27d3f4cd8e70c1",
+      "sha256": "0e13cd77d08e684d5259c24a9f2696e943c737e0f2c69d3b5d27d3f4cd8e70c1",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/semantic-inspection/src/motion-math.cjs",
+      "origin": "upstream-derived",
+      "source": "assets/motion/semantic-inspection/src/motion-math.cjs",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "1a48abe83331c475393fc05a87e4c12a9ce1b12a9b52f8d974571b11f2e076f8",
+      "sha256": "1a48abe83331c475393fc05a87e4c12a9ce1b12a9b52f8d974571b11f2e076f8",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/semantic-inspection/src/Poster.jsx",
+      "origin": "upstream-derived",
+      "source": "assets/motion/semantic-inspection/src/Poster.jsx",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "16df006944e8571d9e2db5f06f98bfd7835e41bc5b3e8af36afe809d199b11d7",
+      "sha256": "16df006944e8571d9e2db5f06f98bfd7835e41bc5b3e8af36afe809d199b11d7",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/semantic-inspection/src/Scene.jsx",
+      "origin": "upstream-derived",
+      "source": "assets/motion/semantic-inspection/src/Scene.jsx",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "e324efff9854b47e283573151655463dc4d5f6a9b31e6c73d5e1308e7a06f776",
+      "sha256": "e324efff9854b47e283573151655463dc4d5f6a9b31e6c73d5e1308e7a06f776",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/semantic-inspection/src/timeline.cjs",
+      "origin": "upstream-derived",
+      "source": "assets/motion/semantic-inspection/src/timeline.cjs",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "cf1975718aee5fcffe12e601dbc6dbcf9b2dcaeea0ec770302370a1270df0052",
+      "sha256": "cf1975718aee5fcffe12e601dbc6dbcf9b2dcaeea0ec770302370a1270df0052",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/ep05-d04-revision-process/entry.jsx",
+      "origin": "upstream-derived",
+      "source": "assets/motion/ep05-d04-revision-process/entry.jsx",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "4d018b498063bd27058e46a04a39318efcf7b4bc30d2f475e6d6ab87dcefaea2",
+      "sha256": "4d018b498063bd27058e46a04a39318efcf7b4bc30d2f475e6d6ab87dcefaea2",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/ep05-d04-revision-process/model.cjs",
+      "origin": "upstream-derived",
+      "source": "assets/motion/ep05-d04-revision-process/model.cjs",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "a3ae760a1cb8ccebe257eec969f842252f5f857089874ed526afa2000fc50fdf",
+      "sha256": "a3ae760a1cb8ccebe257eec969f842252f5f857089874ed526afa2000fc50fdf",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/ep05-d04-revision-process/provenance.json",
+      "origin": "upstream-derived",
+      "source": "assets/motion/ep05-d04-revision-process/provenance.json",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "1d7b178f8e679cfa9496761d20df206fc47ff2a52fa71cc82eb7d0651641619c",
+      "sha256": "1d7b178f8e679cfa9496761d20df206fc47ff2a52fa71cc82eb7d0651641619c",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/ep05-d04-revision-process/README.md",
+      "origin": "upstream-derived",
+      "source": "assets/motion/ep05-d04-revision-process/README.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "f79984b0435e47f84b28a5d95659803e3af7c316bf3ad9b9666aa018e62d2f59",
+      "sha256": "f79984b0435e47f84b28a5d95659803e3af7c316bf3ad9b9666aa018e62d2f59",
+      "license": "CC-BY-4.0",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/ep05-d04-revision-process/Scene.jsx",
+      "origin": "upstream-derived",
+      "source": "assets/motion/ep05-d04-revision-process/Scene.jsx",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "dbb6dba1db0758cf684929a1be9920ccdc540b90671089ff21b9e61b37d369c2",
+      "sha256": "dbb6dba1db0758cf684929a1be9920ccdc540b90671089ff21b9e61b37d369c2",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/ep05-d04-revision-process/source-data.json",
+      "origin": "upstream-derived",
+      "source": "assets/motion/ep05-d04-revision-process/source-data.json",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "e4a3b543cab47a2aacae83bb2cd232e46c84852a319b670b9ec572977b52ac61",
+      "sha256": "e4a3b543cab47a2aacae83bb2cd232e46c84852a319b670b9ec572977b52ac61",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/ep05-d04-revision-process/source-timeline.cjs",
+      "origin": "upstream-derived",
+      "source": "assets/motion/ep05-d04-revision-process/source-timeline.cjs",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "a960480d873088cf1880e992dd1cf40fe2346da7776780ae5f2d31ac0df5fd43",
+      "sha256": "a960480d873088cf1880e992dd1cf40fe2346da7776780ae5f2d31ac0df5fd43",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/ep05-d04-revision-process/timeline.cjs",
+      "origin": "upstream-derived",
+      "source": "assets/motion/ep05-d04-revision-process/timeline.cjs",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "3122f7f5425d5ccde6927e72e304a46f1628d829daad1a79c735bee754ecb764",
+      "sha256": "3122f7f5425d5ccde6927e72e304a46f1628d829daad1a79c735bee754ecb764",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/ep05-d06-task-relay/provenance.json",
+      "origin": "upstream-derived",
+      "source": "assets/motion/ep05-d06-task-relay/provenance.json",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "868b070bb9f17a460a791bfae769d5d6a1980c12559ba5a0399bda44930fee77",
+      "sha256": "868b070bb9f17a460a791bfae769d5d6a1980c12559ba5a0399bda44930fee77",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/ep05-d06-task-relay/src/d05plate.jsx",
+      "origin": "upstream-derived",
+      "source": "assets/motion/ep05-d06-task-relay/src/d05plate.jsx",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "a5b80cabb0f1a5f974761f3a2598aa3c36cbdec7198149a5af546de468c8a228",
+      "sha256": "a5b80cabb0f1a5f974761f3a2598aa3c36cbdec7198149a5af546de468c8a228",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/ep05-d06-task-relay/src/docs.jsx",
+      "origin": "upstream-derived",
+      "source": "assets/motion/ep05-d06-task-relay/src/docs.jsx",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "821c27442613248923698606a391b8af36c99d886f7ac320bb78fcb96d20d383",
+      "sha256": "821c27442613248923698606a391b8af36c99d886f7ac320bb78fcb96d20d383",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/ep05-d06-task-relay/src/DynRoot.jsx",
+      "origin": "upstream-derived",
+      "source": "assets/motion/ep05-d06-task-relay/src/DynRoot.jsx",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "d9de2a69cc81279f1ca928a428d3e325a109477485ec955b842cad384a3aa043",
+      "sha256": "d9de2a69cc81279f1ca928a428d3e325a109477485ec955b842cad384a3aa043",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/ep05-d06-task-relay/src/entry.jsx",
+      "origin": "upstream-derived",
+      "source": "assets/motion/ep05-d06-task-relay/src/entry.jsx",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "021e9f179941496da1b1a25776e436165092e3e35c9f915027074f427a5229e9",
+      "sha256": "021e9f179941496da1b1a25776e436165092e3e35c9f915027074f427a5229e9",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/ep05-d06-task-relay/src/example-data.json",
+      "origin": "upstream-derived",
+      "source": "assets/motion/ep05-d06-task-relay/src/example-data.json",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "ea4924e7bef384886e07eb653f3e350c753858218b0f3deb3942d138db4c8099",
+      "sha256": "ea4924e7bef384886e07eb653f3e350c753858218b0f3deb3942d138db4c8099",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/ep05-d06-task-relay/src/md.jsx",
+      "origin": "upstream-derived",
+      "source": "assets/motion/ep05-d06-task-relay/src/md.jsx",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "fa133fdab1473f069206e6632056ce6ea162a79f45864798631be08dde6adcc3",
+      "sha256": "fa133fdab1473f069206e6632056ce6ea162a79f45864798631be08dde6adcc3",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/ep05-d06-task-relay/src/parts.jsx",
+      "origin": "upstream-derived",
+      "source": "assets/motion/ep05-d06-task-relay/src/parts.jsx",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "9d51c5482734ef095115e0215c536841659c94dadf4b04a53b81094c23e6a986",
+      "sha256": "9d51c5482734ef095115e0215c536841659c94dadf4b04a53b81094c23e6a986",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/ep05-d06-task-relay/src/scenes.jsx",
+      "origin": "upstream-derived",
+      "source": "assets/motion/ep05-d06-task-relay/src/scenes.jsx",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "e0db5e2d28e257e6a4242baadfaaa1b3876fecf30a0a114b0aad4c8f1101cac8",
+      "sha256": "e0db5e2d28e257e6a4242baadfaaa1b3876fecf30a0a114b0aad4c8f1101cac8",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/ep05-d06-task-relay/src/timeline.cjs",
+      "origin": "upstream-derived",
+      "source": "assets/motion/ep05-d06-task-relay/src/timeline.cjs",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "b4110bcbb628415f2385a66fc60eb27ccaf3b8133fdb5121c3e7fd7e7dc22dd3",
+      "sha256": "b4110bcbb628415f2385a66fc60eb27ccaf3b8133fdb5121c3e7fd7e7dc22dd3",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/ep05-d06-task-relay/test/timeline.test.cjs",
+      "origin": "upstream-derived",
+      "source": "assets/motion/ep05-d06-task-relay/test/timeline.test.cjs",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "44b359b5380cd98d421b80fad659a9700862f290d35964bb822915dfce7c6b34",
+      "sha256": "44b359b5380cd98d421b80fad659a9700862f290d35964bb822915dfce7c6b34",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/ep05-d06-task-relay/README.md",
+      "origin": "upstream-derived",
+      "source": "assets/motion/ep05-d06-task-relay/README.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "a926bcea8a7589ee9653c72de9ac1fca8611a553e07971058eb562f47cf54717",
+      "sha256": "510c7b2f26b1c556afce9b165e801b60aa52a4591b8a5cad262081228fc193b9",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary"
+      ]
+    },
+    {
+      "destination": "references/sop/01_快速开始.md",
+      "origin": "upstream-derived",
+      "source": "docs/01_快速开始.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "12e09b81a0dc0e01e0498d29feba3b67e0c7130aacb9ea20e3e49b20e80c3c71",
+      "sha256": "469f9a8647eced61d46d6b48238471f8c194c06e2545b5423576fc21793f0bf3",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary"
+      ]
+    },
+    {
+      "destination": "references/sop/02_制作SOP.md",
+      "origin": "upstream-derived",
+      "source": "docs/02_制作SOP.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "c709caa2fb0ee83ab1277f747ef49e674a31160fd9cf09cc5017611037b59cc8",
+      "sha256": "2f289ce0373396c57b476a60529529e1fce9672f3d03d4372bab7a87fc6189b9",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary"
+      ]
+    },
+    {
+      "destination": "references/sop/03_目录与并行协作.md",
+      "origin": "upstream-derived",
+      "source": "docs/03_目录与并行协作.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "0197d37878b1d46fffbd35767f85e2af016da4f13ac4fb79a03c1b0359cd0852",
+      "sha256": "f00e35e04520ed9933c9770a720deec5d8f4c3039791ac38fde889fd173975f0",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary"
+      ]
+    },
+    {
+      "destination": "references/sop/04_验收与返修.md",
+      "origin": "upstream-derived",
+      "source": "docs/04_验收与返修.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "2b1cfeb06cd3569df7cfb2573db534bf406bfbb149950e470c549a1fcaff5405",
+      "sha256": "f6141cf9c79f8e191dd8b6a91ade107f4c9900cef8621c38441b383be6f5b648",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary"
+      ]
+    },
+    {
+      "destination": "references/sop/05_文案检查_可选.md",
+      "origin": "upstream-derived",
+      "source": "docs/05_文案检查_可选.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "fd1a2c9af8081340aa590af36888521b6e843a19d9ffd9a769b9bfa9b6581043",
+      "sha256": "1be41c2544750e3bf959c5cd9cdc519f2fbf08035ed743f389187a35aab0f465",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary"
+      ]
+    },
+    {
+      "destination": "references/sop/06_音效与配乐_可选.md",
+      "origin": "upstream-derived",
+      "source": "docs/06_音效与配乐_可选.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "22662fa7bdce0fdb3b82fbb78d100593b47554654792d5a88bbe6b6a1128b345",
+      "sha256": "6fab96bf4e227f61fd02edb15f95ad82bc9f81da9e22ce5518c052b39b52e458",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary"
+      ]
+    },
+    {
+      "destination": "references/sop/07_工具与环境.md",
+      "origin": "upstream-derived",
+      "source": "docs/07_工具与环境.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "c4e814d75d4940e9e839ac6e47f09778f32ec465f31716294a5fce6e645f5799",
+      "sha256": "6965dc962f6af33984db8e534c11d6ba659232136ff95dcb5f934fbc863236ce",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary"
+      ]
+    },
+    {
+      "destination": "references/sop/08_来源与许可.md",
+      "origin": "upstream-derived",
+      "source": "docs/08_来源与许可.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "53aa824439b320db434dc93f15d25255eb39325dec8517e0b62c71bb8f7083d4",
+      "sha256": "7929238e2a653cc5da28b5c32a9500c830e4f581cb004cb3774a693bcb682e1d",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary"
+      ]
+    },
+    {
+      "destination": "references/sop/09_DESIGN建立与校验.md",
+      "origin": "upstream-derived",
+      "source": "docs/09_DESIGN建立与校验.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "9dc976c41e34a5033d3cf0cd66b874b1d9bcd4adb323bd582eb9affaee5af3d0",
+      "sha256": "b268ee26e3790b01a63c4662fb874fa636c746a93e6e9fe8accdce30aa983555",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary"
+      ]
+    },
+    {
+      "destination": "references/experience/视觉叙事与连续MG.md",
+      "origin": "upstream-derived",
+      "source": "experience/视觉叙事与连续MG.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "89947b489501d7bfa0eeb1aebd3ddde45bbbf73738eded9afc54bf712414be83",
+      "sha256": "041e4656c51cd0f8d4bc0ab0ab43e9c0801abc6b6fe370e478a7bb80b3a8739c",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary",
+        "case-threshold-not-universal"
+      ]
+    },
+    {
+      "destination": "references/experience/镜头推进与转场.md",
+      "origin": "upstream-derived",
+      "source": "experience/镜头推进与转场.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "03a0048655056652e50785a2b3cdda206e2b51d02c93de5e20d0fee93085ab18",
+      "sha256": "9532a21aadfd6dac08b0461e3e85356d5336212c76cdf94833202faa4c23e1a8",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary"
+      ]
+    },
+    {
+      "destination": "references/experience/手动生图生视频.md",
+      "origin": "upstream-derived",
+      "source": "experience/手动生图生视频.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "43a34b0205b3de4eb004ffba43c8ce68c71376517e4a905cfee581aa953d9749",
+      "sha256": "2043342d39a356e2d24584e82c8482dfa80759f532c68103e871eff4877cc844",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary"
+      ]
+    },
+    {
+      "destination": "references/experience/录屏剪辑.md",
+      "origin": "upstream-derived",
+      "source": "experience/录屏剪辑.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "5d43cdc1a652842e42b3b1cf9dde41cc4453ec6489df1dd7a444d5c0bed547b9",
+      "sha256": "9131e579821354bcfc6e495f44c599ca3fba306809ff07a6ec6dd073308d2a80",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary"
+      ]
+    },
+    {
+      "destination": "references/experience/字幕与封面.md",
+      "origin": "upstream-derived",
+      "source": "experience/字幕与封面.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "dab175c46d9dd9ae19cad24182e8d5a1f041fa3bfcb099bfcee52a25041e8313",
+      "sha256": "6307275f61ce108a05b3bafa10a3327bbb3e7c61e147f217cb6bd8f476f3186b",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary"
+      ]
+    },
+    {
+      "destination": "assets/templates/DESIGN.template.md",
+      "origin": "upstream-derived",
+      "source": "templates/DESIGN.template.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "a06f57bd04529a0081318b7f96bfc63121fc9649240bf383f70fae02aae7f8e0",
+      "sha256": "b2728c9b993df268d9d3545ec04dde9af1a888422b691023602c092c043d8d2d",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary"
+      ]
+    },
+    {
+      "destination": "assets/templates/QA状态表.template.md",
+      "origin": "upstream-derived",
+      "source": "templates/QA状态表.template.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "f935edd7e275ac7fc4b82693cf17a639e7b453ebccefe768506df5bf420fb8d9",
+      "sha256": "005a9578ebc0b74ed72a90a8ddf315a190bbec24d77dc6de2fd10e73543f30cf",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary"
+      ]
+    },
+    {
+      "destination": "assets/templates/制作大段表.template.md",
+      "origin": "upstream-derived",
+      "source": "templates/制作大段表.template.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "206128c81897438c8a876c524a9d2259438b049e7a3d8d9ad1f70c304fd16cba",
+      "sha256": "9787734b078f668345624821fa2e3bf3b8e046e47418483a04905983f231fb99",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary"
+      ]
+    },
+    {
+      "destination": "assets/templates/动作与声音标记.template.md",
+      "origin": "upstream-derived",
+      "source": "templates/动作与声音标记.template.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "08407e0eb23a7896a69303a9ce0276dc2361b45ad0a321ab5a66ebd93488ff1b",
+      "sha256": "62785937913335e58feb18f555e90d27fe4885a31f17082beff3ab02e0cbdf7b",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary"
+      ]
+    },
+    {
+      "destination": "assets/templates/复盘.template.md",
+      "origin": "upstream-derived",
+      "source": "templates/复盘.template.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "c09d3128edbe2d85890eda7bda46e5bddd9ed8e8cca6c937d2a1c00287f833f3",
+      "sha256": "5595306cdbf82aa64f6e384e544490ce9b2083aa5cf8c1c88cf8402244103d50",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary"
+      ]
+    },
+    {
+      "destination": "assets/templates/审稿建议.template.md",
+      "origin": "upstream-derived",
+      "source": "templates/审稿建议.template.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "9af2660adb224dc0f44462d16075b96c221940d386bacbde7fa92e1635339c06",
+      "sha256": "b25bfcba59bc4afab3814735b64fd505f2a1c790c0f8cd88b6cff0462b98f0bf",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary"
+      ]
+    },
+    {
+      "destination": "assets/templates/开工任务.template.md",
+      "origin": "upstream-derived",
+      "source": "templates/开工任务.template.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "b0cd2876f619b9c4592d08c3dda5bd67b6d8fea3b1d562220fc46b81fcda592c",
+      "sha256": "8f8f90a613e69eaf1df197ce8903c01781cc90137c7f0af4fd7165b088901097",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary"
+      ]
+    },
+    {
+      "destination": "assets/templates/接入说明.template.md",
+      "origin": "upstream-derived",
+      "source": "templates/接入说明.template.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "ba7d91d463057535e7188266f323545e8818fcf565efca66d049ce1b55df3a13",
+      "sha256": "384ee0d362dc2e8159c85bce60bf053e98c2f355726ce652c6cb3fe9432841b4",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary"
+      ]
+    },
+    {
+      "destination": "assets/templates/本期说明.template.md",
+      "origin": "upstream-derived",
+      "source": "templates/本期说明.template.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "dbfcff5787d41606e57e6d3a7d694a110bc0a34ff4d40b7a97d4c94cced51b26",
+      "sha256": "a9678de0cfea1d2f1f87ab90b0ccc7b5cf43519d6212bb876e8f83d6adef1dd2",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary"
+      ]
+    },
+    {
+      "destination": "assets/templates/素材来源.template.md",
+      "origin": "upstream-derived",
+      "source": "templates/素材来源.template.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "9504dc81ceb26a2c7e9f3d71a25ed625c418c346dc03629f042cf9eabf66edf1",
+      "sha256": "bf791bb648cd1a67981296515a62640566ea8ceea4b78241eecc02562834d17d",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary"
+      ]
+    },
+    {
+      "destination": "assets/templates/角色说明.template.md",
+      "origin": "upstream-derived",
+      "source": "templates/角色说明.template.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "00d95ab1e0bdcdc1052cdc6503716f42f4828a673586aeb1199255ff11c624cd",
+      "sha256": "3488e61aa7f2f69099a4b80b701a61f6dc3ca806520bdaadd04d5384f185cc31",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary"
+      ]
+    },
+    {
+      "destination": "assets/templates/镜头剧本.template.md",
+      "origin": "upstream-derived",
+      "source": "templates/镜头剧本.template.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "3162d0878b28799c117e3f6b1e46e9a055aba30a44fad07598f1c86946c6987d",
+      "sha256": "d9d7fa62139038ba1201475a8489ae45f30c66fa55e84be689a3a9f2b40925b8",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary"
+      ]
+    },
+    {
+      "destination": "references/examples/05_完整过程源码.md",
+      "origin": "upstream-derived",
+      "source": "examples/05_完整过程源码.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "9e8a439048ef4be65d8374d56434cd21185d5dc278e3907010218e4d60b1d800",
+      "sha256": "b1253422289a96540005d1893426db4eccdf2a01e28181f571524cd5e63976db",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary"
+      ]
+    },
+    {
+      "destination": "references/examples/01_两段演示.md",
+      "origin": "upstream-derived",
+      "source": "examples/01_两段演示.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "8f48bf836762ac2e5c20cc307b2d21474b6528e7573e7366c4994a09ebc82509",
+      "sha256": "84e64221ae5540bd12ba7a31045f4fdbaba47e76b39d6520208e9163cc4f5cd7",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary"
+      ]
+    },
+    {
+      "destination": "references/examples/02_生图生视频提示词示例.md",
+      "origin": "upstream-derived",
+      "source": "examples/02_生图生视频提示词示例.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "90852792f0d5648749ce5e38444c6acb761d07bb4299125df2eb5883b1ee9595",
+      "sha256": "6f7ddb4183eff53c03fecb3538ca82fc7d6f7a0d2f977c963f81312c23aab234",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary"
+      ]
+    },
+    {
+      "destination": "references/examples/03_DESIGN填写示例.md",
+      "origin": "upstream-derived",
+      "source": "examples/03_DESIGN填写示例.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "04d9a4a7e224292a51cb64d1498672d0e783f67974af9a090456ac175098a103",
+      "sha256": "edd39c2b9de1fcd85f48dc700253744df88f0e26a515ce5463c2ae6150e5edff",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary"
+      ]
+    },
+    {
+      "destination": "references/examples/04_连续MG正反过程.md",
+      "origin": "upstream-derived",
+      "source": "examples/04_连续MG正反过程.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "a4fed2960cae2b2ded0e36a88e020c901bcca4cc925cb58d0ea2d3bf2a0aa4e4",
+      "sha256": "47da140d90bb8eed1683edbe3f2f4acff3f8bd187fdbb91f399f03e2bf9c2fc1",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary"
+      ]
+    },
+    {
+      "destination": "references/examples/process-patterns.html",
+      "origin": "upstream-derived",
+      "source": "examples/process-patterns.html",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "a2d12c4be83fd6f70bb59650110b2d128af701ba079dfd3a8947d22e0d91c174",
+      "sha256": "1e85874b33a4ef89d8d661950888f4a81cc8487ec5bcd32bc6e9e6019b16937f",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "references/motion-check-method.md",
+      "origin": "upstream-derived",
+      "source": "tools/README.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "6094da91966295e4d0061795a195e0313832c3c37d84c2ac12165ec64616a169",
+      "sha256": "2b153cd3795145645b2e654a375a871e2dcaab3d8cb14051ae0ed1dec948ff67",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary"
+      ]
+    },
+    {
+      "destination": "references/project-rules.md",
+      "origin": "upstream-derived",
+      "source": "AGENTS.md",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "d08daca88cf4fb688b00bffd1b6e66efcdf43cc548d0de19e99bbac9de1e2c65",
+      "sha256": "66173ef726623a00a14cc339c5c5da93d7fb3a8bb856d665ad7e5ff90a979a46",
+      "license": "CC-BY-4.0",
+      "modifications": [
+        "relative-links",
+        "single-writer-parallel-production",
+        "state-authority",
+        "structured-qa",
+        "P0-capability-boundary"
+      ]
+    },
+    {
+      "destination": "LICENSES/CC-BY-4.0.txt",
+      "origin": "upstream-derived",
+      "source": "LICENSE",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "9ba9550ad48438d0836ddab3da480b3b69ffa0aac7b7878b5a0039e7ab429411",
+      "sha256": "9ba9550ad48438d0836ddab3da480b3b69ffa0aac7b7878b5a0039e7ab429411",
+      "license": "CC-BY-4.0",
+      "modifications": []
+    },
+    {
+      "destination": "LICENSES/MIT.txt",
+      "origin": "upstream-derived",
+      "source": "LICENSE-CODE",
+      "sourceCommit": "904885b20266eaf4e4559bec6cfc5e3cd9740da7",
+      "sourceSha256": "4032207d9de37f60ab72fb0d6999d62131a13dcc0e7d84f51224e090c1680069",
+      "sha256": "4032207d9de37f60ab72fb0d6999d62131a13dcc0e7d84f51224e090c1680069",
+      "license": "MIT",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/process-index.json",
+      "origin": "packaging-authored",
+      "source": "assets/motion/process-index.json",
+      "sourceCommit": "e1115d63d1fa8de9890ab16fb655aa601b5ba3e0",
+      "sourceSha256": "564296da029ba23dee9e329aac2c1a5002ea344b8758e38b383086c6f59b9c35",
+      "license": "MIT",
+      "sha256": "27235833f8dd2ea4f8bbac7806dac06f6ea7f1532c134d796a6d0f2a9f12f3b0",
+      "modifications": [
+        "skill-local-override; original upstream provenance retained"
+      ]
+    },
+    {
+      "destination": "scripts/process-locate.mjs",
+      "origin": "packaging-authored",
+      "source": "scripts/process-locate.mjs",
+      "sourceCommit": "e1115d63d1fa8de9890ab16fb655aa601b5ba3e0",
+      "sourceSha256": "2f2085b783bd9d9ea13d03270d886008c5996531e6b1fdddee53f5ce176c6b5f",
+      "license": "MIT",
+      "sha256": "d6141c3794d89558bdd46f3e5a45c4d660ff23b9c41830627861c9e8066e0c28",
+      "modifications": [
+        "skill-local-override; original upstream provenance retained"
+      ]
+    },
+    {
+      "destination": "scripts/render-motion-example.mjs",
+      "origin": "packaging-authored",
+      "source": "scripts/render-motion-example.mjs",
+      "sourceCommit": "e1115d63d1fa8de9890ab16fb655aa601b5ba3e0",
+      "sourceSha256": "a68d7f7ed7db17bee87240e83b3eae73ce95ebad2205a49c01683ee04036dd67",
+      "license": "MIT",
+      "sha256": "67c5c17361d3a03a3cd30f318e95dca691b4feb556dbb542000b2729edb5da95",
+      "modifications": [
+        "skill-local-override; original upstream provenance retained"
+      ]
+    },
+    {
+      "destination": "scripts/motion-audit.mjs",
+      "origin": "packaging-authored",
+      "source": "scripts/motion-audit.mjs",
+      "sourceCommit": "e1115d63d1fa8de9890ab16fb655aa601b5ba3e0",
+      "sourceSha256": "1854a2b515899e9f5613b16654f0b4a0b64463f7420b66a58fa365a0d51c5271",
+      "license": "MIT",
+      "sha256": "4510ef3f09b96e5f486f47b32024f37cb1d2328eb50c8c326f0389aa85ef6f92",
+      "modifications": [
+        "skill-local-override; original upstream provenance retained"
+      ]
+    },
+    {
+      "destination": "scripts/motion-gates.mjs",
+      "origin": "packaging-authored",
+      "source": "scripts/motion-gates.mjs",
+      "sourceCommit": "e1115d63d1fa8de9890ab16fb655aa601b5ba3e0",
+      "sourceSha256": "065f74c37362dc06b1fd43675e284d07b8be97c8cf3a4b3ebff875d1b80e98f8",
+      "license": "MIT",
+      "sha256": "7c9c778277b54f84499001f5d0f72d2f53cfcf3295f2ecbb78b8bb415f7ef644",
+      "modifications": [
+        "skill-local-override; original upstream provenance retained"
+      ]
+    },
+    {
+      "destination": "scripts/tests/motion-gates.test.mjs",
+      "origin": "packaging-authored",
+      "source": "scripts/tests/motion-gates.test.mjs",
+      "sourceCommit": "e1115d63d1fa8de9890ab16fb655aa601b5ba3e0",
+      "sourceSha256": "13a26e9f68681e6ee7bd0ac26f1630a89e379915146f6dc496031f0a92f9a235",
+      "license": "MIT",
+      "sha256": "9e9b55826d1fe893b4af0f189fe85667188239c27147313c6a1b9734775f21c3",
+      "modifications": [
+        "skill-local-override; original upstream provenance retained"
+      ]
+    },
+    {
+      "destination": "scripts/tests/audit-provenance-coverage.test.mjs",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "ac9e5d644847ba19715094775f101fe62712a4faf10af322013c6fcb4e6fa75f",
+      "modifications": []
+    },
+    {
+      "destination": "scripts/tests/paint-fixture.mjs",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "97a4783c5177c6a579b8557ac5f09a74475abe07a03e943dedfc7df722aec886",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/production-core/space.cjs",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "de53f024489c5059df064944149a58a140f7e360c2501d9ccdf980c75a9455d4",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/production-core/camera.cjs",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "ae1e403e2b7e2a21003d6b449ac6e15941d8ae01451c39ac833fd4e49ade9433",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/production-core/timing.cjs",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "f3a779610115759808fa61f66430b297c62b118e5035ba10048c0a208f1927e1",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/production-core/scene.cjs",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "9be4bf93c44959ff53a9dcac4b3d97df9dccecbeb5d1a5492c6732c5d404fd52",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/production-core/parts.cjs",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "9e21e3b473abfb42e38b02c8c145f7d65a4d80c5dd02382aadab56331b1b6a88",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/production-core/stage.cjs",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "6ba68384d44a3b2ccb10ac92eecba7c5dda007084a349b33d2e9897450b3b057",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/production-core/entry.jsx",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "b329a2d4cff651a8b3a086c14defa1cd93806b57dbd20b4613df91cce2fc7c7a",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/production-core/render.cjs",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "76692d61e90e858c9fdf242f97b65ebc858ccf60c3c17b1c5b429ee33e1a4527",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/production-core/audit-adapter.cjs",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "0f62d2084b5512bbe53aba5e0b824acf889d53f11a9cadd9be5dedb0e9cbe583",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/production-core/README.md",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "CC-BY-4.0",
+      "sha256": "e9e14a1759d6fc8f41b4c7bbb5c02c33424c6de5011b995c9b9932eada3997c9",
+      "modifications": []
+    },
+    {
+      "destination": "scripts/tests/spatial-camera.test.mjs",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "9f1330956bb9ff9715802cd40b4be1e304bc0009b9bcc74185360f0eb944fb35",
+      "modifications": []
+    },
+    {
+      "destination": "scripts/tests/production-starter.test.mjs",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "5c4b20b58e5d2387abe749dfa76733a8110d4980767650698d10aac7030ae9a5",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/ep05-d04-revision-process/internal-process.cjs",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "9ad7e784805c7418f01919d35e61f0a4fcf8fbc8a1142bd94435849ab53ae5a3",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/ep05-d06-task-relay/internal-process.cjs",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "c7c3b39355ade7bd32f5b3f9c865ac296566de9657f8e03864fe5820a3c39256",
+      "modifications": []
+    },
+    {
+      "destination": "scripts/tests/internal-process.test.mjs",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "635032caf4d6ec43149b37cbb025a01a73c51d0a3f6ec011fe5aadbd8502c75f",
+      "modifications": []
+    },
+    {
+      "destination": "scripts/tests/motion-coverage.test.mjs",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "6d6cf8bd4777873f65364015f8c406db97145b33e2f2afd6dca60fd7a2f1be93",
+      "modifications": []
+    },
+    {
+      "destination": "scripts/motion-observation.cjs",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "8ba511a01aacf95e07f4012fb0027eb46453daf4972f0dbafd0f235d376f2871",
+      "modifications": []
+    },
+    {
+      "destination": "scripts/tests/motion-observation.test.mjs",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "72aa5206218700e0136c6ac494a78a8ba0581e57357ffe64f32a9db64b85288d",
+      "modifications": []
+    },
+    {
+      "destination": "scripts/tests/causal-edit-process.test.mjs",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "e9346aa1abdb13ee97507fc5a6a5e2c72b61cdd622f63485e47dbd1b64933b44",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/causal-edit-process/process.cjs",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "e80365da69d67f24d5dbc7bef60287dd02d146867b50fd6f5e9b686ea93a72ae",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/causal-edit-process/scene.cjs",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "3d1a8ca9f0d6aaa0a1173bded6fcbf9aa0a8f374f4bdcedad5e235c3129ba405",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/causal-edit-process/audit-adapter.cjs",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "4e969416c4441fc4a43dc0dfdc933ef2a22f1258a1cd9cd4d62592420d5ba269",
+      "modifications": []
+    },
+    {
+      "destination": "assets/motion/causal-edit-process/README.md",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "CC-BY-4.0",
+      "sha256": "22f8dbcea982845ad84d7abbf9d2b2fb23daa8fc06b7009d511359362699d1f8",
+      "modifications": []
+    },
+    {
+      "destination": "SKILL.md",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "CC-BY-4.0",
+      "sha256": "74932de5d36d216857984ce578e8cd644776420b996c76fc65ac91753db487eb",
+      "modifications": []
+    },
+    {
+      "destination": "references/intake.md",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "CC-BY-4.0",
+      "sha256": "c0b462bd16bb9bf82b4d65179ba915cef528d917b6eeb936c550a1c2792ce8b3",
+      "modifications": []
+    },
+    {
+      "destination": "references/style-and-motion.md",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "CC-BY-4.0",
+      "sha256": "a43e305cbe9f7251ca7629172827a7d5857141fa7da619056c9fffb2fd7bf2a7",
+      "modifications": []
+    },
+    {
+      "destination": "references/planning.md",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "CC-BY-4.0",
+      "sha256": "1f52e3a68c5fe8e7229747f452eb1875861936efbd763d33edce1cfdd8ea800f",
+      "modifications": []
+    },
+    {
+      "destination": "references/production.md",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "CC-BY-4.0",
+      "sha256": "3c676a386f7918289d0f906a1476207e024ac59c62326cee9e7e8363db262cc3",
+      "modifications": []
+    },
+    {
+      "destination": "references/review-and-repair.md",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "CC-BY-4.0",
+      "sha256": "eecfc7fbcb514be70e44293f60878c97a0938ff00a0adb0611b0b01257070e3f",
+      "modifications": []
+    },
+    {
+      "destination": "references/state-contract.md",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "CC-BY-4.0",
+      "sha256": "3daf1b5b442d60a5df00a867866be9c84ea657fd8024b684f0f01a4f4644e323",
+      "modifications": []
+    },
+    {
+      "destination": "references/examples/05_慢镜头与同构图回归.md",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "CC-BY-4.0",
+      "sha256": "5f9d3c8d5f47822a8948ef20f2612852d3c73b29b8c7efc80896769c2957a4f2",
+      "modifications": []
+    },
+    {
+      "destination": "references/library.md",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "CC-BY-4.0",
+      "sha256": "9441ee01599340b6aecb9a099bf58330871e70d956ca4e0084fdf186227b1252",
+      "modifications": []
+    },
+    {
+      "destination": "references/self-diagnosis.md",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "CC-BY-4.0",
+      "sha256": "2699ecba128c98a28840968c24d6e71df528f6e2954fe0dab591b4fda74c5491",
+      "modifications": []
+    },
+    {
+      "destination": "references/complete-motion.md",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "CC-BY-4.0",
+      "sha256": "19d5bd32f314259b16dc3ac9d8cd532fdebb989e74207001d9530bc7ec97d559",
+      "modifications": []
+    },
+    {
+      "destination": "LICENSES/ATTRIBUTION.md",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "CC-BY-4.0",
+      "sha256": "bb345c9188f7132a2ba3e7f7836ed6e1f5e69a02eb25cd5343cad7e2a2ebac23",
+      "modifications": []
+    },
+    {
+      "destination": "assets/templates/manual-generation-task.template.md",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "CC-BY-4.0",
+      "sha256": "a40fbf107ae2cafd0bf4bdbe79f78d28764386214e934d2df2f023fce98f7273",
+      "modifications": []
+    },
+    {
+      "destination": "assets/templates/screen-recording-task.template.md",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "CC-BY-4.0",
+      "sha256": "7270344c7267bc2201ce5756e5888beabbe585169f0e512e9bc2242c4c941e94",
+      "modifications": []
+    },
+    {
+      "destination": "assets/templates/external-voice-task.template.md",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "CC-BY-4.0",
+      "sha256": "1e8adadf373a6b287ea3782b58736c0bf3528caf412d83b0fb48b5b30943ec36",
+      "modifications": []
+    },
+    {
+      "destination": "assets/templates/alignment-record.template.md",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "CC-BY-4.0",
+      "sha256": "9de4fc79da4e6c9931abc7341ded4e681ba1dde08602204a992eb7032264aa5d",
+      "modifications": []
+    },
+    {
+      "destination": "assets/templates/review-card.template.md",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "CC-BY-4.0",
+      "sha256": "3d5317c4aefe7531a2285dbb87b0ffbd19413673ac1f36b405dfa90c3645ff69",
+      "modifications": []
+    },
+    {
+      "destination": "scripts/core.mjs",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "993f793c20bcbbee41bc8110ed31b2259ee38f30bbc29a77821b757b8431f90c",
+      "modifications": []
+    },
+    {
+      "destination": "scripts/gain-proof.mjs",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "157784757d60552490a0279989a81ae6540b7c9b97f1c71b90d90bc0f35271d6",
+      "modifications": []
+    },
+    {
+      "destination": "scripts/workflow.mjs",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "95964a85baeedbe5b0e6a6e5b8c342c2fcedffe7c58bd64b59c0bf9e77be375c",
+      "modifications": []
+    },
+    {
+      "destination": "scripts/init-project.mjs",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "94f090f9609354f5befc509e6b20aef8a2ca6595114747d27cf3352cbcea43a0",
+      "modifications": []
+    },
+    {
+      "destination": "scripts/preflight.mjs",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "8f5e48133850b9f4db7850f5eb887e9d47bf69ba7e6aa035afe94a45be4cf226",
+      "modifications": []
+    },
+    {
+      "destination": "scripts/storage.mjs",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "a020658171a802a953aea4c9e14db817c216d60a8d4bb9295f85f583f7653738",
+      "modifications": []
+    },
+    {
+      "destination": "scripts/schema.mjs",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "9689f069a42d8f8ebcd625288d8be5a1f7319ce3294156f89cffc90404dc12fa",
+      "modifications": []
+    },
+    {
+      "destination": "scripts/cli.mjs",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "168e2d270025a0bffb73965b0632e5927f2809ee9e94eb2eec3faebd77fe4fb9",
+      "modifications": []
+    },
+    {
+      "destination": "scripts/motion-check.mjs",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "aa5d6dd63ad599521a21657e6efbf8116c16384d48cbe890a4301e82a60dfb58",
+      "modifications": []
+    },
+    {
+      "destination": "schemas/state.schema.json",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "78c4875a4563a9f47ce899e4c5bf67a9289697c1c01cccda73934d47541ab794",
+      "modifications": []
+    },
+    {
+      "destination": "schemas/request.schema.json",
+      "origin": "packaging-authored",
+      "source": null,
+      "sourceCommit": null,
+      "sourceSha256": null,
+      "license": "MIT",
+      "sha256": "45b99d033be0ded51552d0b32f4683964fd45c0a6830684df3d03b88485f62fd",
+      "modifications": []
+    }
+  ]
+}

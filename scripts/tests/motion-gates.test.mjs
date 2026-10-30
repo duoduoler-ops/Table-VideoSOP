@@ -49,8 +49,10 @@ test('freezes shorter than the detector minimum are not counted', () => {
   assert.equal(scored.measured.seconds, 1);
 });
 
-test('ep05 control log stays at the announced 60 segments, 63.0s, 1.93s max', () => {
-  const text = fs.readFileSync('D:/skillfengzhuang/reports/20261027-motion-gates-implementation/证据/ep05_freezedetect_总控实测.txt', 'utf8');
+test('ep05 control log stays at the announced 60 segments, 63.0s, 1.93s max', {
+  skip: !process.env.EP05_FREEZE_CONTROL_LOG && 'Optional original log not supplied; set EP05_FREEZE_CONTROL_LOG to verify it.',
+}, () => {
+  const text = fs.readFileSync(process.env.EP05_FREEZE_CONTROL_LOG, 'utf8');
   const parsed = parseFreezeLog(text);
   const sum = parsed.segments.reduce((s, x) => s + x.duration, 0);
   const max = Math.max(...parsed.segments.map(s => s.duration));

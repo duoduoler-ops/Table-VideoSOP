@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "name": "ep07-entry-follow-v8",
+  "engine": "native SVG; optional existing sharp for PNG/pixel tests",
+  "entry": "src/scene.cjs",
+  "renderExport": "frameAt",
+  "stateEntry": "src/state.cjs",
+  "stateExport": "state",
+  "width": 1920,
+  "height": 1080,
+  "fps": 60,
+  "frames": 792,
+  "localSeconds": [
+    0,
+    13.2
+  ],
+  "mediaIncluded": false,
+  "dependenciesBundled": false,
+  "frameRenderer": "render-frame.cjs",
+  "verification": "verify.cjs",
+  "purpose": "Causal entrances, true path-prefix growth, subject-bound camera and follow-to-wide handoff; exact timings are example-only.",
+  "auditExport": "exportAudit",
+  "auditVideoBinding": "Caller supplies actual candidate videoFile; no media bundled. Existing motion-audit.mjs consumes final-screen states; report findings without auto approval."
+}
