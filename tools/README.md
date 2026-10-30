@@ -22,11 +22,11 @@ node scripts/process-locate.mjs --relation 接收,处理 --out '_work/D01/source
 
 #### 2. 让检查读取真正的渲染实现
 
-在本段工程放薄适配器，导出 `exportAudit()`，从渲染使用的同一对象／状态入口提供 `frameAt(seconds)`；含指针、遮罩与局部部件，使用最终屏幕坐标，动作和交接引用实际时间线。不能另写理想轨迹或漏掉实际绘制对象。renderInventory 汇总 recorded／partial／unexposed 及遗漏 ID；每帧均暴露 renderedObjectIds 才能记 recorded，未暴露仍报覆盖缺口，不因手填 visible 而通过。raw 内部仍不能据此宣称无遗漏。
+默认从[共用制作起点](../assets/motion/production-core/README.md)的 `render(t)`／`audit-adapter.cjs` 接入，已有工程用薄适配器导出 `exportAudit()` 与 `frameAt(seconds)`。对象、动作和接力来自生产入口，不能另造理想轨迹。`renderInventory` 区分同次绘制核验与作者声明；仅填 `renderedObjectIds` 不再算已证明完整。
 
-SVG 工程可用 [motion-observation.cjs](../scripts/motion-observation.cjs) 的 `createObservedScene({width,height,camera?})`，在同次 `rect/polygon/raw(spec,paint)` 调用中登记并绘制，`finish()` 返回 svg、objects、renderedObjectIds 与 camera。polygon 只接受无自交且非退化的简单多边形；只对支持的填充几何、轴向变换／矩形裁切及不透明矩形遮挡判断可见性；stroke、filter、mask、blendMode 等不支持效果须用附保守绘制边界的 raw 保留 unknown，或拆为支持的填充几何，不能静默忽略。其它引擎沿用实际渲染及观察范围，不为检测另造场景。
+SVG 可用 [motion-observation.cjs](../scripts/motion-observation.cjs) 的 `createObservedScene({width,height,camera?})` 同次 `rect/polygon/raw` 绘制并登记，直接返回 `finish()` 的帧。只认证受支持的填充几何、轴向变换／矩形裁切及不透明矩形遮挡。认证绑定内存中的实际绘制记录与几何；手写 `observation.state/basis`、JSON 克隆或事后改几何均不能认证。polygon 拒绝自交／退化；raw、透视、滤镜和复杂遮挡保留 unknown，作者 bounds 不证明真实绘制范围。
 
-输入以 [motion-audit.mjs 契约与 --help](../scripts/motion-audit.mjs) 为准：提供实际帧率、时长、画布、覆盖对象、源码／视频路径及采样函数。隐藏对象保留身份与真实绘制状态。`objects[].observation.state` 为 visible／hidden／unknown，附 reason、visibleBounds 和 basis；`hotspot` 是最终屏幕操作点。审计与门禁共用可见性判断；旧 bbox-only 适配器可保留坐标统计，但可见性未决须报覆盖缺口，不静默升级成已见，也不自动迁移旧工程。例外仍绑定源码、锚点和具体理由，由实际范围判断是否适用。
+输入格式见 [motion-audit.mjs](../scripts/motion-audit.mjs) 与 `--help`。旧适配器保留坐标统计并报可见性缺口；复杂引擎用最终生产帧做有范围的像素核验，不为检查重造场景。三态可见性与 `hotspot` 描述局部证据，不能冒充 1× 观感；例外仍绑定实际源码、锚点和理由。
 
 简单动画确无经过节点或接力时（例如单一完整动作），可让相应数组为空，并在 `coverage.notApplicable.checkpoints`／`coverage.notApplicable.relays` 提供 `{sourceFile, anchor, reason}`。来源须在 `sourceFiles` 哈希范围内、锚点须实际存在，理由说明本段为什么没有该类关系；不得为过检虚构节点，也不能豁免主要动作或同时保留该组非空数组。未声明或无有效证据仍报覆盖不完整／输入失效。报告将声明列为 `attributed-not-applicable-requires-scope-review`，它只证明理由可追溯，适用性仍须人工核实。仅有 reveal 且生产采样确认可见对象没有平移、缩放或旋转、相机不变时，不因缺 transfer／camera 报漏测；所有可见对象及显现变化仍须被相应动作区间覆盖。实际移动、漏对象或漏显现区间仍报覆盖不足，不以改标签绕过检查；显现效果另与实际编码帧核对。
 
@@ -45,7 +45,7 @@ node scripts/motion-audit.mjs --adapter 'project/05_制作工程/motion-audit-ad
 
 沿用同一 `exportAudit()`，不另建承诺表。真实部件可返回 `parentId` 及相对父容器的 `localGeometry`；内部过程在既有 `actions` 写 `kind:'process'`，`channels` 指向实际局部 x/y/width/height/rotation，或 `process` 中的 maskProgress/pathProgress/morphProgress/occlusionProgress。它们必须来自生产函数；外层卡片和相机移动不能充当内部状态变化。
 
-`processCoverage` 列出 `unexposed`、`partial` 或 `declared-actions-measured`，逐动作区分 `measured-change`／`unmeasured`；缺局部状态、隐藏或全静态列覆盖缺口。已暴露却无过程动作的子件列 `unmeasuredPartIds`，不根据名字推断它必须动。参数变过只证明该参数发生变化，仍须检查真正承担含义的部件、可见性、画面大小与过程；不等于语义或表现力通过。
+`processCoverage` 逐动作区分实际内部变化与未测；`actionCoverage` 再从采样变化反查动作窗、全部跨对象接力及父部件关系，列 `uncoveredChanges`、`uncoveredRelayIds` 与待辨认关系。只挑一条 `motionGate: follow` 不覆盖其它生产接力；删掉声明也不能消掉已采样的关系。静态装饰不强迫运动，独立或因果仍按真实语义判断。参数变化不等于可见、可读或表现力通过。
 
 #### D1 进出场、内容版本与来源关系契约
 

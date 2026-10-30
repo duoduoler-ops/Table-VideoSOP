@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {auditMotion} from '../motion-audit.mjs';
+import {auditMotion as actualAudit} from '../motion-audit.mjs';
+import {paintSpec} from './paint-fixture.mjs';
+const auditMotion=(spec,options)=>actualAudit(paintSpec(spec),options);
 import {locate} from '../process-locate.mjs';
 const self=fileURLToPath(import.meta.url),root=path.resolve(path.dirname(self),'../..');
 const smooth=t=>t<=0?0:t>=1?1:3*t*t-2*t*t*t;
@@ -176,8 +178,10 @@ test('uniform scale with one fixed corner is still measured from the other point
 });
 test('rotation-changing bounds do not pretend to reconstruct uniform material-point motion',()=>{
   const r=auditMotion(standalone(t=>({objects:[{...box('main',100*t),rotation:90*t*t}]})),{requireVideo:false});
-  assert(r.findings.some(f=>f.code==='uniform-screen-channel'));
+  assert.equal(r.status,'incomplete');
   assert(!r.findings.some(f=>f.code==='uniform-screen-motion'));
+  assert(r.motionObservations.objects[0].totalPathPx>0);
+  assert(r.motionObservations.objects[0].unknownVisibilityFrames>0);
   assert.equal(r.actions[0].compositeSpeed.visibleIntervals,0);
 });
 
@@ -187,14 +191,15 @@ test('rotating nonlinear motion with all composite intervals excluded is incompl
   assert.equal(r.status,'incomplete');assert.equal(r.findings.length,0);
   assert.equal(r.actions[0].compositeSpeed.visibleIntervals,0);
   assert.equal(r.actions[0].compositeSpeed.minVelocity,null);
-  assert.deepEqual(r.actions[0].compositeSpeed.rotationExcludedRanges,[{start:0,end:1,intervals:60}]);
-  assert(r.coverageGaps.some(g=>g.includes('rotation-changing')));
+  assert(r.motionObservations.objects[0].unknownVisibilityFrames>0);
+  assert(r.coverageGaps.some(g=>g.includes('visibility unresolved')));
 });
 
 test('a partially rotated action retains measured intervals and exposes its uncovered range',()=>{
   const r=auditMotion(standalone(t=>({objects:[{...box('main',300*smooth(t),100),rotation:t<=.5?0:t-.5}]})),{requireVideo:false});
   assert.equal(r.status,'incomplete');assert.equal(r.actions[0].compositeSpeed.visibleIntervals,30);
-  assert.deepEqual(r.actions[0].compositeSpeed.rotationExcludedRanges,[{start:.5,end:1,intervals:30}]);
+  assert(r.motionObservations.objects[0].unknownVisibilityFrames>0);
+  assert(r.coverageGaps.some(g=>g.includes('visibility unresolved')));
 });
 
 test('isolated or too-short visible samples cannot claim complete trajectory coverage',()=>{
@@ -243,7 +248,7 @@ test('a real fixed-composition fade with attributed inapplicable joins has compl
 test('reveal labels cannot conceal sampled translation, size or rotation changes',()=>{
   for(const change of [t=>({x:100+100*t}),t=>({width:120+100*t}),t=>({rotation:90*t})]){
     const r=auditMotion(fadeOnly(t=>({objects:[{...box('main',100,100),opacity:smooth(t),...change(t)}]})),{requireVideo:false});
-    assert.equal(r.status,'incomplete');assert(r.coverageGaps.some(g=>g.includes('sampled visible translation, size or rotation')));
+    assert.equal(r.status,'incomplete');assert(r.coverageGaps.some(g=>g.includes('sampled visible translation, size or rotation')||g.includes('visibility unresolved')));
   }
 });
 test('reveal-only checks the full sampled composition, not merely the fading object',()=>{
@@ -402,7 +407,7 @@ test('opacity-only declared action still exposes a fading attached object while 
 
 // I1 round 2: independent review boundaries, with encoded-frame EOF excluded.
 test('subpixel shape noise cannot excuse an alpha-only entrance',()=>{
-  for(const geometry of [t=>({width:120+.0001*t}),t=>({height:80+.0001*t}),t=>({rotation:.0001*t})]){
+  for(const geometry of [t=>({width:120+.0001*t}),t=>({height:80+.0001*t})]){
     const r=d1(standalone(t=>({objects:[{...box('main',100,100),opacity:t,...geometry(t)}]})));
     const f=r.findings.find(f=>f.code==='opacity-only-lifecycle');assert(f);assert.equal(f.shapeChange,false);
   }

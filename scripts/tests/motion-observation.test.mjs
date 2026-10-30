@@ -56,11 +56,11 @@ test('unsupported raw or translucent covering paint remains unknown rather than 
  const f=scene.finish();assert.equal(f.objects.find(x=>x.id==='base').observation.state,'unknown');
  assert.equal(f.objects.find(x=>x.id==='effect').observation.state,'unknown');
 });
-test('a small unknown foreground does not erase a separately provable visible part of the card',()=>{
+test('a raw foreground author bbox cannot certify the rest of a lower card as visible',()=>{
  const s=observation().createObservedScene({width:200,height:100});
  s.rect({id:'card',x:0,y:0,width:180,height:90},{fill:'#fff'});
  s.raw({id:'text',x:10,y:10,width:60,height:20,z:1},'<text x="10" y="25">label</text>');
- const f=s.finish();assert.equal(f.objects[0].observation.state,'visible');assert.equal(f.objects[1].observation.state,'unknown');
+ const f=s.finish();assert.equal(f.objects[0].observation.state,'unknown');assert.equal(f.objects[1].observation.state,'unknown');
 });
 test('camera/parent transforms and native 30fps visibility exit are measured without a reference-clock conversion',()=>{
  const at=t=>{const s=observation().createObservedScene({width:200,height:100,camera:{cx:100,cy:50,z:2}});

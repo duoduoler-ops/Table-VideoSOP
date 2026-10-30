@@ -6,8 +6,11 @@ import crypto from 'node:crypto';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 const self=fileURLToPath(import.meta.url);
 const dir=process.env.MOTION_TEST_DIR||path.resolve(path.dirname(self),'..');
-const gates=await import(pathToFileURL(path.join(dir,'motion-gates.mjs')));
-const {auditMotion}=await import(pathToFileURL(path.join(dir,'motion-audit.mjs')));
+const actualGates=await import(pathToFileURL(path.join(dir,'motion-gates.mjs')));
+import {paintSamples,paintSpec} from './paint-fixture.mjs';
+const gates={...actualGates,scoreFollow:(s,...args)=>actualGates.scoreFollow(paintSamples(s),...args),scoreComposition:(s,...args)=>actualGates.scoreComposition(paintSamples(s),...args),evaluateMotion:(s,...args)=>actualGates.evaluateMotion(paintSpec(s),...args)};
+const {auditMotion:actualAudit}=await import(pathToFileURL(path.join(dir,'motion-audit.mjs')));
+const auditMotion=(spec,options)=>actualAudit(paintSpec(spec),options);
 // These fixtures explicitly paint an unobscured rectangle; do not generalize this proof to legacy adapters.
 const box=(id,x=100,more={})=>({id,x,y:100,width:120,height:80,opacity:1,observation:{state:'visible',reason:'fixture-painted-rectangle'},...more});
 const smooth=t=>3*t*t-2*t*t*t;

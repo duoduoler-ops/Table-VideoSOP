@@ -5,6 +5,16 @@
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.MotionObservation=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
  const EPS=1e-8,I=[1,0,0,1,0,0];
+ // In-process recorder provenance, not a caller-fillable certification field.
+ // A serialized/copied observation has no production record and must be re-observed.
+ const recordedObservations=new WeakMap(),recordedFrames=new WeakMap();
+ const geometryKey=o=>JSON.stringify([o.id,o.x,o.y,o.width,o.height,o.opacity,o.rotation??0,o.parentId??null]);
+ function recordedFrameState(frame){
+  const record=recordedFrames.get(frame);
+  if(!record)return{status:'unverified',reason:'no-shared-production-record'};
+  if(frame.svg!==record.svg||JSON.stringify(frame.renderedObjectIds)!==record.ids||frame.objects.length!==record.objects.length||frame.objects.some((o,i)=>o.observation!==record.objects[i].observation||geometryKey(o)!==record.objects[i].key))return{status:'unverified',reason:'production-record-changed-after-render'};
+  return{status:'recorded',reason:'same-production-submissions',viewport:{...record.viewport}};
+ }
  const finite=(x,label)=>{if(!Number.isFinite(x))throw Error('Non-finite '+label);return x;};
  const esc=x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
  const multiply=(a,b)=>[a[0]*b[0]+a[2]*b[1],a[1]*b[0]+a[3]*b[1],a[0]*b[2]+a[2]*b[3],a[1]*b[2]+a[3]*b[3],a[0]*b[4]+a[2]*b[5]+a[4],a[1]*b[4]+a[3]*b[5]+a[5]];
@@ -41,10 +51,10 @@
  function visibleState(o,viewport={width:1920,height:1080}){
   if(!o||(o.opacity??1)<=0||o.width<=0||o.height<=0)return{state:'hidden',reason:'not-drawn-or-empty'};
   const on=intersects(o,{x:0,y:0,...viewport});
-  if(!on){if(Math.abs(o.rotation??0)>EPS&&!o.observation)return{state:'unknown',reason:'unresolved-rotation'};return{state:'hidden',reason:'outside-viewport'};}
-  const observation=o.observation;
-  if(observation&&['visible','hidden','unknown'].includes(observation.state))return observation;
-  return{state:'unknown',reason:'bbox-only-no-painted-visibility'};
+  const observation=o.observation,record=observation&&recordedObservations.get(observation);
+  if(record&&record.key===geometryKey(o)&&record.viewport.width===viewport.width&&record.viewport.height===viewport.height)return record.observation;
+  if(!on){if(Math.abs(o.rotation??0)>EPS)return{state:'unknown',reason:'unresolved-rotation'};return{state:'hidden',reason:'outside-viewport'};}
+  return{state:'unknown',reason:observation?'unverified-author-observation':'bbox-only-no-painted-visibility'};
  }
  function createObservedScene({width=1920,height=1080,camera}={}){
   finite(width,'width');finite(height,'height');if(width<=0||height<=0)throw Error('Invalid viewport');
@@ -75,13 +85,18 @@
   }
   function finish(){
    const ordered=[...nodes].sort((a,b)=>a.z-b.z||a.index-b.index),viewport={x:0,y:0,width,height};
+   const actualClipExtent=n=>n.clips.filter(c=>c.supported).reduce((p,c)=>clipPolygon(p,c.bounds),rectPoints(viewport));
    const painted=ordered.map(n=>{let pieces=[clipPolygon(n.ps,viewport)];for(const c of n.clips)if(c.supported)pieces=pieces.map(p=>clipPolygon(p,c.bounds));pieces=pieces.filter(p=>area(p)>EPS);return{n,pieces};});
    const objects=painted.map(({n,pieces},i)=>{
     let remaining=pieces,uncertainFront=[],unknown=!n.supported,reason=unknown?'unsupported-paint-or-transform':'supported-painted-geometry';
     if(n.opacity<=0){remaining=[];unknown=false;reason='not-drawn';}
     else if(!pieces.length){unknown=false;reason='viewport-or-parent-clip-empty';}
     else for(let j=i+1;j<painted.length;j++){
-     const front=painted[j];if(front.n.opacity<=0||!front.pieces.length)continue;
+     const front=painted[j];if(front.n.opacity<=0)continue;
+     // raw() is arbitrary SVG: an author's bbox neither bounds its actual paint
+     // nor proves an opaque fill. Do not certify the lower layer from that box.
+     if(front.n.type==='raw'){const extent=actualClipExtent(front.n);if(area(extent)>EPS)uncertainFront.push(box(extent));continue;}
+     if(!front.pieces.length)continue;
      const overlap=remaining.some(p=>front.pieces.some(q=>intersects(box(p),box(q))));if(!overlap)continue;
      if(front.n.opaque&&front.n.typeRect){for(const q of front.pieces)remaining=remaining.flatMap(p=>subtractRect(p,box(q))).filter(p=>area(p)>EPS);}
      else{uncertainFront.push(...front.pieces.map(box));}
@@ -89,7 +104,13 @@
     }
     let guaranteed=remaining;for(const r of uncertainFront)guaranteed=guaranteed.flatMap(p=>subtractRect(p,r)).filter(p=>area(p)>EPS);
     if(remaining.length&&!guaranteed.length){unknown=true;reason='unsupported-or-translucent-foreground';}
-    const state=!remaining.length?'hidden':unknown?'unknown':'visible',visibleBounds=state==='visible'?box(guaranteed.flat()):null;
+    // Likewise a raw layer's self-reported bbox being covered/outside cannot
+    // prove that every pixel it actually paints is hidden.
+    const rawClipped=n.type==='raw'&&area(actualClipExtent(n))<=EPS;
+    if(rawClipped){remaining=[];reason='actual-production-clip-empty';}
+    const rawUnresolved=n.type==='raw'&&n.opacity>0&&!rawClipped;
+    if(rawUnresolved)reason='raw-paint-bounds-unverified';
+    const state=rawUnresolved?'unknown':!remaining.length?'hidden':unknown?'unknown':'visible',visibleBounds=state==='visible'?box(guaranteed.flat()):null;
     return{id:n.id,...n.bounds,opacity:n.opacity,rotation:Math.atan2(n.matrix[1],n.matrix[0])*180/Math.PI,parentId:n.parentId,contentVersion:n.contentVersion??n.id,d1Category:n.d1Category??'mg',localGeometry:n.localGeometry??{...n.geometry},...(n.process?{process:n.process}:{}),...(n.replacement?{replacement:n.replacement}:{}),...(n.hotspot?{hotspot:{x:n.hotspot[0],y:n.hotspot[1]}}:{}),observation:{state,reason,visibleBounds,basis:'production-recorded-geometry',paintedAreaPx2:state==='visible'?guaranteed.reduce((a,p)=>a+area(p),0):null},layer:n.z};
    });
    const defs=[],groups=ordered.map(n=>{
@@ -97,9 +118,57 @@
     let group=`<g data-object="${esc(n.id)}" transform="matrix(${n.matrix.join(' ')})" opacity="${n.opacity}">${body}</g>`;
     n.clips.forEach((c,k)=>{const id=`obs-${n.index}-clip-${k}`;defs.push(`<clipPath id="${id}" clipPathUnits="userSpaceOnUse"><rect x="${c.local.x}" y="${c.local.y}" width="${c.local.width}" height="${c.local.height}" transform="matrix(${c.matrix.join(' ')})"/></clipPath>`);group=`<g clip-path="url(#${id})">${group}</g>`;});return group;
    });
-   return{svg:`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><defs>${defs.join('')}</defs>${groups.join('')}</svg>`,objects,...(cam?{camera:cam}:{}),renderedObjectIds:nodes.map(n=>n.id),observationBasis:'production-recorder'};
+   for(const o of objects){
+    const proof=Object.freeze({...o.observation,visibleBounds:o.observation.visibleBounds?Object.freeze({...o.observation.visibleBounds}):null});
+    o.observation=proof;recordedObservations.set(proof,{key:geometryKey(o),viewport:{width,height},observation:proof});
+   }
+   const frame={svg:`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><defs>${defs.join('')}</defs>${groups.join('')}</svg>`,objects,...(cam?{camera:cam}:{}),renderedObjectIds:nodes.map(n=>n.id),observationBasis:'production-recorder'};
+   recordedFrames.set(frame,{svg:frame.svg,ids:JSON.stringify(frame.renderedObjectIds),objects:objects.map(o=>({observation:o.observation,key:geometryKey(o)})),viewport:{width,height}});
+   return frame;
   }
   return{rect:(s,style={})=>add('rect',s,style),polygon:(s,style={})=>add('polygon',s,style),raw:(s,body)=>add('raw',s,body),finish};
+ }
+ // Coverage checks compare the actual sampled state with the production timeline.
+ // They locate unrepresented changes and related actions; they do not invent causality.
+ function inspectActionCoverage(spec,samples){
+  const actions=spec.actions??[],relays=spec.relays??[],ids=spec.coverage?.objectIds??[],eps=1e-5;
+  const rows=samples.filter(s=>(s.time??s.t)<spec.duration).map(s=>({time:s.time??s.t,map:s.map??new Map(s.frame.objects.map(o=>[o.id,o]))}));
+  const changed=(a,b)=>Number.isFinite(a)&&Number.isFinite(b)&&Math.abs(a-b)>eps;
+  const changes=[],uncoveredChanges=[],activeActions=new Set(),unresolvedPartIds=new Set();
+  for(const id of ids){
+   for(let i=1;i<rows.length;i++){
+    const a=rows[i-1].map.get(id),b=rows[i].map.get(id);if(!a||!b||(a.opacity<=0&&b.opacity<=0))continue;
+    if(['subtitle-cue','source-footage'].includes(a.d1Category)&&a.d1Category===b.d1Category)continue;
+    const local=a.localGeometry&&b.localGeometry,part=!!(a.parentId||b.parentId),fields=[];
+    // Part-local values exclude inherited container/camera transport. Without them
+    // moving parts are unresolved, not automatically treated as internal action.
+    if(local){for(const k of ['x','y','width','height','rotation'])if(changed(a.localGeometry[k]??0,b.localGeometry[k]??0))fields.push('local.'+k);}
+    else if(!part){for(const k of ['x','y','width','height','rotation'])if(changed(a[k]??0,b[k]??0))fields.push('screen.'+k);}
+    else if(['x','y','width','height','rotation'].some(k=>changed(a[k]??0,b[k]??0)))unresolvedPartIds.add(id);
+    for(const k of ['maskProgress','pathProgress','morphProgress','occlusionProgress'])if(changed(a.process?.[k],b.process?.[k]))fields.push('process.'+k);
+    if(changed(a.opacity,b.opacity))fields.push('opacity');
+    if(!fields.length)continue;
+    const start=rows[i-1].time,end=rows[i].time,matching=actions.filter(x=>x.objectId===id&&x.start<=end+eps&&x.end>=start-eps);
+    matching.forEach(x=>activeActions.add(x.id));
+    const previous=changes.at(-1),covered=matching.map(x=>x.id).sort(),key=JSON.stringify([id,covered,fields]);
+    if(previous?.key===key&&Math.abs(previous.end-start)<eps)previous.end=end;
+    else changes.push({key,objectId:id,start,end,fields,actionIds:covered,visibility:visibleState(a,spec.viewport).state==='visible'&&visibleState(b,spec.viewport).state==='visible'?'confirmed':'unresolved'});
+   }
+  }
+  for(const c of changes)if(!c.actionIds.length){const {key,...rest}=c;uncoveredChanges.push(rest);}
+  const crossRelays=relays.filter(r=>{const a=actions.find(a=>a.id===r.fromAction),b=actions.find(a=>a.id===r.toAction);return a&&b&&a.objectId!==b.objectId;});
+  const measuredRelayIds=crossRelays.filter(r=>['follow','rigid-feedback'].includes(r.motionGate)).map(r=>r.id);
+  const uncoveredRelayIds=crossRelays.filter(r=>!measuredRelayIds.includes(r.id)).map(r=>r.id);
+  const relatedActionCandidates=[];
+  for(const child of actions.filter(a=>activeActions.has(a.id))){
+   const parents=new Set(rows.map(s=>s.map.get(child.objectId)?.parentId).filter(Boolean));
+   for(const parent of actions.filter(a=>activeActions.has(a.id)&&parents.has(a.objectId)&&a.start<=child.end&&a.end>=child.start)){
+    if(relays.some(r=>(r.fromAction===parent.id&&r.toAction===child.id)||(r.fromAction===child.id&&r.toAction===parent.id)))continue;
+    relatedActionCandidates.push({parentAction:parent.id,partAction:child.id,parentId:parent.objectId,partId:child.objectId,reason:'overlapping actual parent/part changes without a declared relationship; review whether causal or independent'});
+   }
+  }
+  const uncoveredActionIds=actions.filter(a=>!activeActions.has(a.id)).map(a=>a.id);
+  return{status:uncoveredChanges.length||uncoveredRelayIds.length||relatedActionCandidates.length?'incomplete':'represented-sampled-changes',basis:'sampled object/local-process changes matched to production event ranges; causality and script semantics remain unassessed',changes:changes.map(({key,...c})=>c),uncoveredChanges,actionsWithoutSampledChange:uncoveredActionIds,unresolvedPartIds:[...unresolvedPartIds],follow:{declaredCrossObjectRelayIds:crossRelays.map(r=>r.id),measuredRelayIds,uncoveredRelayIds,relatedActionCandidates,semantics:'not-assessed'}};
  }
  // These are source-frame coordinate observations, not speed-quality thresholds.
  function measureFrameMotion(samples,ids,viewport,fps,actions=[]){
@@ -121,5 +190,5 @@
   const actionObservations=[];for(const action of actions){const selected=samples.filter(s=>s.time>=action.start-EPS&&s.time<=action.end+EPS),m=measureFrameMotion(selected,[action.objectId],viewport,fps);if(m.objects[0])actionObservations.push({...m.objects[0],id:action.id,objectId:action.objectId,start:action.start,end:action.end});for(const row of m.reviewFrames){const existing=reviewFrames.get(row.frame);if(existing){for(const reason of row.reasons)if(!existing.reasons.includes(reason))existing.reasons.push(reason);for(const id of row.objects)if(!existing.objects.includes(id))existing.objects.push(id);}else reviewFrames.set(row.frame,row);}}
   return{basis:'actual production-frame samples; coordinates are retained for unknown visibility',qualityAssessment:'not-assessed',speedThreshold:null,objects,actions:actionObservations,reviewFrames:[...reviewFrames.values()].sort((a,b)=>a.frame-b.frame)};
  }
- return{createObservedScene,visibleState,measureFrameMotion,multiply,point};
+ return{createObservedScene,visibleState,recordedFrameState,measureFrameMotion,inspectActionCoverage,multiply,point};
 });

@@ -11,7 +11,7 @@ import {createRequire} from 'node:module';
 import crypto from 'node:crypto';
 import {auditMotion} from './motion-audit.mjs';
 import observation from './motion-observation.cjs';
-const {visibleState}=observation;
+const {visibleState,inspectActionCoverage}=observation;
 
 export const DEFAULT_GATES = {
   freezeNoiseDb: -55,
@@ -687,6 +687,17 @@ export function evaluateSpec(spec, {freeze, gates = DEFAULT_GATES, baseDir = pro
     gate3 = mergeGate(parts);
   }
 
+  // A passing selected relay is only a selected measurement. Compare against all
+  // production relationships and actual parent/part changes before aggregating it.
+  let actionCoverage=null;
+  if(spec.actions&&spec.coverage)try{
+    actionCoverage=inspectActionCoverage(spec,sampleFrames(spec.frameAt,0,spec.duration,spec.fps));
+    const followCoverage=actionCoverage.follow;
+    gate3.measured={...(gate3.measured??{}),coverage:followCoverage};
+    const missing=[...followCoverage.uncoveredRelayIds.map(id=>'未测生产接力 '+id),...followCoverage.relatedActionCandidates.map(r=>'尚未辨认父部件关系 '+r.parentAction+' → '+r.partAction)];
+    if(missing.length){if(gate3.status!=='未通过')gate3.status='无法测量';gate3.reasons=[...(gate3.reasons??[]),...missing];}
+  }catch(err){if(gate3.status!=='未通过')gate3.status='无法测量';gate3.reasons=[...(gate3.reasons??[]),'动作覆盖无法建立：'+String(err.message??err)];}
+
   const anticipations = cast.origin.anticipations === 'timeline-actions' ? cast.anticipations : bindList(cast.anticipations, baseDir);
   let gate4;
   if (!anticipations.length) gate4 = {status: '无法测量', reasons: ['没有声明要检查的主体位移或主要物件揭示。'], measured: {}};
@@ -735,6 +746,7 @@ export function evaluateSpec(spec, {freeze, gates = DEFAULT_GATES, baseDir = pro
     status: exitCode === 0 ? '已测数值满足约束' : exitCode === 2 ? '已测数值未满足约束' : '数值测量不完整',
     exitCode,
     visualAcceptance: 'not-assessed',
+    actionCoverage,
     scope: {markerOrigin: cast.origin, componentSemantics: 'not-assessed', weight: 'not-assessed', note: '数值结果仅限报告中的对象、动作与窗口；没有测到问题不代表整体质量或部件表达通过。'},
     gates: gatesOut,
     reference: EP05_REFERENCE,

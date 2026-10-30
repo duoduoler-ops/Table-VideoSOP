@@ -11,7 +11,8 @@
 //    replacement?:{kind:'geometry'|'mask'|'path'|'morph'|'occlusion'|'source-copy',progress,fromVersion,toVersion}}],camera?:{cx,cy,z},
 //    semantic?:{[objectId]:string|number|boolean}}, // legacy scalar semantic[ID] is a contentVersion fallback
 // frameAt may also return renderedObjectIds from the actual production recorder; omitted draw IDs are gaps.
-// observation must come from production geometry/clip/layer computation. bbox-only stays unknown.
+// observation is verified through the shared recorder in this process, never by an author state/basis string.
+// Legacy/custom/serialized observations retain coordinates but painted visibility stays unknown.
 //  sourceLinks?:[{id,sourceObjectId,targetObjectId,time,sourceTime?,sourceAnchor?:[x,y],targetAnchor?:[x,y],evidence}],
 //  actions:[{id,objectId,start,end,kind:'transfer'|'camera'|'realtime'|'reveal'|'process',channels?,motionGate?:'anticipation',exception?}],
 //  checkpoints:[{id,time,objectIds:[id],role:'pass'|'hold'|'cut',exception?}],
@@ -40,7 +41,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import {pathToFileURL,fileURLToPath} from 'node:url';
 import observation from './motion-observation.cjs';
-const {visibleState,measureFrameMotion}=observation;
+const {visibleState,recordedFrameState,measureFrameMotion,inspectActionCoverage}=observation;
 const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
 const finite=(v,label)=>{if(!Number.isFinite(v))throw Error('Expected finite '+label);return v;};
 const nonempty=(v,label)=>{if(typeof v!=='string'||!v.trim())throw Error('Missing '+label);return v;};
@@ -173,7 +174,9 @@ export function auditMotion(spec,{baseDir=process.cwd(),adapterFile,requireVideo
   if(omittedDraws.size)coverageGaps.push('Production draw inventory omitted from adapter/coverage: '+[...omittedDraws].join(', '));
   if(unregisteredObjects.size)coverageGaps.push('Adapter objects absent from production draw inventory: '+[...unregisteredObjects].join(', '));
   const inventorySamples=samples.filter(s=>s.time<spec.duration),inventoryCount=inventorySamples.filter(s=>Array.isArray(s.frame.renderedObjectIds)).length;
-  const renderInventory={status:inventoryCount===inventorySamples.length?'recorded':inventoryCount?'partial':'unexposed',recordedFrames:inventoryCount,omittedObjectIds:[...omittedDraws],basis:'Actual production submissions when exposed; absent inventory cannot prove all renderer nodes were covered'};
+  const verifiedInventoryCount=inventorySamples.filter(s=>recordedFrameState(s.frame).status==='recorded').length;
+  const renderInventory={status:verifiedInventoryCount===inventorySamples.length?'recorded':verifiedInventoryCount?'partial':inventoryCount?'declared-unverified':'unexposed',recordedFrames:verifiedInventoryCount,declaredFrames:inventoryCount,omittedObjectIds:[...omittedDraws],basis:'Shared recorder submissions bound to the same SVG and observations; author inventory strings remain declared only'};
+  if(inventoryCount&&verifiedInventoryCount!==inventorySamples.length)coverageGaps.push('Production draw inventory is author-declared or changed after rendering; same-renderer coverage remains unverified');
   if(!inventoryCount)coverageGaps.push('Production draw inventory is not exposed; coordinate diagnostics remain available but complete renderer coverage is unproven');
   if(inventoryCount&&inventoryCount!==inventorySamples.length)coverageGaps.push('Production draw inventory is only partially exposed');
   for(const s of samples)if(s.time<spec.duration)for(const [id,b]of s.map)if(!spec.coverage.objectIds.includes(id)&&visibility(b)!=='hidden')outside.add(id);
@@ -219,9 +222,14 @@ export function auditMotion(spec,{baseDir=process.cwd(),adapterFile,requireVideo
         coverageGaps.push('Declared reveal has no sampled opacity change: '+action.id+'; a static hold does not establish a reveal');
     }
   }
-  const processCoverage={status:'unexposed',actions:[],exposedPartIds:[],unmeasuredPartIds:[],basis:'Declared production process actions and returned component IDs only; script meaning, omitted renderer objects and perceptual strength are not assessed'};
+  const actionCoverage=inspectActionCoverage(spec,samples);
+  for(const gap of actionCoverage.uncoveredChanges)coverageGaps.push(`Sampled object change has no production action: ${gap.objectId} ${gap.start}–${gap.end} (${gap.fields.join(', ')})`);
+  for(const id of actionCoverage.follow.uncoveredRelayIds)coverageGaps.push('Cross-object production relay not measured for component timing: '+id);
+  for(const gap of actionCoverage.follow.relatedActionCandidates)coverageGaps.push('Actual parent/part actions need relationship coverage: '+gap.parentAction+' -> '+gap.partAction+'; causal or independent remains unassessed, no extra motion is required');
+  const processCoverage={status:'unexposed',actions:[],exposedPartIds:[],unmeasuredPartIds:[],inactivePartIds:[],basis:'Actual sampled part changes matched to declared process events; static parts do not require invented action, and script meaning/perceptual strength remain unassessed'};
   processCoverage.exposedPartIds=spec.coverage.objectIds.filter(id=>samples.some(s=>s.map.get(id).parentId));
-  processCoverage.unmeasuredPartIds=processCoverage.exposedPartIds.filter(id=>!spec.actions.some(a=>a.objectId===id&&a.kind==='process'));
+  processCoverage.unmeasuredPartIds=processCoverage.exposedPartIds.filter(id=>actionCoverage.changes.some(c=>c.objectId===id&&c.fields.some(k=>k.startsWith('local.')||k.startsWith('process.')))&&!spec.actions.some(a=>a.objectId===id&&a.kind==='process'));
+  processCoverage.inactivePartIds=processCoverage.exposedPartIds.filter(id=>!actionCoverage.changes.some(c=>c.objectId===id));
   const actionMeasurements=[];
   for(const a of spec.actions){
     if(a.kind==='process'){
@@ -510,7 +518,7 @@ export function auditMotion(spec,{baseDir=process.cwd(),adapterFile,requireVideo
   processCoverage.status=processCoverage.actions.length?(processCoverage.unmeasuredPartIds.length||processCoverage.actions.some(a=>a.status!=='measured-change')?'partial':'declared-actions-measured'):processCoverage.exposedPartIds.length?'partial':'unexposed';
   const motionObservations=measureFrameMotion(samples.filter(s=>s.time<spec.duration),spec.coverage.objectIds,spec.viewport,spec.fps,spec.actions);
   const status=coverageGaps.length?'incomplete':findings.length?'findings':'measured-no-findings';
-  return {schemaVersion:1,status,visualAcceptance:'not-assessed',basis:'engineering evaluation of final-screen render state; not decoded pixel tracking',coverage:spec.coverage,coverageGaps,processCoverage,renderInventory,motionObservations,locks:{observationTool:observationLock,tool:fileLock(fileURLToPath(import.meta.url)),sources:sourceLocks,video:videoLock},measurementTolerances:{...EPS,d1:D1,basis:'numerical locator tolerances, not cross-project visual quality thresholds'},sampling:{fps:spec.fps,duration:spec.duration,renderFrameSamples:samples.length,lifecycleEncodedFrames:lifecycleFrames.length,lifecycleLastFrameTime:lifecycleFrames.at(-1).time,lifecycleEndExclusive:true,allEvaluations:cache.size,repeatSeeking:'checked on sampled times only'},findings,exceptions,notApplicable,lifecycle:lifecycleMeasurements,replacements:replacementMeasurements,sourceLinks:sourceLinkMeasurements,contentVersionCoverage,d1Classification,actions:actionMeasurements,checkpoints:checkpointMeasurements,relays:relayMeasurements,framing:{viewport:spec.viewport,objects:objectScale,camera:cameraSamples.length?{sampleCount:cameraSamples.length,zoomRange:[Math.min(...cameraSamples.map(c=>c.z)),Math.max(...cameraSamples.map(c=>c.z))],centerRange:{x:[Math.min(...cameraSamples.map(c=>c.cx)),Math.max(...cameraSamples.map(c=>c.cx))],y:[Math.min(...cameraSamples.map(c=>c.cy)),Math.max(...cameraSamples.map(c=>c.cy))]}}:null},requiredNext:['Inspect corresponding encoded frames and confirm adapter/source/video association.','Review reading, semantics, sound alignment and 1x perception separately. No finding is not visual approval.']};
+  return {schemaVersion:1,status,visualAcceptance:'not-assessed',basis:'engineering evaluation of final-screen render state; not decoded pixel tracking',coverage:spec.coverage,coverageGaps,actionCoverage,processCoverage,renderInventory,motionObservations,locks:{observationTool:observationLock,tool:fileLock(fileURLToPath(import.meta.url)),sources:sourceLocks,video:videoLock},measurementTolerances:{...EPS,d1:D1,basis:'numerical locator tolerances, not cross-project visual quality thresholds'},sampling:{fps:spec.fps,duration:spec.duration,renderFrameSamples:samples.length,lifecycleEncodedFrames:lifecycleFrames.length,lifecycleLastFrameTime:lifecycleFrames.at(-1).time,lifecycleEndExclusive:true,allEvaluations:cache.size,repeatSeeking:'checked on sampled times only'},findings,exceptions,notApplicable,lifecycle:lifecycleMeasurements,replacements:replacementMeasurements,sourceLinks:sourceLinkMeasurements,contentVersionCoverage,d1Classification,actions:actionMeasurements,checkpoints:checkpointMeasurements,relays:relayMeasurements,framing:{viewport:spec.viewport,objects:objectScale,camera:cameraSamples.length?{sampleCount:cameraSamples.length,zoomRange:[Math.min(...cameraSamples.map(c=>c.z)),Math.max(...cameraSamples.map(c=>c.z))],centerRange:{x:[Math.min(...cameraSamples.map(c=>c.cx)),Math.max(...cameraSamples.map(c=>c.cx))],y:[Math.min(...cameraSamples.map(c=>c.cy)),Math.max(...cameraSamples.map(c=>c.cy))]}}:null},requiredNext:['Inspect corresponding encoded frames and confirm adapter/source/video association.','Review reading, semantics, sound alignment and 1x perception separately. No finding is not visual approval.']};
 }
 const HELP=`node scripts/motion-audit.mjs --adapter <project/adapter.mjs> --out <project/new-audit.json>
 Adapter exports exportAudit() returning schemaVersion 1, fps/duration/viewport, sourceFiles, videoFile, coverage, actual frameAt(seconds), and timeline-derived actions/checkpoints/relays. See schema comments in this file.

@@ -47,7 +47,8 @@ test('production pointer is registered while hidden and leaves the viewport befo
  const visible=S.frameAt(2.7).objects.find(o=>o.id==='cursor');assert.equal(visible.observation.state,'visible');assert(visible.hotspot.x>0&&visible.hotspot.x<1280);
  const missing=S.frameAt(2.7,{pointer:false}).objects.find(o=>o.id==='cursor');assert.equal(missing.observation.state,'hidden');assert(!M.actions({pointer:false}).some(a=>a.objectId==='cursor'));
  const flashBefore=S.frameAt(3.9333333333,{mode:'flash'}).objects.find(o=>o.id==='cursor'),flashAfter=S.frameAt(3.9666666667,{mode:'flash'}).objects.find(o=>o.id==='cursor');
- assert.equal(flashBefore.observation.state,'visible');assert.equal(flashAfter.opacity,0);assert(flashAfter.hotspot.x<1280&&flashAfter.hotspot.y<720);
+ assert.equal(flashBefore.observation.state,'unknown'); // Arbitrary raw foreground is not bounded by its author's bbox.
+ assert.equal(flashAfter.opacity,0);assert(flashAfter.hotspot.x<1280&&flashAfter.hotspot.y<720);
 });
 
 test('same renderer exposes actual masking and layer errors, without claiming raw text is painted visibility',()=>{

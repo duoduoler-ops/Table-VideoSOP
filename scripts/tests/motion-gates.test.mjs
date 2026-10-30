@@ -4,10 +4,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {
-  DEFAULT_GATES, measureMoves, scoreFreeze, scoreCamera, scoreFollow, scoreAnticipation,
-  scoreComposition, evaluateSpec, parseFreezeLog, main,
+  DEFAULT_GATES, measureMoves, scoreFreeze, scoreCamera, scoreFollow as actualFollow, scoreAnticipation as actualAnticipation,
+  scoreComposition as actualComposition, evaluateSpec as actualSpec, parseFreezeLog, main,
 } from '../motion-gates.mjs';
 
+import {paintSamples,paintSpec} from './paint-fixture.mjs';
+const scoreFollow=(s,...a)=>actualFollow(paintSamples(s),...a);
+const scoreAnticipation=(s,...a)=>actualAnticipation(paintSamples(s),...a);
+const scoreComposition=(s,...a)=>actualComposition(paintSamples(s),...a);
+const evaluateSpec=(s,...a)=>actualSpec(paintSpec(s),...a);
 const self = fileURLToPath(import.meta.url);
 const anchor = 'fixture-anchor-motion-gates';
 // These analytic fixtures represent painted, unobscured rectangles; legacy bbox-only has separate tests.
@@ -112,7 +117,7 @@ function followSamples(delay, {rigid = false, feedback = false, opacityOnly = fa
   return times.map(t => {
     const subjectX = t >= 0.2 ? 30 : 0;
     const attachMoved = t >= 0.2 + delay - 1e-9;
-    const extra = {};
+    const extra = {y: 180};
     if (feedback && t >= 0.2 + delay + 0.07) extra.process = {maskProgress: 0.4};
     if (opacityOnly) extra.opacity = attachMoved ? 0.2 : 1;
     return {t, frame: {objects: [obj('hero', subjectX), obj('tag', attachMoved && !opacityOnly ? 20 : 0, extra)]}};
