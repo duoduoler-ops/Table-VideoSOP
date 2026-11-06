@@ -111,6 +111,14 @@ export function planAuditFrames(report, videoHash, pts, {lastFrameDuration=0}={}
   if (!Array.isArray(pts)||!pts.length||pts.some((t,i)=>!Number.isFinite(t)||(i>0&&t<pts[i-1]))) throw new Error('Invalid decoded frame PTS');
   if (!Number.isFinite(lastFrameDuration)||lastFrameDuration<0) throw new Error('Invalid decoded final-frame duration');
   const risks=[...(audit.motionObservations?.reviewFrames??[])];
+  for (const drift of report.gates?.find(g=>g.id===2)?.measured?.fixedDrift ?? []) {
+    if (report.locks?.video?.sha256!==videoHash) throw new Error('Fixed-camera measurement/video hash mismatch');
+    if (!(Number.isFinite(drift.fps) && drift.fps>0)) throw new Error('Fixed-camera evidence lacks an encoded frame rate');
+    for (const frame of drift.reviewFrames) {
+      if (!Number.isInteger(frame) || frame<0) throw new Error('Invalid fixed-camera evidence frame');
+      risks.push({frame,time:frame/drift.fps,objects:['camera'],reasons:['fixed-camera-drift: '+drift.id]});
+    }
+  }
   for (const f of audit.findings??[]) for (const time of [f.time,f.start,f.end]) if (Number.isFinite(time)) risks.push({time,reasons:[f.code],objects:[f.objectId].filter(Boolean)});
   if (!risks.length) return [];
   const origin=pts[0],coverageEnd=pts.at(-1)-origin+lastFrameDuration,selected=new Map();
@@ -126,6 +134,70 @@ export function planAuditFrames(report, videoHash, pts, {lastFrameDuration=0}={}
     selected.set(index,row);
   }
   return [...selected.values()].sort((a,b)=>a.sourceFrame-b.sourceFrame);
+}
+
+// The production entry already measured the clip. Decode only its selected
+// evidence in one FFmpeg pass; packet PTS are cheap to read and every chosen
+// timestamp is checked against the decoder before we publish an index.
+export async function extractReviewFrames({input, out, report, ffmpeg = 'ffmpeg', ffprobe = 'ffprobe'}) {
+  const audit = report.engineeringAudit ?? report;
+  const observations = audit.motionObservations ?? {};
+  const reviewFrames = (observations.reviewFrames ?? []).filter(row => row.reasons.some(reason => reason !== 'motion-sample'));
+  const findings = (audit.findings ?? []).filter(row => [row.time,row.start,row.end].some(Number.isFinite));
+  const drift = report.gates?.find(gate => gate.id === 2)?.measured?.fixedDrift ?? [];
+  if (!reviewFrames.length && !findings.length && !drift.length) return {status:'no-targets', count:0};
+  const hash = await sha256(input);
+  const probe = await command(ffprobe, ['-v','error','-select_streams','v:0','-show_packets','-show_streams',
+    '-show_entries','stream=time_base:packet=pts,duration','-of','json', input]);
+  const metadata = JSON.parse(probe.stdout);
+  const tick = rational(metadata.streams?.[0]?.time_base);
+  const packets = (metadata.packets ?? []).sort((a,b) => a.pts-b.pts);
+  if (!(tick > 0) || !packets.length || packets.some((p,i) => !Number.isSafeInteger(p.pts) || (i && p.pts === packets[i-1].pts))) {
+    throw Error('Unable to resolve distinct video presentation timestamps for risk frames.');
+  }
+  const pts = packets.map(p => p.pts*tick);
+  const risks = {...report, engineeringAudit:{...audit, locks:audit.locks ?? report.locks,
+    motionObservations:{...observations,reviewFrames}, findings}};
+  const targets = planAuditFrames(risks, hash, pts, {lastFrameDuration:(packets.at(-1).duration ?? 0)*tick});
+  const selected = new Map();
+  for (const row of targets) {
+    for (const n of [row.sourceFrame-1,row.sourceFrame,row.sourceFrame+1]) {
+      if (n < 0 || n >= pts.length) continue;
+      if (!selected.has(n)) selected.set(n, {sourceFrame:n, sourcePtsSeconds:pts[n], objects:new Set(), reasons:new Set()});
+      const entry = selected.get(n);
+      row.objects.forEach(id => entry.objects.add(id));
+      row.reasons.forEach(reason => entry.reasons.add(reason));
+    }
+  }
+  const frames = [...selected.values()].sort((a,b) => a.sourceFrame-b.sourceFrame);
+  if (!frames.length) return {status:'no-targets', count:0};
+  await fs.mkdir(out);
+  const filter = path.join(out,'select.txt');
+  const ranges = [];
+  for (const {sourceFrame} of frames) {
+    const previous = ranges.at(-1);
+    if (previous?.end === sourceFrame-1) previous.end = sourceFrame;
+    else ranges.push({start:sourceFrame,end:sourceFrame});
+  }
+  const terms = ranges.map(({start,end}) => start === end ? `eq(n\\,${start})` : `between(n\\,${start}\\,${end})`);
+  await fs.writeFile(filter,'select='+terms.join('+')+',showinfo=checksum=0');
+  const rendered = await command(ffmpeg, ['-hide_banner','-nostdin','-nostats','-n','-copyts','-i',input,'-map','0:v:0','-an',
+    '-filter_script:v',filter,'-fps_mode','passthrough',path.join(out,'frame-%07d.png')]);
+  const base = rendered.stderr.match(/config in time_base:\s*([\d/]+)/);
+  const decoderTick = rational(base?.[1]);
+  const timestamps = [...rendered.stderr.matchAll(/\bn:\s*\d+\s+pts:\s*(-?\d+)\s+pts_time:/g)].map(match => Number(match[1])*decoderTick);
+  if (!(decoderTick > 0) || timestamps.length !== frames.length ||
+      frames.some((row,i) => Math.abs(timestamps[i]-row.sourcePtsSeconds) > 1e-7) || await sha256(input) !== hash) {
+    throw Error('Decoded frame timestamps or video hash differ from the bound risk selection.');
+  }
+  const rows = frames.map((row,i) => ({...row,objects:[...row.objects], reasons:[...row.reasons],
+    sourcePtsSeconds:timestamps[i], relativeSeconds:timestamps[i]-pts[0], path:'frame-'+String(i+1).padStart(7,'0')+'.png'}));
+  const index = path.join(out,'frame-index.json');
+  await json(index,{videoSha256:hash, sampling:'original-size decoded frames verified against presentation timestamps',frames:rows});
+  const escape = s => String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+  const images = rows.map(row => `<figure><a href="${row.path}"><img width="320" src="${row.path}"></a><figcaption>F${row.sourceFrame} · ${timestamp(row.relativeSeconds)} · ${escape(row.objects.join(', '))} · ${escape(row.reasons.join(', '))}</figcaption></figure>`);
+  await fs.writeFile(path.join(out,'frames.html'),'<!doctype html><meta charset="utf-8"><title>运动疑点帧</title>'+images.join('\n'),{flag:'wx'});
+  return {status:'extracted', count:rows.length, index, gallery:path.join(out,'frames.html')};
 }
 
 export async function motionCheck(o) {

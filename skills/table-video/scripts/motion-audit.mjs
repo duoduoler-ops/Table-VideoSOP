@@ -110,6 +110,34 @@ function validateSpec(s){
   const aset=new Set(s.actions.map(a=>a.id));
   for(const r of s.relays){if(!aset.has(r.fromAction)||!aset.has(r.toAction)||r.fromAction===r.toAction)throw Error('Relay does not reference two actions: '+r.id);if(r.motionGate!==undefined&&!['follow','rigid-feedback'].includes(r.motionGate))throw Error('Unknown relay motionGate '+r.id);}
 }
+// Only a source-backed, frame-aligned whole-scene edit can interrupt a camera
+// trajectory. Local object cuts never excuse drift in an otherwise fixed view.
+export function cameraCutFrames(spec, baseDir) {
+  const frames = new Set(), gaps = [];
+  for (const cut of spec.checkpoints ?? []) {
+    if (cut.role !== 'cut' || cut.scope !== 'scene') continue;
+    const i = Math.round(cut.time * spec.fps);
+    const proof = cut.exception?.evidence;
+    let validEvidence = false;
+    if (proof?.sourceFile && proof.anchor && proof.reason) {
+      const file = path.resolve(baseDir,proof.sourceFile);
+      validEvidence = (spec.sourceFiles ?? []).some(p => path.resolve(baseDir,p) === file) &&
+        fs.existsSync(file) && fs.readFileSync(file,'utf8').includes(proof.anchor);
+    }
+    if (i <= 0 || i >= Math.ceil(spec.duration * spec.fps) || Math.abs(cut.time * spec.fps - i) > 1e-6 ||
+        cut.exception?.kind !== 'cut' || !validEvidence) {
+      gaps.push('整场切点缺少准确帧号或绑定源码的依据：' + cut.id); continue;
+    }
+    const sides = [spec.frameAt((i-1)/spec.fps),spec.frameAt(i/spec.fps)];
+    const activeIds = sides.flatMap(frame => frame.objects.filter(o => visibleState(o,spec.viewport).state !== 'hidden').map(o => o.id));
+    if (!Array.isArray(cut.objectIds) || !cut.objectIds.length || !activeIds.every(id => cut.objectIds.includes(id))) {
+      gaps.push('整场切点未覆盖切前和切后画面中的对象：' + cut.id); continue;
+    }
+    frames.add(i);
+  }
+  return {frames,gaps};
+}
+
 export function auditMotion(spec,{baseDir=process.cwd(),adapterFile,requireVideo=true}={}){
   const observationLock=fileLock(fileURLToPath(new URL('./motion-observation.cjs',import.meta.url)));
   validateSpec(spec);
@@ -120,6 +148,9 @@ export function auditMotion(spec,{baseDir=process.cwd(),adapterFile,requireVideo
   const sourceLocks=sources.map(fileLock);
   let videoLock=null;if(spec.videoFile)videoLock=fileLock(resolveExisting(spec.videoFile,baseDir));else if(requireVideo)throw Error('Missing videoFile: delivery audit must bind the actual video');
   const sourceSet=new Set(sources),exceptions=[],notApplicable=[],findings=[],coverageGaps=[];
+  const {frames:cutFrames,gaps:cutGaps}=cameraCutFrames(spec,baseDir);
+  coverageGaps.push(...cutGaps);
+  const crossesCut=(a,b)=>cutFrames.size && [...cutFrames].some(f=>a*spec.fps<f-1e-7 && b*spec.fps>=f-1e-7);
   function evidenceFor(evidence,owner){
     if(!evidence)throw Error('Missing evidence '+owner);
     nonempty(evidence.reason,'evidence reason');const anchor=nonempty(evidence.anchor,'evidence anchor');
@@ -162,7 +193,13 @@ export function auditMotion(spec,{baseDir=process.cwd(),adapterFile,requireVideo
       if(o.replacement){for(const key of ['fromVersion','toVersion'])if(!['string','number','boolean'].includes(typeof o.replacement[key]))throw Error('Replacement requires scalar '+key);if(!['geometry','mask','path','morph','occlusion','source-copy'].includes(o.replacement.kind))throw Error('Unknown replacement kind');if(finite(o.replacement.progress,'replacement.progress')<0||o.replacement.progress>1)throw Error('Replacement progress outside 0..1');}
       const fallback=frame.semantic?.[o.id];const contentVersion=o.contentVersion??(['string','number','boolean'].includes(typeof fallback)?fallback:undefined);
       map.set(o.id,{...o,rotation:o.rotation??0,...(contentVersion===undefined?{}:{contentVersion})});}
-    for(const id of spec.coverage.objectIds)if(!map.has(id))throw Error('Covered object omitted at '+t+': '+id+'; retain its identity with opacity 0 if hidden');
+    for(const id of spec.coverage.objectIds)if(!map.has(id)){
+      // The internal marker carries absence only. Never add fake coordinates
+      // or count it as either a submitted object or an observed trajectory.
+      if(spec.coverage.inventoryMode==='per-frame-draws' && Array.isArray(frame.renderedObjectIds) && !frame.renderedObjectIds.includes(id))
+        map.set(id,{id,opacity:0,notSubmitted:true});
+      else throw Error('Covered object omitted at '+t+': '+id+'; retain its identity with opacity 0 if hidden');
+    }
     if(frame.camera){for(const k of ['cx','cy','z'])finite(frame.camera[k],'camera.'+k);if(frame.camera.z<=0)throw Error('Invalid camera scale');}
     const out={time:t,map,frame};cache.set(key,out);return out;
   }
@@ -170,7 +207,7 @@ export function auditMotion(spec,{baseDir=process.cwd(),adapterFile,requireVideo
   const outside=new Set();
   const omittedDraws=new Set(),unregisteredObjects=new Set();
   for(const s of samples)for(const id of s.frame.renderedObjectIds??[])if(!s.map.has(id)||!spec.coverage.objectIds.includes(id))omittedDraws.add(id);
-  for(const s of samples)if(Array.isArray(s.frame.renderedObjectIds))for(const id of s.map.keys())if(!s.frame.renderedObjectIds.includes(id))unregisteredObjects.add(id);
+  for(const s of samples)if(Array.isArray(s.frame.renderedObjectIds))for(const o of s.frame.objects)if(!s.frame.renderedObjectIds.includes(o.id))unregisteredObjects.add(o.id);
   if(omittedDraws.size)coverageGaps.push('Production draw inventory omitted from adapter/coverage: '+[...omittedDraws].join(', '));
   if(unregisteredObjects.size)coverageGaps.push('Adapter objects absent from production draw inventory: '+[...unregisteredObjects].join(', '));
   const inventorySamples=samples.filter(s=>s.time<spec.duration),inventoryCount=inventorySamples.filter(s=>Array.isArray(s.frame.renderedObjectIds)).length;
@@ -222,7 +259,7 @@ export function auditMotion(spec,{baseDir=process.cwd(),adapterFile,requireVideo
         coverageGaps.push('Declared reveal has no sampled opacity change: '+action.id+'; a static hold does not establish a reveal');
     }
   }
-  const actionCoverage=inspectActionCoverage(spec,samples);
+  const actionCoverage=inspectActionCoverage(spec,samples,cutFrames);
   for(const gap of actionCoverage.uncoveredChanges)coverageGaps.push(`Sampled object change has no production action: ${gap.objectId} ${gap.start}–${gap.end} (${gap.fields.join(', ')})`);
   for(const id of actionCoverage.follow.uncoveredRelayIds)coverageGaps.push('Cross-object production relay not measured for component timing: '+id);
   for(const gap of actionCoverage.follow.relatedActionCandidates)coverageGaps.push('Actual parent/part actions need relationship coverage: '+gap.parentAction+' -> '+gap.partAction+'; causal or independent remains unassessed, no extra motion is required');
@@ -258,9 +295,10 @@ export function auditMotion(spec,{baseDir=process.cwd(),adapterFile,requireVideo
     const active=p.filter(v=>visible(v.b));
     const measurement={id:a.id,objectId:a.objectId,kind:a.kind,start:a.start,end:a.end,visibleSampleCount:active.length,channels:{}};
     for(const c of a.channels||(a.kind==='reveal'?['opacity']:['x','y','width','height'])){
-      const slopes=p.slice(1).map((v,i)=>({start:p[i].t,end:v.t,value:(v.b[c]-p[i].b[c])/(v.t-p[i].t),visible:visible(v.b)&&visible(p[i].b)}));
-      const vals=p.map(p=>p.b[c]);const range=Math.max(...vals)-Math.min(...vals);
-      measurement.channels[c]={range,unit:c==='opacity'?'fraction':'pixels',minVelocity:Math.min(...slopes.map(v=>v.value)),maxVelocity:Math.max(...slopes.map(v=>v.value))};
+      const slopes=p.slice(1).map((v,i)=>({start:p[i].t,end:v.t,value:(v.b[c]-p[i].b[c])/(v.t-p[i].t),continuous:!crossesCut(p[i].t,v.t)&&!v.b.notSubmitted&&!p[i].b.notSubmitted,visible:visible(v.b)&&visible(p[i].b)&&!crossesCut(p[i].t,v.t)}));
+      const vals=p.map(p=>p.b[c]).filter(Number.isFinite);const range=vals.length?Math.max(...vals)-Math.min(...vals):0;
+      const velocities=slopes.filter(v=>v.continuous).map(v=>v.value);
+      measurement.channels[c]={range,unit:c==='opacity'?'fraction':'pixels',minVelocity:velocities.length?Math.min(...velocities):null,maxVelocity:velocities.length?Math.max(...velocities):null};
       if(range<EPS.positionPx)continue;
       let first=0;
       for(let i=1;i<=slopes.length;i++){
@@ -278,7 +316,7 @@ export function auditMotion(spec,{baseDir=process.cwd(),adapterFile,requireVideo
     const composite=p.slice(1).map((v,i)=>{
       const prev=p[i],dt=v.t-prev.t,from=screenPoints(prev.b),to=screenPoints(v.b);
       const pointSpeeds=to.map((q,j)=>Math.hypot(q[0]-from[j][0],q[1]-from[j][1])/dt);
-      const onScreen=visible(prev.b)&&visible(v.b),rotationChanged=Math.abs((v.b.rotation??0)-(prev.b.rotation??0))>EPS.relative;
+      const onScreen=visible(prev.b)&&visible(v.b)&&!crossesCut(prev.t,v.t),rotationChanged=Math.abs((v.b.rotation??0)-(prev.b.rotation??0))>EPS.relative;
       return {start:prev.t,end:v.t,value:Math.sqrt(pointSpeeds.reduce((s,x)=>s+x*x,0)/pointSpeeds.length),pointSpeeds,
         visible:onScreen&&!rotationChanged,rotationExcluded:onScreen&&rotationChanged};
     });
@@ -310,7 +348,7 @@ export function auditMotion(spec,{baseDir=process.cwd(),adapterFile,requireVideo
       }
     }
     const start=read(a.start).map.get(a.objectId),end=read(a.end).map.get(a.objectId);
-    measurement.endpointDisplacementPx=Math.hypot(end.x-start.x,end.y-start.y);
+    measurement.endpointDisplacementPx=start.notSubmitted||end.notSubmitted||crossesCut(a.start,a.end)?null:Math.hypot(end.x-start.x,end.y-start.y);
     measurement.visibleAreaFraction={min:Math.min(...active.map(p=>p.b.width*p.b.height/(spec.viewport.width*spec.viewport.height))),max:Math.max(...active.map(p=>p.b.width*p.b.height/(spec.viewport.width*spec.viewport.height)))};
     actionMeasurements.push(measurement);
   }
@@ -325,6 +363,11 @@ export function auditMotion(spec,{baseDir=process.cwd(),adapterFile,requireVideo
   }
   const checkpointMeasurements=[];
   for(const p of spec.checkpoints){
+    if(p.role==='cut' && p.scope==='scene' && cutFrames.has(Math.round(p.time*spec.fps))){
+      const frame=Math.round(p.time*spec.fps);
+      checkpointMeasurements.push({id:p.id,time:p.time,role:p.role,beforeFrame:frame-1,afterFrame:frame,basis:'declared scene cut; no cross-cut derivative'});
+      continue;
+    }
     const values=p.objectIds.map(id=>({id,sides:sides(id,p.time)}));
     const valid=values.filter(v=>v.sides&&visible(read(p.time).map.get(v.id)));
     if(!valid.length){coverageGaps.push('Checkpoint has no visible object with measurable states on both sides: '+p.id);continue;}
@@ -363,7 +406,8 @@ export function auditMotion(spec,{baseDir=process.cwd(),adapterFile,requireVideo
     checkedObjectIds:[],excludedObjectIds:[],contentCheckedObjectIds:[],contentOnlyExcludedObjectIds:[],objects:[],excludedSourceLinks:[]};
   const d1Excluded=new Map(),d1ContentOnlyExcluded=new Set();
   for(const id of spec.coverage.objectIds){
-    const values=lifecycleFrames.map(s=>s.map.get(id).d1Category),first=values[0];
+    const values=lifecycleFrames.map(s=>s.map.get(id)).filter(o=>!o.notSubmitted).map(o=>o.d1Category),first=values[0];
+    if(!values.length)coverageGaps.push('Covered object never submitted on an encoded frame: '+id);
     const stable=D1_CATEGORIES.has(first)&&values.every(v=>v===first),excluded=stable&&D1_EXCLUDED.has(first),contentOnlyExcluded=stable&&first==='data-readout';
     const missingSamples=values.filter(v=>v===undefined).length;
     const unknownCategories=[...new Set(values.filter(v=>v!==undefined&&!D1_CATEGORIES.has(v)).map(v=>typeof v==='string'?v:'<'+(v===null?'null':typeof v)+'>'))];
@@ -389,6 +433,7 @@ export function auditMotion(spec,{baseDir=process.cwd(),adapterFile,requireVideo
   }
   const range=xs=>Math.max(...xs)-Math.min(...xs);
   function processEvidence(frames,id){
+    frames=frames.filter(s=>!s.map.get(id).notSubmitted);
     const g=frames.map(s=>local(s,id)),boxes=frames.map(s=>s.map.get(id));
     const screenScale=Math.max(...frames.map(s=>s.frame.camera?.z??1));
     const translationPx=Math.hypot(range(g.map(b=>b.x)),range(g.map(b=>b.y)))*screenScale;
@@ -443,7 +488,7 @@ export function auditMotion(spec,{baseDir=process.cwd(),adapterFile,requireVideo
     if(d1ContentOnlyExcluded.has(id))continue; // numerical updates only; lifecycle above and source links below remain checked
     const known=lifecycleFrames.map((s,index)=>({s,index})).filter(x=>x.s.map.get(id).contentVersion!==undefined);
     if(!known.length){contentVersionCoverage.uncovered.push(id);continue;}
-    if(known.length===lifecycleFrames.length)contentVersionCoverage.covered.push(id);
+    if(known.length===lifecycleFrames.filter(s=>!s.map.get(id).notSubmitted).length)contentVersionCoverage.covered.push(id);
     else{
       const partial=identityGap(id);partial.knownSamples=known.length;partial.missingSamples=lifecycleFrames.length-known.length;
       for(let i=0;i<lifecycleFrames.length;){
@@ -497,12 +542,13 @@ export function auditMotion(spec,{baseDir=process.cwd(),adapterFile,requireVideo
         category:d1Excluded.get(link.targetObjectId),reason:'target is a consistently declared D1-excluded layer; not proof of source authenticity',...proof});continue;
     }
     const source=read(link.sourceTime??link.time).map.get(link.sourceObjectId);
+    if(source.notSubmitted){coverageGaps.push('Source link source not drawn at declared time: '+link.id);continue;}
     const first=lifecycleFrames.find(s=>s.time>=link.time&&visible(s.map.get(link.targetObjectId)));
     if(!first){coverageGaps.push('Source link target has no visible sample: '+link.id);continue;}
     const target=first.map.get(link.targetObjectId),sa=link.sourceAnchor??[.5,.5],ta=link.targetAnchor??[.5,.5];
     const from=[source.x+source.width*sa[0],source.y+source.height*sa[1]],to=[target.x+target.width*ta[0],target.y+target.height*ta[1]];
     const distancePx=Math.hypot(to[0]-from[0],to[1]-from[1]);
-    const initial=read(link.time).map.get(link.targetObjectId),targetStartAnchor=[initial.x+initial.width*ta[0],initial.y+initial.height*ta[1]],startDistancePx=Math.hypot(targetStartAnchor[0]-from[0],targetStartAnchor[1]-from[1]);
+    const initial=read(link.time).map.get(link.targetObjectId),targetStartAnchor=initial.notSubmitted?null:[initial.x+initial.width*ta[0],initial.y+initial.height*ta[1]],startDistancePx=targetStartAnchor?Math.hypot(targetStartAnchor[0]-from[0],targetStartAnchor[1]-from[1]):null;
     const m={id:link.id,sourceObjectId:link.sourceObjectId,targetObjectId:link.targetObjectId,sourceTime:link.sourceTime??link.time,firstTargetTime:first.time,from,to,distancePx,targetStartAnchor,startDistancePx,...proof};sourceLinkMeasurements.push(m);
     if(distancePx>1)findings.push({code:'source-origin-discontinuity',severity:'review',...m,note:'Declared same-location split/copy starts away from its actual source anchor. Sampling may include first-frame travel: inspect the boundary and any real visible transfer; distance is not a universal visual threshold.'});
   }
@@ -516,7 +562,7 @@ export function auditMotion(spec,{baseDir=process.cwd(),adapterFile,requireVideo
   if(sha(fs.readFileSync(observationLock.path))!==observationLock.sha256)throw Error('Observation tool changed while sampling');
   if(videoLock&&sha(fs.readFileSync(videoLock.path))!==videoLock.sha256)throw Error('Video changed while sampling');
   processCoverage.status=processCoverage.actions.length?(processCoverage.unmeasuredPartIds.length||processCoverage.actions.some(a=>a.status!=='measured-change')?'partial':'declared-actions-measured'):processCoverage.exposedPartIds.length?'partial':'unexposed';
-  const motionObservations=measureFrameMotion(samples.filter(s=>s.time<spec.duration),spec.coverage.objectIds,spec.viewport,spec.fps,spec.actions);
+  const motionObservations=measureFrameMotion(samples.filter(s=>s.time<spec.duration),spec.coverage.objectIds,spec.viewport,spec.fps,spec.actions,cutFrames);
   const status=coverageGaps.length?'incomplete':findings.length?'findings':'measured-no-findings';
   return {schemaVersion:1,status,visualAcceptance:'not-assessed',basis:'engineering evaluation of final-screen render state; not decoded pixel tracking',coverage:spec.coverage,coverageGaps,actionCoverage,processCoverage,renderInventory,motionObservations,locks:{observationTool:observationLock,tool:fileLock(fileURLToPath(import.meta.url)),sources:sourceLocks,video:videoLock},measurementTolerances:{...EPS,d1:D1,basis:'numerical locator tolerances, not cross-project visual quality thresholds'},sampling:{fps:spec.fps,duration:spec.duration,renderFrameSamples:samples.length,lifecycleEncodedFrames:lifecycleFrames.length,lifecycleLastFrameTime:lifecycleFrames.at(-1).time,lifecycleEndExclusive:true,allEvaluations:cache.size,repeatSeeking:'checked on sampled times only'},findings,exceptions,notApplicable,lifecycle:lifecycleMeasurements,replacements:replacementMeasurements,sourceLinks:sourceLinkMeasurements,contentVersionCoverage,d1Classification,actions:actionMeasurements,checkpoints:checkpointMeasurements,relays:relayMeasurements,framing:{viewport:spec.viewport,objects:objectScale,camera:cameraSamples.length?{sampleCount:cameraSamples.length,zoomRange:[Math.min(...cameraSamples.map(c=>c.z)),Math.max(...cameraSamples.map(c=>c.z))],centerRange:{x:[Math.min(...cameraSamples.map(c=>c.cx)),Math.max(...cameraSamples.map(c=>c.cx))],y:[Math.min(...cameraSamples.map(c=>c.cy)),Math.max(...cameraSamples.map(c=>c.cy))]}}:null},requiredNext:['Inspect corresponding encoded frames and confirm adapter/source/video association.','Review reading, semantics, sound alignment and 1x perception separately. No finding is not visual approval.']};
 }

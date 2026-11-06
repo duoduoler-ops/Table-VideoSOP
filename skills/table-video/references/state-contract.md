@@ -216,7 +216,11 @@ records 每项包括 checkId、objectId、aspect、artifactHash、effectiveHash�
 
 ## MG 效果证据
 
-当 `choices.allowedVisualLayers` 包含 `mg`，picture-lock／final 及风险样片放行 animate 前，另外核对下面两项。它们沿用已有 `qa` 请求与证据格式，不另建状态表或更改存储结构。
+当 `choices.allowedVisualLayers` 包含 `mg`，picture-lock／final 及风险样片放行 animate 前，另外核对下面两项。它们沿用已有 `qa` 请求。独立片段直接交[公共制作入口](../assets/motion/production-core/README.md)导出的预览与报告；进入正式项目后按下述方式登记。
+
+登记本次制作的视频时，`register.motionRole` 用 `render` 表示实际制作的 MG、`assembly` 表示引用这些片段的总装、`footage` 表示其余素材。公共工程候选会读取同目录的渲染清单。混合路线按候选的实际用途选择；总装用现有 `dependency` 关联所用 MG 视频，这样只调整声音时仍能核实片段来源。
+
+给新制 MG 登记 `qa` 的 `aspect:"motion", result:"通过"` 时，工具读取候选同目录的 `motion-report.json`，核对当前视频和报告引用的制作文件。自有渲染器可在 `qa` 的 `motionReport` 填项目内的报告路径。保留本段源文件、实际输入和预览目录。发现硬约束失败先修、重出报告；缺测或待核时可先登记“未验证”，实际观察后再登记相应范围。需要补查时，按当前报告逐项填写例如 `motionRecheck:[{items:["gate:2","gap:0"],start:0,end:0.8,evidence:{path,quote,actor}}]`。gate 使用项目 id，gap 和 finding 从 0 起编号；仅有全报告缺口时用 `report`。证据文件须记当前成片 SHA-256，引用的原句要写明本次检查的项号和该时段实际所见；同一处可以覆盖多个相关项。工程证据与实际观看分别记录。
 
 | aspect | 检查什么，证据写什么 |
 | --- | --- |

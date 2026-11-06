@@ -297,16 +297,6 @@
       "modifications": []
     },
     {
-      "destination": "scripts/motion-gates.mjs",
-      "origin": "upstream-derived",
-      "source": "scripts/motion-gates.mjs",
-      "sourceCommit": "f63e865b92d0fb45a86c3db5aa709ed4b94b8647",
-      "sourceSha256": "e0f51febc49ea7f005f906362de3b0212d94feb4f026bd3d9d4012b7ec406852",
-      "sha256": "26c1ca6f53a596c2259697dde5dbd49992a1d078476b47aaac38e1218aad25f7",
-      "license": "MIT",
-      "modifications": []
-    },
-    {
       "destination": "scripts/tests/motion-gates.test.mjs",
       "origin": "upstream-derived",
       "source": "scripts/tests/motion-gates.test.mjs",
@@ -1315,7 +1305,7 @@
       "source": "tools/README.md",
       "sourceCommit": "f63e865b92d0fb45a86c3db5aa709ed4b94b8647",
       "sourceSha256": "79e698bc083ff245eaae26b2186405b76f7d317d3612ab05a7968a685a3582cb",
-      "sha256": "4e89c228849c523c26dd76137321fc2b5e94ceb8b6eba4ee814381652a0e05f8",
+      "sha256": "a80ac01025e5f5440c8348bf526a3fa787c596c727789fd8977dc19a64446cd1",
       "license": "CC-BY-4.0",
       "modifications": [
         "relative-links",
@@ -1362,6 +1352,18 @@
       "modifications": []
     },
     {
+      "destination": "scripts/motion-gates.mjs",
+      "origin": "packaging-authored",
+      "source": "scripts/motion-gates.mjs",
+      "sourceCommit": "f63e865b92d0fb45a86c3db5aa709ed4b94b8647",
+      "sourceSha256": "e0f51febc49ea7f005f906362de3b0212d94feb4f026bd3d9d4012b7ec406852",
+      "license": "MIT",
+      "sha256": "c9f17d7e030d19a0a8be2dc025293295fbec6c2d8f713f6f9155ca0664db03d4",
+      "modifications": [
+        "skill-local-override; original upstream provenance retained"
+      ]
+    },
+    {
       "destination": "assets/motion/process-index.json",
       "origin": "packaging-authored",
       "source": "assets/motion/process-index.json",
@@ -1404,7 +1406,7 @@
       "sourceCommit": "e1115d63d1fa8de9890ab16fb655aa601b5ba3e0",
       "sourceSha256": "1854a2b515899e9f5613b16654f0b4a0b64463f7420b66a58fa365a0d51c5271",
       "license": "MIT",
-      "sha256": "964426c3f7e46cfbfa323eecf82a6c63813287fe6d4e333cac11938a6d260f9f",
+      "sha256": "6f8e7138f0c6a00260bfbd516479b03fedfd700904b178fa9a4a860eaacda737",
       "modifications": [
         "skill-local-override; original upstream provenance retained"
       ]
@@ -1416,7 +1418,7 @@
       "sourceCommit": null,
       "sourceSha256": null,
       "license": "MIT",
-      "sha256": "f07fd0adf7becb448f85b14f24e368ba0606b60f6f5767f8118e95a2e0048d62",
+      "sha256": "55b7258e0e9039d5b991f7b2a15887cd88a4f7b4d5fa2a68ef300f03b489dd5d",
       "modifications": []
     },
     {
@@ -1476,7 +1478,7 @@
       "sourceCommit": null,
       "sourceSha256": null,
       "license": "MIT",
-      "sha256": "9be4bf93c44959ff53a9dcac4b3d97df9dccecbeb5d1a5492c6732c5d404fd52",
+      "sha256": "564967025bda32f6d5ae80da8012d199861813a0e69a8a3f62838cba1a8f3967",
       "modifications": []
     },
     {
@@ -1516,7 +1518,7 @@
       "sourceCommit": null,
       "sourceSha256": null,
       "license": "MIT",
-      "sha256": "76692d61e90e858c9fdf242f97b65ebc858ccf60c3c17b1c5b429ee33e1a4527",
+      "sha256": "57c49f0ff3bb114eedfccd36976f57f3faa9e968107ae19c49e7bd28c6653377",
       "modifications": []
     },
     {
@@ -1526,7 +1528,7 @@
       "sourceCommit": null,
       "sourceSha256": null,
       "license": "MIT",
-      "sha256": "0f62d2084b5512bbe53aba5e0b824acf889d53f11a9cadd9be5dedb0e9cbe583",
+      "sha256": "f54c84dec8bfe4328d80e67ee7d02f970e62d7d1e31ee021cc9c9102427d9995",
       "modifications": []
     },
     {
@@ -1536,7 +1538,7 @@
       "sourceCommit": null,
       "sourceSha256": null,
       "license": "CC-BY-4.0",
-      "sha256": "e9e14a1759d6fc8f41b4c7bbb5c02c33424c6de5011b995c9b9932eada3997c9",
+      "sha256": "a2cf1a54dea477aeef6f099b3a0b91e445ad91177ed392e33ba6824aae0b130b",
       "modifications": []
     },
     {
@@ -1596,7 +1598,7 @@
       "sourceCommit": null,
       "sourceSha256": null,
       "license": "MIT",
-      "sha256": "9f373d39b326fbf4ef3603f2edb1196dd0b4d4d964e5980e4b31c0fe8bbf4a81",
+      "sha256": "cf0059131dfefc57cb1935109afa006a4c135772191ab38c867e7b6f16086e2c",
       "modifications": []
     },
     {
@@ -1666,7 +1668,7 @@
       "sourceCommit": null,
       "sourceSha256": null,
       "license": "CC-BY-4.0",
-      "sha256": "0c8cfe5468e53797502453673a60e482031755b2a6ab8cb626895b5c2ad53422",
+      "sha256": "cc2aa47d3d56fc0bef805ce24df9fd6dc9e0f04d7f8d320e8d82c150be21584d",
       "modifications": []
     },
     {
@@ -1706,7 +1708,7 @@
       "sourceCommit": null,
       "sourceSha256": null,
       "license": "CC-BY-4.0",
-      "sha256": "d40e7b67d1bc235699d2d15fca639e190e2da6693f2c95e5978c9682dc862757",
+      "sha256": "8dbfa3fc30322011ef0938a705f955685d2d97a651fcf53ba6e5c3cd677bdfe8",
       "modifications": []
     },
     {
@@ -1726,7 +1728,7 @@
       "sourceCommit": null,
       "sourceSha256": null,
       "license": "CC-BY-4.0",
-      "sha256": "fbb910304cd370c3df0fc9dd40313748b0f753d5ab07432b73481497859b8f75",
+      "sha256": "5a205035ebaaa5a8eca4c95f15095f869060f0d899e263c40a408359d54b9796",
       "modifications": []
     },
     {
@@ -1836,7 +1838,7 @@
       "sourceCommit": null,
       "sourceSha256": null,
       "license": "MIT",
-      "sha256": "08807f709f1ff7ed26eebdd27a9170251db985faf65a6dcdae92134a66f0efb7",
+      "sha256": "f43d973f18496ee9c567f3ec9f319d997301991111fa661f36db57264cb88904",
       "modifications": []
     },
     {
@@ -1916,7 +1918,7 @@
       "sourceCommit": null,
       "sourceSha256": null,
       "license": "MIT",
-      "sha256": "aa5d6dd63ad599521a21657e6efbf8116c16384d48cbe890a4301e82a60dfb58",
+      "sha256": "5543bc168012f8f5bd69b6265adb22c626ce526aa15a313cc849234aefe0d908",
       "modifications": []
     },
     {

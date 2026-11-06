@@ -31,8 +31,33 @@ function upstreamObjects(view, scope) {
 // These checks bind review evidence to the current artifact version. They do not
 // infer visual quality from an aspect name or replace actual viewing.
 function effectCheck(view, objectId, aspect) {
-  return view.qa.some(q => q.objectId === objectId && q.aspect === aspect && q.current &&
-    q.result === '通过' && ['inspection', 'human-view'].includes(q.method));
+  const passing = (id, needsReport = false) => view.qa.some(q => q.objectId === id && q.aspect === aspect && q.current &&
+    q.result === '通过' && ['inspection', 'human-view'].includes(q.method) && (!needsReport || q.motionProof));
+  if (!passing(objectId)) return false;
+  if (aspect !== 'motion') return true;
+  const plan = motionReviewPlan(view, objectId);
+  return !plan.blocker && plan.targets.every(target => passing(target, true));
+}
+// Existing projects and ordinary footage keep their original review method.
+// New video registrations classify ambiguous mixed-route media at the point of use.
+function motionReviewPlan(view, objectId) {
+  const {state} = view;
+  const artifact = state.artifacts[objectId];
+  const ancestors = [...explicitAncestors(state,objectId)].filter(id => id !== objectId);
+  const role = id => {
+    const mode = state.artifacts[id]?.motionRole;
+    if (mode !== 'auto') return mode;
+    return visualLayers(state).length === 1 && usesMG(state) ? 'render' : null;
+  };
+  const sources = ancestors.filter(id => role(id) === 'render');
+  if (artifact?.motionRole === 'render') return {targets:[objectId,...sources]};
+  if (sources.length) return {targets:sources};
+  if (artifact?.motionRole === 'assembly') return {targets:[],blocker:'总装须用 dependency 关联实际采用的 MG 分段'};
+  if (artifact?.motionRole === 'auto' && usesMG(state)) {
+    if (role(objectId) === 'render') return {targets:[objectId]};
+    return {targets:[],blocker:'混合路线需要标明本候选的 motionRole（render、assembly 或 footage）'};
+  }
+  return {targets:[]};
 }
 function effectFailures(view, scope) {
   if (!scope) return [];
@@ -154,6 +179,8 @@ async function evaluate(root, state) {
         upstream.push({id: dep.from, actualId:dep.from, hash: parent.effectiveHash, validity: parent.validity});
       }
       const context = {};
+      if (artifact.motionRole) context.motionRole = artifact.motionRole;
+      if (artifact.motionEdition) context.motionEdition = artifact.motionEdition;
       if (['design','storyboard','static','pilot','video'].includes(artifact.kind)) context.output = state.choices.output;
       const segmentRoutes = state.segments.filter(segment => segment.objectId === objectId)
         .map(segment => ({id:segment.id,route:segment.route})).sort((a,b) => a.id.localeCompare(b.id));
@@ -226,8 +253,84 @@ async function inheritedEvidenceCurrent(root,state,artifacts,record) {
 }
 async function qaBindingCurrent(root,state,artifacts,record) {
   const actual=artifacts[record.objectId];
-  return actual?.validity==='current' && actual.effectiveHash===record.effectiveHash &&
-    await evidenceCurrent(root,record.evidence) && await inheritedEvidenceCurrent(root,state,artifacts,record);
+  if (actual?.validity !== 'current' || actual.effectiveHash !== record.effectiveHash ||
+      !(await evidenceCurrent(root,record.evidence)) || !(await inheritedEvidenceCurrent(root,state,artifacts,record))) return false;
+  for (const file of record.motionProof?.files || []) if (!(await evidenceCurrent(root,file))) return false;
+  for (const note of record.motionProof?.rechecks || []) if (!(await evidenceCurrent(root,note.evidence))) return false;
+  return true;
+}
+
+// Only exhibit files inside the project are read. Keep relative bindings so an
+// already-reviewed project can be moved without trusting paths embedded in a report.
+async function captureMotionProof(root, state, artifact, actual, payload) {
+  const relative = payload.motionReport ?? path.join(path.dirname(artifact.path),'motion-report.json');
+  const reportFile = await projectFile(root,relative,{mustExist:false});
+  let bytes;
+  try { bytes = await fs.readFile(reportFile.absolute); }
+  catch (err) { if (err.code !== 'ENOENT') throw err; throw new WorkflowError('MOTION_REPORT','缺少当前候选的运动检查报告：'+reportFile.relative); }
+  let report;
+  try { report = JSON.parse(bytes); } catch { throw new WorkflowError('MOTION_REPORT','运动检查报告 JSON 无效'); }
+  need(report?.reportVersion >= 2 && [0,1,2].includes(report.exitCode) && Array.isArray(report.gates) &&
+    report.gates.length && report.visualAcceptance === 'not-assessed' && report.locks?.sources?.length &&
+    report.locks.video?.sha256 === actual.fileHash,'MOTION_REPORT','运动报告缺少正式检查数据或与当前视频不匹配');
+  const candidate = await projectFile(root,artifact.path);
+  need(typeof report.locks.video.path === 'string' && path.relative(await fs.realpath(candidate.absolute),path.resolve(root,report.locks.video.path)) === '',
+    'MOTION_REPORT','报告绑定的是另一个视频路径；请用当前候选重新检查');
+  need(!report.gates.some(g => g.judgment === 'hard-gate' && g.status === '未通过'),'MOTION_HARD_FAILURE','当前成片有已证实的运动约束失败，修复并重新出交审预览');
+  const findings = report.engineeringAudit?.findings || [];
+  need(!findings.some(f => ['hard-failure','constraint-violation'].includes(f.severity)),'MOTION_HARD_FAILURE','生产状态违反已声明的工程约束，核实声明、修正并重新出交审预览');
+  const files = new Map([[reportFile.relative,{path:reportFile.relative,hash:digest(bytes)}]]);
+  async function bind(file, expected) {
+    const f = await projectFile(root,file);
+    const data = await fs.readFile(f.absolute);
+    need(digest(data) === expected,'MOTION_STALE','运动检查引用已变更：'+f.relative);
+    files.set(f.relative,{path:f.relative,hash:expected});
+    return data;
+  }
+  for (const source of report.locks.sources) await bind(source.path,source.sha256);
+  if (report.locks.renderManifest) {
+    // Prefer the candidate's manifest, even if an old report refers to a still
+    // valid manifest in another version directory.
+    const manifestPath = path.join(path.dirname(artifact.path),'render-manifest.json');
+    const manifest = JSON.parse(await bind(manifestPath,report.locks.renderManifest.sha256));
+    need(manifest.video?.sha256 === actual.fileHash && typeof manifest.projectSourceDir === 'string' &&
+      Array.isArray(manifest.sources) && manifest.sources.length,'MOTION_REPORT','渲染清单未绑定当前工程和成片');
+    for (const source of manifest.sources) await bind(path.join(manifest.projectSourceDir,source.name),source.sha256);
+    if (manifest.inputFile) await bind(manifest.inputFile,manifest.inputSha256);
+  } else {
+    // A public-core candidate cannot be downgraded to a legacy/custom report.
+    const local = await projectFile(root,path.join(path.dirname(artifact.path),'render-manifest.json'),{mustExist:false});
+    try {
+      const manifest = JSON.parse(await fs.readFile(local.absolute,'utf8'));
+      need(!(manifest.projectSourceDir && manifest.video?.name === path.basename(artifact.path)),'MOTION_REPORT','公共工程的报告须绑定本版本的渲染清单');
+    } catch (err) { if (err.code !== 'ENOENT') throw err; }
+  }
+  const outstanding = new Set([
+    ...report.gates.filter(g => !['通过','诊断','不适用'].includes(g.status)).map(g => 'gate:'+g.id),
+    ...(report.engineeringAudit?.coverageGaps || []).map((_,i) => 'gap:'+i),
+    ...findings.map((_,i) => 'finding:'+i),
+  ]);
+  const rechecks = [];
+  if (report.exitCode !== 0 && !outstanding.size) outstanding.add('report');
+  if (outstanding.size) {
+    const notes = payload.motionRecheck;
+    need(Array.isArray(notes) && notes.length,'MOTION_RECHECK','须按当前报告补查：'+[...outstanding].join(', '));
+    const duration = report.engineeringAudit?.sampling?.duration;
+    for (const note of notes) {
+      need(Array.isArray(note?.items) && note.items.length && note.items.every(key => outstanding.has(key)) &&
+        Number.isFinite(note.start) && Number.isFinite(note.end) && note.start >= 0 && note.end >= note.start &&
+        (!Number.isFinite(duration) || note.end <= duration + 1e-6),'MOTION_RECHECK','补查须标记报告项和成片内的真实区间');
+      const evidence = await captureEvidence(root,state,note.evidence,{allowAgent:true});
+      const noteFile = await projectFile(root,evidence.path);
+      const noteBytes = await fs.readFile(noteFile.absolute);
+      need(evidence.path !== reportFile.relative && digest(noteBytes) === evidence.hash && noteBytes.includes(actual.fileHash) &&
+        note.items.every(key => evidence.quote.includes(key)),'MOTION_RECHECK','补查证据须独立记当前成片 SHA-256，引用原文须包含所核报告项及观察');
+      for (const key of note.items) outstanding.delete(key);
+      rechecks.push({items:note.items,start:note.start,end:note.end,evidence});
+    }
+    need(!outstanding.size,'MOTION_RECHECK','尚缺对应时段的实查：'+[...outstanding].join(', '));
+  }
+  return {files:[...files.values()],...(rechecks.length?{rechecks}:{})};
 }
 function qaMarkdown(records, revision) {
   const rows = qaMethodView(records).filter(r => !r.superseded).map(r => '| ' + [r.checkId, r.objectId, r.aspect, r.result, r.method, r.reason || ''].map(v => String(v).replaceAll('|', '\\|').replace(/[\r\n]+/g, ' ')).join(' | ') + ' |');
@@ -289,6 +392,14 @@ async function inspect(root, state, records) {
     const binding = await qaBindingCurrent(root,state,artifacts,record);
     validQa.set(record.checkId,binding);
     qa.push({...record,current:!record.superseded && binding});
+  }
+  // Component source/report changes also invalidate the assembly's motion
+  // conclusion when its muxed media and the written assembly note are intact.
+  for (const record of qa) if (record.aspect === 'motion' && record.result === '通过') {
+    const plan = motionReviewPlan({state},record.objectId);
+    const sourcesCurrent = !plan.blocker && plan.targets.every(target => target === record.objectId ? !!record.motionProof :
+      qa.some(q => q.objectId === target && q.aspect === 'motion' && q.result === '通过' && q.current && q.motionProof));
+    if (!sourcesCurrent) { record.current = false; validQa.set(record.checkId,false); }
   }
   // Resolution is an evidence-backed fact, not the latest method status.
   // A later pending check cannot reopen a repaired defect; invalid evidence can.
@@ -373,6 +484,18 @@ function coveredProductionTargets(view,scopes,{rejectUnmapped=false,scoped=false
     blockers.push('本批执行目标未关联任何当前分段：'+id+'；参考旧片不应登记为制作目标');
   return {targets:[...new Set(targets)],blockers};
 }
+function batchInputs(view,scope) {
+  const {state,adopted,approvals,artifacts} = view;
+  const ancestors = explicitAncestors(state,scope);
+  const segments = state.segments.filter(s => ancestors.has(s.objectId));
+  const relevant = Object.keys(state.artifacts).filter(id => state.artifacts[id].kind === 'storyboard' && state.artifacts[id].status !== 'superseded' &&
+    (ancestors.has(id) || segments.some(s => state.dependencies.some(d => d.from === s.objectId && d.to === id))));
+  const ids = relevant.length ? relevant.filter(id => approvals.some(a => a.current && a.objectId === id && a.aspect === 'storyboard' && a.allows.includes('design'))) :
+    adopted.storyboard?.current ? [adopted.storyboard.objectId] : [];
+  const bind = id => ({objectId:id,path:state.artifacts[id].path,...(state.artifacts[id].selector !== undefined ? {selector:state.artifacts[id].selector} : {}),effectiveHash:artifacts[id].effectiveHash});
+  return {scope,action:'batch-animate',target:bind(scope),segments:segments.map(({id,narrative,anchors,route}) => ({id,narrative,anchors,route})),
+    storyboards:ids.map(bind),inputs:['script','narration','design'].filter(slot => adopted[slot]?.current).map(slot => ({slot,...bind(adopted[slot].objectId)}))};
+}
 function checkAction(view, action, scope) {
   const requestedAction = action, batch = action === 'batch-animate';
   if (batch) action = 'animate';
@@ -381,11 +504,13 @@ function checkAction(view, action, scope) {
   if(batch && !VISUAL_TARGET_KINDS.has(state.artifacts[scope]?.kind)) {
     const selected=coveredProductionTargets(view,[scope],{scoped:true});
     blockers.push(...selected.blockers);
+    const workerInputs = [];
     for(const target of selected.targets) {
       const gate=checkAction(view,'batch-animate',target);
       blockers.push(...gate.blockers.map(message=>target+'：'+message));
+      if (gate.ok) workerInputs.push(...gate.workerInputs);
     }
-    return {ok:!blockers.length,action:requestedAction,scope,blockers};
+    return {ok:!blockers.length,action:requestedAction,scope,blockers,...(!blockers.length?{workerInputs}:{})};
   }
   const block = message => blockers.push(message);
   const currentObject = scope && artifacts[scope]?.validity === 'current';
@@ -403,7 +528,10 @@ function checkAction(view, action, scope) {
   if (!state.choices.allowedVisualLayers.length) block('画面路线未选择：allowedVisualLayers 为空，先确认允许的画面组合。');
   if (!currentObject) block('目标对象不存在、缺失或已过期：' + scope);
   for (const slot of ['script','narration','design']) if (!adopted[slot]?.current) block('缺少有效采用：' + slot);
+  let brief;
   if (batch) {
+    brief = batchInputs(view,scope);
+    if (!brief.storyboards.length) block('正式制作须绑定本段当前有效的已审文字镜头剧本，或已采用的整期剧本');
     if(scope===adopted.visualOverview?.objectId)block('当前总览自身不能作为本轮实际制作目标；请覆盖并验证独立的 static/pilot/video 产物');
     const consent = overviewConsent(view,{scoped:true});
     const ancestors = explicitAncestors(state,scope);
@@ -461,7 +589,7 @@ function checkAction(view, action, scope) {
       if (!check('subtitles','human-view',state.choices.subtitlePolicy === 'none')) block('字幕检查未通过，或不适用依据不足');
     }
   }
-  return {ok: blockers.length === 0, action:requestedAction, scope, blockers};
+  return {ok: blockers.length === 0, action:requestedAction, scope, blockers,...(batch && !blockers.length ? {workerInputs:[brief]} : {})};
 }
 function initialState(projectId, testOnly) {
   return {schemaVersion:'1.0', toolVersion:'0.1.0-p0',workflowMode:'skill-v1',projectId,testOnly,revision:0,
@@ -536,6 +664,22 @@ export async function apply(root, request) {
         if(p.selector!==undefined) need(typeof p.selector==='string','SELECTOR','selector must be a string');
         if(p.risk!==undefined) need(typeof p.risk==='boolean','INVALID_INPUT','risk must be boolean');
         const artifact={id:p.id,path:file.relative,kind:p.kind,selector:p.selector,risk:!!p.risk,fidelity:p.fidelity || (state.testOnly?'simulated':'real'),status:'candidate'};
+        if (p.motionRole !== undefined) {
+          need(['render','assembly','footage'].includes(p.motionRole) && ['pilot','video'].includes(p.kind),'MOTION_SCOPE','motionRole 只适用于视频、样片的 render、assembly 或 footage');
+          artifact.motionRole = p.motionRole;
+        }
+        if (['pilot','video'].includes(p.kind) && /\.(?:mp4|mov|m4v|mkv|webm|avi)$/i.test(file.relative)) {
+          artifact.motionRole ??= state.artifacts[p.id]?.motionRole ?? 'auto';
+          const local = await projectFile(root,path.join(path.dirname(file.relative),'render-manifest.json'),{mustExist:false});
+          try {
+            const manifest = JSON.parse(await fs.readFile(local.absolute,'utf8'));
+            if (manifest.projectSourceDir && manifest.video?.name === path.basename(file.relative)) artifact.motionRole = 'render';
+          } catch (err) { if (err.code !== 'ENOENT') throw err; }
+        }
+        // A new registration at a new path is its own production version, even
+        // if two encodes match byte for byte. Explicit byte-identical rebinds
+        // retain this edition and their previously captured evidence.
+        if (artifact.motionRole) artifact.motionEdition = file.relative;
         if(artifact.selector===undefined) delete artifact.selector;
         Object.assign(artifact,await content(root,artifact));
         state.artifacts[p.id]=artifact;
@@ -678,6 +822,14 @@ export async function apply(root, request) {
         if(p.result==='通过'&&p.aspect==='audio') need(p.method==='human-listen','QA_METHOD','Audio pass requires actual listening evidence');
         if(p.result==='通过'&&EFFECT_CHECKS.includes(p.aspect)) need(['inspection','human-view'].includes(p.method),'QA_METHOD','Effect review requires inspection or actual viewing evidence; technical success is insufficient');
         const evidence=await captureEvidence(root,state,p.evidence,{allowAgent:['inspection','technical'].includes(p.method)});
+        let motionProof;
+        if (p.aspect === 'motion' && p.result === '通过') {
+          const plan = motionReviewPlan(view,p.objectId);
+          need(!plan.blocker,'MOTION_SCOPE',plan.blocker);
+          if (plan.targets.includes(p.objectId) || p.motionReport) motionProof = await captureMotionProof(root,state,object(p.objectId),a,p);
+          for (const source of plan.targets.filter(id => id !== p.objectId))
+            need(effectCheck(view,source,'motion'),'MOTION_REPORT','总装引用的 MG 分段缺少当前运动复核：'+source);
+        }
         need(!records.some(r=>r.checkId===p.checkId),'DUPLICATE_CHECK','checkId is immutable and globally unique; use a fresh ID');
         const resolves = p.resolves || [];
         need(Array.isArray(resolves) && new Set(resolves).size===resolves.length,'QA_RESOLUTION','resolves must contain unique failed check IDs');
@@ -689,7 +841,7 @@ export async function apply(root, request) {
           failed.resolvedBy = p.checkId;
         }
         for(const r of records) if(r.objectId===p.objectId && r.aspect===p.aspect && r.method===p.method && r.result!=='未通过') r.superseded=true;
-        records.push({checkId:p.checkId,objectId:p.objectId,aspect:p.aspect,artifactHash:a.fileHash,effectiveHash:a.effectiveHash,result:p.result,method:p.method,evidence,reason:p.reason || '',recordedAt:timestamp(),superseded:false});
+        records.push({checkId:p.checkId,objectId:p.objectId,aspect:p.aspect,artifactHash:a.fileHash,effectiveHash:a.effectiveHash,result:p.result,method:p.method,evidence,...(motionProof?{motionProof}:{}),reason:p.reason || '',recordedAt:timestamp(),superseded:false});
         break;
       }
       case 'rebind': {

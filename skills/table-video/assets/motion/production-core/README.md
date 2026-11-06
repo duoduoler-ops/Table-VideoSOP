@@ -1,6 +1,6 @@
 # 真实制作起点
 
-先把这个目录复制到本段工程。默认入口是 `scene.cjs`：按新内容重做对象关系与布局，并将 `windows` 换成采用配音的动作窗口。示例是**三件组件按实际长度检验、只修能修的超长件、按结果进入装配或返修**；它没有正式配音，不是每类内容都要套用的剧本。
+先把这个目录复制到本段工程的独立源码目录。按当前镜头剧本，在 `scene.cjs` 写本段主对象、部件关系、动作窗口和取景意图。即使只有一个图形，也可用同一个制作和交审入口。此处三件组件的检验、修整和分流只是可替换的场景示例。
 
 - `scene.cjs` 由一个 `stateAt(t)` 给出部件尺寸、被处理部件、位置与去向；`cameraAt(t)` 读取这个最终位置；生产 `render(t)` 和 `audit-adapter.cjs` 使用同一入口。
 - `parts.cjs` 是可改的具体绘制：载体用 `stage.plane`，其字段／阀闸／局部用 `stage.part(parent, spec)` 保持同一父组；它同时计算部件投影与绘制登记。把这些子件重新写成无父级的独立平面，会在斜视时被自己的底板遮住。整组退出移动共同祖先。
@@ -35,10 +35,16 @@ stage.part(board, {id:'current.price', box:{x:160,y:80,width:100,height:60}, htm
 需要已有 React / Remotion / `@remotion/bundler` / `@remotion/renderer` 与浏览器，工具不会安装或下载。下列路径填当前机器真实位置，输出目录必须是新的版本：
 
 ```powershell
-node .\render.cjs --runtime="<已有 node_modules>" --browser="<已有 Chromium 程序>" --out="<本段工程\preview-v01>" --frames=0,90,150,210,285,312,360 --video
+node .\render.cjs --runtime="<已有 node_modules>" --browser="<已有 Chromium 程序>" --skill-root="<table-video 包目录>" --out="<本段工程\preview-v01>" --video
 ```
 
-`--input=<JSON>` 可覆盖 `parts / limit / repairCapacity / labels / windows / config`；`--audio=<采用音频>` 只读取并复制现有文件，音频从局部 0 开始，先由本段对齐后提供。改时长或帧率时同步 `--frames`。首版保留视频、关键帧、当时源码、输入与哈希、渲染日志；同名输出不会覆盖。长渲染每 30 秒记录一次心跳。
+`--video` 从此次冻结的源码渲染 `preview.mp4`，随即用同一源码、输入、删层选择与实际视频生成 `motion-report.json`；`render-manifest.json` 记录对应版本。复制到项目后用 `--skill-root` 指向实际 Skill 包；在包内直接调用可以省略。默认静帧取首尾及剧本检查点，可用 `--frames=0,12,24` 指定实际帧号；只导静帧时省略 `--video`。每次用新输出目录，长渲染每 30 秒写日志。
+
+`--input=<本段工程内的 JSON>` 可覆盖示例的 `parts / limit / repairCapacity / labels / windows / config`；`--audio=<采用音频>` 复制已有文件，起点从本段 0 时刻计算。改题时将实际主对象 ID 写在 `scene.coverage.mainContentIds`，时间线的 `actions / relays / checkpoints` 指向真实部件及事件。绘制登记会收集所有编码帧里出现的对象，包括中途入场的部件。固定取景窗口使用 `timeline.motionCast.cameraWindows` 的 `role: 'fixed'`；有意硬切在 `checkpoints` 声明切点、受影响的整个场景和依据。
+
+正式交审使用同目录的视频和报告。有具体运动疑点或出入场边界时，打开 `review-frames/frames.html` 可按对象和秒点看成片解码的前后帧，点图看原尺寸；没有目标时跳过抽帧。缺少 FFmpeg／FFprobe 等取证条件时，报告保留失败原因。退出码 0 表示已测硬要求满足且诊断待复核；1 表示输入或覆盖不完整；2 表示硬要求失败或有具体工程疑点。已知错误先修，覆盖不到的属性通过该版像素或实际连续审看补查。三种结果都不代表已正常速度看过成片。
+
+本入口冻结独立源码目录中的脚本、样式、JSON 和图形／字体资源，以及同目录下相应的子模块。源码使用实体目录；依赖目录、隐藏目录、本次及以往的渲染输出排除在快照之外。已有独立引擎可保留原渲染器，按其生产入口向检查工具提供该版画面及真实状态。
 
 例如 `repairCapacity: 0` 会保留超长件并送入返修；将超长值从 b 移到 a 会实际改变刀具对准的行与被修整的条。只改 `labels` 不改变处理和结果。新增关系应改状态与绘制，不靠改标签冒充新内容。
 

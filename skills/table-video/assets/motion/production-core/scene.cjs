@@ -129,7 +129,8 @@ function createScene(rawInput={}) {
     const result=stage.finish();
     return {...result,state,semantic:{'kit':route,...Object.fromEntries(input.parts.map((p,i)=>['kit.part.'+p.id,lengthsOrValue(state,i)]))}};
   }
-  return {config,input,timeline,stateAt,cameraAt,render,finalLengths,route};
+  const coverage = {mainContentIds:['kit','inspection','tray.'+route]};
+  return {config,input,timeline,coverage,stateAt,cameraAt,render,finalLengths,route};
 }
 function lengthsOrValue(state,i){return state.lengths[i];}
 module.exports={CONFIG,DEFAULT,normalize,createScene};

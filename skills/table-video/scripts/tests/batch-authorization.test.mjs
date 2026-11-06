@@ -26,6 +26,10 @@ async function fixture(name){
     const approvalId=await approve(slot,slot,['adopt:'+slot]);
     await op('adopt',{slot,objectId:slot,approvalId});
   }
+  await fs.writeFile(path.join(root,'storyboard.md'),'D01: locate the control. D02: show the updated result.');
+  await op('register',{id:'story',kind:'storyboard',path:'storyboard.md'});
+  const storyApproval=await approve('story','storyboard',['design','adopt:storyboard']);
+  await op('adopt',{slot:'storyboard',objectId:'story',approvalId:storyApproval});
   for(const n of [1,2]){
     await register('plan'+n,'config');await register('shot'+n,'static');
     await op('dependency',{from:'plan'+n,to:'shot'+n});
