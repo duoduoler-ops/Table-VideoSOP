@@ -39,7 +39,7 @@ $durText = (& ffprobe -v error -show_entries format=duration -of csv=p=0 -- $Vid
 $dur = [double]::Parse($durText.Trim(), $inv)
 if ($dur -le 0) { throw "Cannot read duration: $Video" }
 
-$fontPath = 'C:/Windows/Fonts/arial.ttf'
+$fontPath = if ($env:WINDIR) { Join-Path $env:WINDIR 'Fonts/arial.ttf' } else { '' }
 $label = ''
 if (Test-Path -LiteralPath $fontPath) {
   $label = ",drawtext=fontfile='C\:/Windows/Fonts/arial.ttf':text='%{pts\:hms}':x=6:y=6:fontsize=20:fontcolor=white:box=1:boxcolor=black@0.7"

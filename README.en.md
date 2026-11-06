@@ -43,8 +43,8 @@ This README includes English instructions and copyable prompts. The linked guide
 ## Three key practices
 
 - **Storyboard and key states** (after section-plan approval, before design frames): the coordinator specifies the main object's changes, the camera's viewing path, the peak and reading pauses, and the reference clip's version, range, and relevant relationships. You review it once before frames are made. Design frames cover start/end compositions, transformation mechanisms, or handoffs according to the type of change, rather than a fixed image count or one frame every few seconds. [Key-state coverage](templates/镜头剧本.template.md#关键状态覆盖)
-- **Complete the process before polishing parameters**: a new type or unresolved risk of costly rework needs a voiced process preview during design. For an approved type with the relevant risks resolved, reference the approved process and check its adaptation in the first complete preview, without another test-clip approval. Full production still follows approval of the whole-video visual overview. Judge the actual main action, viewing progression, and section rhythm; complete parameter sets and the [motion self-check](tools/README.md) do not replace watching. [Process previews and polishing](docs/04_验收与返修.md#完整过程预演与精修)
-- **End-of-episode retrospective** (after delivery): record rework in your own words and note whether a rule was missing or existed but was not followed; list the shots you liked as future reference clips and the rules that can be removed. Change only the items you choose. [Template](templates/复盘.template.md) · [Prompt](prompts/09_复盘.md)
+- **Complete the process before polishing parameters**: a new type or unresolved risk of costly rework needs a voiced process preview during design. For an approved type with the relevant risks resolved, reference the approved process and check its adaptation in the first complete preview, without another test-clip approval. Before full production, the coordinator checks cross-section continuity, the current key-state approvals, and the authorized batch. Judge the actual main action, viewing progression, and section rhythm; complete parameter sets and the [motion self-check](tools/README.md) do not replace watching. [Process previews and polishing](docs/04_验收与返修.md#完整过程预演与精修)
+- **End-of-episode retrospective** (after delivery): record rework in your own words and note whether the rule was missing, not followed, misleading, or the judgment was mistaken; list the shots you liked as future reference clips and the rules that can be removed. Change only the items you choose. [Template](templates/复盘.template.md) · [Prompt](prompts/09_复盘.md)
 
 ## Follow along: from setup to delivery
 
@@ -235,7 +235,7 @@ approved reference clip or "new type". Wait for my review before producing desig
 
 Open new conversations from **the same series root**. Copy each section's complete command from `分段开工指令.md` into its own conversation. For sequential work, handle sections in the current task. Deliver clean design frames and separate motion annotations according to the task brief and the storyboard you reviewed, and record them in the assigned handoff notes. The coordinator maintains shared control files.
 
-Design frames must explain the key states of approved changes: show how a transformation works and how a handoff preserves relationships. Adjacent processes may share a state; a process frame does not require a pause or cut. Follow [key-state coverage](templates/镜头剧本.template.md#关键状态覆盖) and [complete-process references](experience/镜头推进与转场.md#完整过程参考). For programmatic animation, previews of new risks belong to the existing test-clip stage. Secondary decoration may be simplified, but the main object, framing, text size, and reading time must be realistic. These previews do not replace finished-looking design frames or visual-overview approval.
+Design frames must explain the key states of approved changes: show how a transformation works and how a handoff preserves relationships. Adjacent processes may share a state; a process frame does not require a pause or cut. Follow [key-state coverage](templates/镜头剧本.template.md#关键状态覆盖) and [complete-process references](experience/镜头推进与转场.md#完整过程参考). For programmatic animation, previews of new risks belong to the existing test-clip stage. Secondary decoration may be simplified, but the main object, framing, text size, and reading time must be realistic. These previews do not replace finished-looking design frames or the current key-state approvals and batch authorization.
 
 #### Image and video generation
 
@@ -282,7 +282,7 @@ candidates as accepted without my decision.
 
 <a name="step-6"></a>
 
-### 6. Approve the whole video's visual plan, then produce sections
+### 6. Check section continuity and authorize production batches
 
 **Purpose:** Review style, meaning, and continuity across sections before full production.
 
@@ -306,12 +306,12 @@ Use the **voiceover, scene, and emotion** to decide what the audience should not
 
 *Screenshots on this page come from my Episode 04 video as visual references. They are not results of an independent reproduction of this package, and still images cannot show the full motion. [Frame sources](assets/README.md)*
 
-**① Return to the coordinator for the whole-video visual overview**
+**① Return to the coordinator for cross-section checks**
 
 ```text
 Episode: [path]; section designs, motion annotations, and asset candidates: [exact handoff-note
 paths and versions].
-Use AGENTS.md and the current production plan to compile a whole-video visual overview. Do not
+Use AGENTS.md and the current production plan to check shared objects, section boundaries, and style. Do not
 accept undecided candidates on my behalf.
 Check that visuals add information beyond the voiceover, key states explain the approved changes,
 camera choices fit the narration, scene, and emotion, and reading windows and transitions work.
@@ -321,7 +321,7 @@ Separate motion that has not been shown or tested; static frames do not validate
 
 **② Approve the visuals and permit production**
 
-After choosing, tell the coordinator: “Approve visual overview `[version and scope]` and accept assets `[exact paths and versions]`. Update the production plan and affected briefs; allow sections `[IDs]` to enter production.”
+After reviewing the key states, tell the coordinator: “Accept designs `[versions and scope]` and assets `[exact paths and versions]`; authorize the first batch `[IDs]`. Review its actual results and apply feedback before releasing later batches.”
 
 **③ Return to each section conversation and continue production**
 
@@ -480,6 +480,12 @@ Propose specific files and concise changes first; do not modify rules or publish
 The package contains guides, templates, prompts, written examples, [runnable MG process excerpts](examples/05_完整过程源码.md), and README images. It does not include complete private production projects, original media, runtime dependencies, generation services, or character asset packs. Remotion and FFmpeg are the default routes described; other tools can be used with the same input, approval, and QA requirements. Installation, login, additional charges, and publishing require authorization within the task's scope.
 
 Fill in bracketed fields in templates and prompts. The coordinator supplies actual paths before assigning section tasks. You do not need my private knowledge base, accounts, or old projects. Do not commit your finished videos, account details, or private files to this documentation repository.
+
+## Maintenance and diagnostic results
+
+The public guides are the method source. Maintainers use the single tools/package-skill.mjs entry in the separate development packaging workspace, where Skill-specific adaptations are maintained. This repository distributes the generated Skill. Commit the public sources first, rebuild with --sync-source and the source commit, refresh hashes, validate and test, then commit the Skill as a second commit. source-map.json points to that source commit. Package hashes normalize UTF-8 text to LF while source hashes retain the original bytes; binary package files are hashed unchanged. Keep the authority, project mirror and public Skill identical; do not edit derived copies separately or install host copies during synchronization.
+
+Motion report v2 keeps freeze and causal-follow constraints; camera speed, anticipation and composition widths are diagnostics. Follow timing starts at the actual production trigger. Missing measurements never mean success. See [tool behavior and exit codes](tools/README.md#运动量化门禁), including N02 media checks not yet ported. Later batches wait for the first batch's actual review and feedback; key states cover necessary understanding, sound uses early real-clip auditions, and retrospective changes distinguish additions from repairs.
 
 ## Validation and license status
 
