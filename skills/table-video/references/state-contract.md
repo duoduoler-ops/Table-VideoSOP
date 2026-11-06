@@ -32,7 +32,7 @@ action 为 `storyboard`、`design`、`pilot`、`animate`、`batch-animate`、`pi
 | storyboard | 已选画面形式、当前对象、有效采用稿件、配音与 DESIGN、该对象 segmentation 方面允许 storyboard 的确认或委托 |
 | design | 当前对象、有效采用稿件、配音与 DESIGN、实际 kind=storyboard 文字剧本的有效 storyboard／design 确认或委托；范围为分段概述时，须有直接依赖于该分段对象的已确认文字剧本 |
 | pilot／animate | 有效采用稿件、配音与 DESIGN、该对象 static 方面允许对应动作；animate 检查目标及其实际上游依赖的风险；每项风险分别需要适用 pilot 的实际审看与明确 dynamic／animate 确认，含 MG 时另需当前设计与运动证据 |
-| batch-animate | 本次采用的 visualOverview 本体、visual-overview 的 approved／delegated 制作授权及证据有效，允许 batch-animate；scope 的 covers 摘要绑定实际 static/pilot/video 目标及所属分段，逐目标满足 animate 条件。非可视 scope 沿同一 covers 定位有制作依赖的实际目标；全片 S08 检查全量覆盖 |
+| batch-animate | 当前实际 static/pilot/video 目标的有效 static／batch-animate 授权、当前采用输入与真实制作依赖；保留风险及缺陷拦截；兼容已有有效总览范围授权，但不要求新建总览 |
 | picture-lock | 当前 video 对象、明确 picture／picture-lock 确认、当前 visual 的 human-view 检查通过；含 MG 时另有当前 visual-design 与 motion 检查 |
 | final | 当前采用 finalVideo 对象、明确 final／final 确认；visual human-view、audio human-listen、technical technical、sources inspection、subtitles human-view 适用项通过；含 MG 时另有当前 visual-design 与 motion 检查 |
 
@@ -44,9 +44,11 @@ action 为 `storyboard`、`design`、`pilot`、`animate`、`batch-animate`、`pi
 
 设计期局部过程预演沿用已有 `risk`、`pilot`、依赖和确认机制。总控先核对当前范围的真实静态／制作授权，再对所涉对象执行 `validate --action pilot --scope <objectId>`；可在 S06 设计阶段进行，不为一个局部预演将全片推进到 S07。S07 阶段推进会核对全部分段，不能用它替代局部动作检查。
 
-正式批量动画执行 `validate --action batch-animate --scope <objectId>`；局部 pilot／animate 不要求全片总览。总控将实际完整总览登记为 static，以 `aspect:"visual-overview", allows:["batch-animate","adopt:visualOverview"], covers:["plan-D01","shot-D01"]` 建立 review，再按真实回复 approve、adopt 到 visualOverview。`shot-D01` 是本轮实际 static/pilot/video 制作目标，须有显式制作依赖来自所属 `plan-D01`。covers 同时绑定目标与所属分段的有效摘要；分段自身就是实际可视目标时可只列该目标。不能只覆盖文字概述、工程 config 或当前总览自身。真实 config 工程可沿“分段→工程→已有可视证据”的制作依赖绑定实际目标，不新建审批，也不把工程自称已完成当作可视证据。
+正式批量动画执行 `validate --action batch-animate --scope <objectId>`。将本批实际 static/pilot/video 目标建立 `aspect:"static", allows:["batch-animate"]` 的 review，再按真实回复 approve；原设计节点的同一次真实交互可以授权已展示范围，不新增审批。记录绑定对象、输入与证据摘要，分段概述／config 须有真实依赖连到这个可视目标。准备、pilot 或仅 animate 授权都不表示本批已放行。
 
-S08 只从当前采用总览的 covers 读取本轮已选实际可视目标，用显式制作依赖映射全部分段；每段至少有一个目标，并逐目标执行同一 batch-animate 关卡。缺静态授权的已选目标必须报缺项，不能过滤掉；未被选入 covers 的旧候选不参与，不猜最新版本或扫描全部候选。对 config／分段概述直接调用 batch-animate 同样解析已选实际下游目标，不能绕开 S08 的证据要求。covers 中可视条目表示本轮执行目标，参考或对比旧片不放入执行覆盖；未关联任何分段的执行目标会阻止 S08。总览确认的全量 current 仍要求 covers 全部有效，S08 始终检查全片；局部 batch 则只沿本次采用的总览确认，核对总览本体、确认与证据，以及当前目标和所属分段的覆盖摘要。仅无关覆盖项变化不撤销未变范围的正式制作授权，例如只改 D07 时 D02 可继续 batch，但 D07 与全片 S08 仍须补齐有效确认。当前目标或其制作祖先变化、缺少相关覆盖、总览本体变化、确认撤回或证据失效均拒绝，不回退其他总览或旧候选，也不因此改变 final 的整片证据要求。不能只凭父段没变放行已改的画面。覆盖多个分段只需一次真实总览审查，不扩至未展示分段。工具不能证明总览实际展示完整，仍须按真实材料核对；具体新过程或未解决高返工风险按[测试与复用](style-and-motion.md#测试与复用)处理。
+对 config／分段概述调用 batch-animate 时，从已有 static／batch-animate review 选择当前实际目标；待确认、撤回或变更目标仍会阻断，不过滤成已通过。S08 核全部分段，每段至少有一个明确选定且有实际制作依赖的可视目标，逐目标执行相同关卡；局部 batch 只核本次范围。准备后批可继续，启动须等首批实际结果审看及反馈闭合，由总控更新允许范围。工具不能判断首批是否真的被观看，跨段、分批职责见[协作正文](sop/03_目录与并行协作.md#分批放行)。
+
+旧项目的 visualOverview 槽位、visual-overview review 和 covers 保留可读兼容，有效已采用范围仍可授权；不要求迁移、补建或重审总览。旧范围授权按本体、真实证据与目标摘要核验，不回退已失效授权。仅无关段变化不撤销未变段的局部授权；当前目标或制作祖先变化须重核。新流程不写新的存储格式，锁画及 final 的全片审看、审听与实际文件证据要求不变。
 
 已有同范围、同条件的有效过程证据按摘要复用；新配音／构图变化先重判适用范围，未引入上述新类型或未解高返工风险时，在首版完整预览核实适配，否则按设计期预演规则处理。不重复登记虚构确认。分段任务不写中央 state／QA，只回传候选与证据；总控按实际用户决定写回。
 
@@ -100,7 +102,7 @@ choices 的已知字段：narrationSource（existing／external-ai／self-record
 
 ## 确认、授权与真实证据
 
-建立 review 时精确写 aspect 与 allows；静态布局可按真实授权允许 animate，具体风险预演允许 pilot，稿件采用允许 adopt:script。明确委托选择与制作可记 delegated，包括总览允许 batch-animate；仍绑定实际对象、范围、摘要和证据，不冒充已观看。普通回复只覆盖实际展示并指向的方面，不扩到未展示动态或发布；风险样片的实际验证、picture-lock／final 仍须 approved 及对应 QA。
+建立 review 时精确写 aspect 与 allows；静态布局可按真实授权允许 animate，具体风险预演允许 pilot，稿件采用允许 adopt:script。明确委托选择与制作可记 delegated，包括当前实际目标允许 batch-animate（兼容旧总览范围授权）；仍绑定实际对象、范围、摘要和证据，不冒充已观看。普通回复只覆盖实际展示并指向的方面，不扩到未展示动态或发布；风险样片的实际验证、picture-lock／final 仍须 approved 及对应 QA。
 
 ### S03 参考入口的记录与提示
 

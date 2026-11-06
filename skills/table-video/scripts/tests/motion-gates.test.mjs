@@ -4,11 +4,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {
-  DEFAULT_GATES, measureMoves, scoreFreeze, scoreCamera, scoreFollow as actualFollow, scoreAnticipation as actualAnticipation,
-  scoreComposition as actualComposition, evaluateSpec as actualSpec, parseFreezeLog, main,
+  DEFAULT_GATES, measureMoves, scoreFreeze, scoreCamera as actualCamera, scoreFollow as actualFollow, scoreAnticipation as actualAnticipation,
+  scoreComposition as actualComposition, evaluateSpec as actualSpec, deriveMotionCast, parseFreezeLog, main,
 } from '../motion-gates.mjs';
 
 import {paintSamples,paintSpec} from './paint-fixture.mjs';
+const scoreCamera=o=>actualCamera({roles:[{t0:0,t1:100,role:'reveal'}],...o});
 const scoreFollow=(s,...a)=>actualFollow(paintSamples(s),...a);
 const scoreAnticipation=(s,...a)=>actualAnticipation(paintSamples(s),...a);
 const scoreComposition=(s,...a)=>actualComposition(paintSamples(s),...a);
@@ -69,33 +70,16 @@ test('ep05 control log stays at the announced 60 segments, 63.0s, 1.93s max', {
   assert.equal(Math.round(scored.measured.ratio * 1000) / 10, 14);
 });
 
-test('median speed of 358 passes and below fails; single slow move does not fail alone; arc of 80 counts', () => {
-  const one = (mean, arc = 100, t0 = 0, dur = 0.2) => ({t0, t1: t0 + dur, dur, arcPx: arc, mean, t80: dur * 0.4});
-  // 单次 358 通过（中位 = 358）
-  assert.equal(scoreCamera({moves: [one(358)], duration: 0.2}).status, '通过');
-  // 单次 357.999：中位 < 358 → 未通过
-  assert.equal(scoreCamera({moves: [one(357.999)], duration: 0.2}).status, '未通过');
-  // 弧长 80 计入
-  assert.equal(scoreCamera({moves: [one(400, 80)], duration: 0.2}).measured.largeCount, 1);
-  assert.equal(scoreCamera({moves: [one(400, 79.999)], duration: 0.2}).status, '无法测量');
-  // 间隔 4 秒通过，4.001 秒未通过
-  assert.equal(scoreCamera({moves: [one(400, 100, 0, 0.2), one(400, 100, 4.2, 0.2)], duration: 5}).status, '通过');
-  assert.equal(scoreCamera({moves: [one(400, 100, 0, 0.2), one(400, 100, 4.201, 0.2)], duration: 5}).status, '未通过');
-  // 中位数判定：3 次移动，1 次 200，2 次 500；中位 = 500 > 358 → 通过（单次不判失败）
-  assert.equal(scoreCamera({moves: [one(200, 100, 0, 0.3), one(500, 100, 1, 0.2), one(500, 100, 2, 0.2)], duration: 3}).status, '通过');
-  // 中位数判定：3 次移动，2 次 200，1 次 500；中位 = 200 < 358 → 未通过
-  assert.equal(scoreCamera({moves: [one(200, 100, 0, 0.3), one(200, 100, 1, 0.3), one(500, 100, 2, 0.2)], duration: 3}).status, '未通过');
-});
-
-test('a reveal longer than 1.5s is unmeasured without a role and fails without a written reason', () => {
-  const slowReveal = [{t0: 0, t1: 1.6, dur: 1.6, arcPx: 900, mean: 560, t80: 0.5}];
-  assert.equal(scoreCamera({moves: slowReveal, duration: 1.6}).status, '无法测量');
-  assert.equal(scoreCamera({moves: slowReveal, duration: 1.6, roles: [{t0: 0, t1: 2, role: 'reveal'}]}).status, '未通过');
-  assert.equal(scoreCamera({
-    moves: slowReveal, duration: 1.6,
-    roles: [{t0: 0, t1: 2, role: 'reveal', slowReason: '情绪慢镜，已写在镜头标注。'}],
-  }).status, '通过');
-  assert.equal(scoreCamera({moves: [{t0: 0, t1: 1.5, dur: 1.5, arcPx: 800, mean: 500, t80: 0.4}], duration: 1.5}).status, '通过');
+test('camera speed and duration references diagnose slow and fast moves without hard failure',()=>{
+  const move=(mean,t0=0,dur=.2,arc=100)=>({t0,t1:t0+dur,dur,arcPx:arc,mean,t80:dur*.4});
+  for(const mean of [200,357.999,358,800])assert.equal(scoreCamera({moves:[move(mean)],duration:1}).status,'诊断');
+  assert(scoreCamera({moves:[move(200)],duration:1}).reasons.some(r=>r.includes('中位均速')));
+  const long=scoreCamera({moves:[move(560,0,1.6,900)],duration:7});
+  assert.equal(long.status,'诊断');assert(long.reasons.length>=2);
+  assert.equal(actualCamera({moves:[move(400)],duration:1}).status,'无法测量');
+  assert.equal(scoreCamera({moves:[move(400,0,.2,80)],duration:1}).measured.largeCount,1);
+  assert.equal(scoreCamera({moves:[move(400,0,.2,79.999)],duration:1}).status,'无法测量');
+  assert.equal(long.visualAcceptance,'not-assessed');
 });
 
 test('linear pan of 80px is one large move', () => {
@@ -166,24 +150,24 @@ function anticipationSamples(prepDur, travel) {
   });
 }
 
-test('anticipation lasts 0.10–0.40s and a 200px move is the trigger', () => {
+test('anticipation durations are diagnostics and a 200px move selects a sample', () => {
   const beat = {id: 'a', subjectId: 'body', t0: 0.2, t1: 1.6};
-  assert.equal(scoreAnticipation(anticipationSamples(0.1, 200), beat).status, '通过');
-  assert.equal(scoreAnticipation(anticipationSamples(0.4, 200), beat).status, '通过');
-  assert.equal(scoreAnticipation(anticipationSamples(0.09, 200), beat).status, '未通过');
-  assert.equal(scoreAnticipation(anticipationSamples(0.41, 200), beat).status, '未通过');
-  assert.equal(scoreAnticipation(anticipationSamples(null, 200), beat).status, '未通过');
+  assert.equal(scoreAnticipation(anticipationSamples(0.1, 200), beat).status, '诊断');
+  assert.equal(scoreAnticipation(anticipationSamples(0.4, 200), beat).status, '诊断');
+  assert.equal(scoreAnticipation(anticipationSamples(0.09, 200), beat).status, '诊断');
+  assert.equal(scoreAnticipation(anticipationSamples(0.41, 200), beat).status, '诊断');
+  assert.equal(scoreAnticipation(anticipationSamples(null, 200), beat).status, '诊断');
   const under = scoreAnticipation(anticipationSamples(null, 199), beat);
-  assert.equal(under.status, '通过');
+  assert.equal(under.status, '诊断');
   assert.equal(under.measured.triggered, false);
 });
 
-test('stable content width of exactly 0.60 passes', () => {
+test('wide and narrow content are diagnostic, absent content remains unmeasured', () => {
   const frame = {objects: [obj('main', 0, {width: 1152, height: 400})], camera: cam()};
   const samples = [{t: 0, frame, camera: cam()}, {t: 0.5, frame, camera: cam()}];
-  assert.equal(scoreComposition(samples, {mainContentIds: ['main']}).status, '通过');
+  assert.equal(scoreComposition(samples, {mainContentIds: ['main']}).status, '诊断');
   const narrow = {objects: [obj('main', 0, {width: 1151, height: 400})], camera: cam()};
-  assert.equal(scoreComposition([{t: 0, frame: narrow, camera: cam()}, {t: 0.5, frame: narrow, camera: cam()}], {mainContentIds: ['main']}).status, '未通过');
+  assert.equal(scoreComposition([{t: 0, frame: narrow, camera: cam()}, {t: 0.5, frame: narrow, camera: cam()}], {mainContentIds: ['main']}).status, '诊断');
   assert.equal(scoreComposition(samples, {}).status, '无法测量');
 });
 
@@ -210,6 +194,7 @@ function passingSpec() {
   return {
     schemaVersion: 1, fps: 30, duration: 1.2, frameAt,
     motionCast: {
+      cameraRoles:[{t0:0,t1:1.2,role:"reveal"}],
       follows: [{id: 'f', subjectId: 'hero', attachmentId: 'tag', t0: 0.5, t1: 1.0, sourceFile: self, anchor}],
       anticipations: [{id: 'a', subjectId: 'body', t0: 0.1, t1: 1.0, sourceFile: self, anchor}],
       mainContentIds: ['main'],
@@ -235,4 +220,68 @@ test('numeric-only exit codes describe the five declared measurements, never vis
 test('missing CLI inputs return 1 and do not pretend to pass', async () => {
   assert.equal(await main(['--help']), 0);
   assert.equal(await main([]), 1);
+});
+
+function eventSamples(attachmentAt=3.1,{opacityOnly=false}={}) {
+  return Array.from({length:241},(_,i)=>{
+    const t=i/60;
+    return {t,frame:{objects:[
+      obj('hero',100+Math.max(0,t-1)*40),
+      obj('tag',400+(opacityOnly?0:Math.max(0,t-attachmentAt)*100),{y:180,opacity:opacityOnly&&t>=attachmentAt?.5:1}),
+    ]}};
+  });
+}
+test('contact at 3s starts the half-second window, not the shot or subject approach',()=>{
+  const beat={id:'contact',subjectId:'hero',attachmentId:'tag',trigger:{time:3,kind:'contact'}};
+  const r=scoreFollow(eventSamples(),beat);
+  assert.equal(r.status,'通过',JSON.stringify(r));
+  assert.equal(r.measured.triggerTime,3);
+  assert(r.measured.subjectOn<1.1 && r.measured.attachmentOn>3);
+  assert(r.measured.delaySec<.2 && r.measured.subjectDelaySec>2);
+  assert.equal(scoreFollow(eventSamples(3.7),beat).status,'未通过');
+  assert.equal(scoreFollow(eventSamples(2.8),beat).status,'未通过');
+  assert.equal(scoreFollow(eventSamples(3.1,{opacityOnly:true}),beat).status,'未通过');
+});
+test('legacy timing infers actual subject onset, including a delayed shot event',()=>{
+  const samples=followSamples(.1).map(s=>({...s,t:s.t+5}));
+  const r=scoreFollow(samples,{id:'legacy',subjectId:'hero',attachmentId:'tag'});
+  assert.equal(r.status,'通过');assert.equal(r.measured.triggerTime,5.2);
+  assert.equal(r.measured.triggerKind,'measured-subject-onset');
+});
+test('timeline relays preserve the actual production trigger and reject out-of-window times',()=>{
+  const spec={fps:60,viewport:{width:1920,height:1080},coverage:{objectIds:['hero','tag']},
+    actions:[{id:'approach',objectId:'hero',start:1,end:3},{id:'receive',objectId:'tag',start:3.1,end:3.5}],
+    relays:[{id:'contact',fromAction:'approach',toAction:'receive',motionGate:'follow',trigger:{time:3,kind:'contact'}}]};
+  const b=deriveMotionCast(spec).follows[0];
+  assert.deepEqual(b.trigger,{time:3,kind:'contact'});
+  assert.equal(scoreFollow(eventSamples(),b).status,'通过');
+  assert.equal(scoreFollow(eventSamples(),{...b,trigger:{time:20}}).status,'无法测量');
+});
+test('unsupported SVG or perspective visibility cannot turn a missing measurement into a diagnostic pass',()=>{
+  const samples=eventSamples();
+  for(const s of samples)s.frame.objects[1].observation={state:'unknown',reason:'raw SVG/perspective'};
+  assert.equal(actualFollow(samples,{id:'missing',subjectId:'hero',attachmentId:'tag',triggerTime:3}).status,'无法测量');
+  assert.equal(actualComposition(samples,{mainContentIds:['tag']}).status,'无法测量');
+  assert.equal(actualAnticipation(samples,{id:'a',subjectId:'tag',t0:0,t1:4}).status,'无法测量');
+  const spec=passingSpec();const render=spec.frameAt;
+  spec.frameAt=t=>({...render(t),camera:undefined,camera3d:{position:[0,0,1000]}});
+  const report=evaluateSpec(spec,{freeze:{duration:10,segments:[]}});
+  assert.equal(report.gates[1].status,'无法测量');assert.equal(report.exitCode,1);
+});
+test('report v2 aggregates diagnostics without aesthetic success and keeps hard failures and gaps',()=>{
+  const spec=passingSpec(),render=spec.frameAt;
+  spec.frameAt=t=>{
+    const f=render(t);f.camera=cam(Math.min(1,t)*100);
+    f.objects.find(o=>o.id==='main').width=400;
+    for(const o of f.objects)if(['hero','tag'].includes(o.id))o.screenFixed=true;
+    return f;
+  };
+  const report=evaluateSpec(spec,{freeze:{duration:10,segments:[]}});
+  assert.equal(report.reportVersion,2);assert.equal(report.exitCode,0,JSON.stringify(report.gates));
+  assert.deepEqual(report.gates.filter(g=>[2,4,5].includes(g.id)).map(g=>g.status),['诊断','诊断','诊断']);
+  assert.equal(report.visualAcceptance,'not-assessed');
+  assert(report.gates[1].reasons.length && report.gates[4].reasons.length);
+  assert.equal(evaluateSpec(spec,{freeze:{duration:10,segments:[{start:0,end:3,duration:3}]}}).exitCode,2);
+  spec.motionCast.mainContentIds=[];
+  assert.equal(evaluateSpec(spec,{freeze:{duration:10,segments:[]}}).exitCode,1);
 });

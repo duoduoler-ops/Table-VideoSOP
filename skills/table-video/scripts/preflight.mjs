@@ -16,7 +16,7 @@ await run(async()=>{
   try{exists=(await fs.stat(path.resolve(o.project))).isDirectory();}catch(e){if(e.code!=='ENOENT')throw e;}
   const [ffmpeg,ffprobe,powershell]=await Promise.all([
     probe('ffmpeg',['-version']),probe('ffprobe',['-version']),
-    probe(process.platform==='win32'?'C:\\Program Files\\PowerShell\\7\\pwsh.exe':'pwsh',['-NoProfile','-Command','$PSVersionTable.PSVersion.ToString()'])
+    probe(process.platform==='win32' && process.env.ProgramFiles ? path.join(process.env.ProgramFiles,'PowerShell','7','pwsh.exe') : 'pwsh',['-NoProfile','-Command','$PSVersionTable.PSVersion.ToString()'])
   ]);
   return {ok:true,readOnly:true,project:{path:path.resolve(o.project),exists},runtime:{node:{available:true,version:process.version},ffmpeg,ffprobe,powershell},
     capabilities:{planning:'available',stateTools:'available',rendering:'unverified',actualListening:'unverified',hostSkillDiscovery:'unverified',tts:'external-only',imageGeneration:'user-manual-only',videoGeneration:'user-manual-only'},

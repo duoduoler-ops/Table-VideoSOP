@@ -1,4 +1,4 @@
-<!-- GENERATED from docs/09_DESIGN建立与校验.md; edit package-skill.mjs transforms or upstream, then sync. -->
+<!-- GENERATED from docs/09_DESIGN建立与校验.md; edit the public source or the development workspace tools/package-skill.mjs, then regenerate. -->
 > Skill 模式：总控统一管理，分段可串行或并行；中央 state 与 QA 只由总控写入。源码示例须结合已有运行环境使用；文档与工具测试不代替实际成片验收。
 
 # DESIGN 的建立与校验
@@ -38,6 +38,8 @@ node scripts/save-reference-image.mjs --project "<项目目录>" --input "<实�
 JSON front matter 是本包选用的 YAML 子集。通用 token 使用 `fontSize`、`fontFamily` 等上游字段名；迁移已有规范时，将自定义字段映射到对应标准字段，再检查消费者。字体、间距、圆角采用带单位字符串；画布坐标、帧数和比例按 `x-video` 字段含义使用数值。
 
 正文尽量引用参数名而不是复制数值。派生给代码的 JSON 从同一 DESIGN 解析生成，不人工维护第二份设计参数。
+
+进入正式动态前，按[运动量化门禁](../../assets/templates/DESIGN.template.md#运动量化门禁)区分硬要求、诊断参照和本项目判据，不能只改正文而让脚本继续按旧线硬失败。空间镜头比例按[项目视觉基线](../../assets/templates/DESIGN.template.md#空间镜头基线)决定，改变整体风格先说明并看实际过程。执行者核实现与原尺寸输出，总控核判据和覆盖，用户在原节点看实际运动。
 
 ## 验证分三层
 

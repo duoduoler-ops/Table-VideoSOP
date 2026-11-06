@@ -36,7 +36,7 @@ test('container or camera transport cannot substitute for part-local follow moti
 test('a short stable narrow composition cannot be hidden by a wide median',()=>{
   const samples=Array.from({length:10},(_,i)=>({t:i/10,frame:{objects:[box('main',100,{width:i>=4&&i<=6?600:1400})]}}));
   const r=gates.scoreComposition(samples,{mainContentIds:['main']});
-  assert.equal(r.status,'未通过');assert(r.measured.narrowIntervals.length);
+  assert.equal(r.status,'诊断');assert(r.measured.narrowIntervals.length);
 });
 // fixture process evidence: no checkpoint/relay in this isolated process measurement
 const evidence={sourceFile:self,anchor:'fixture process evidence',reason:'A single internal process has no pass/hold/cut or handoff node.'};
@@ -117,7 +117,7 @@ test('hidden or offscreen main-content staging cannot suppress a stable narrow d
     const comp=moving=>Array.from({length:31},(_,i)=>{const t=i/30;return {t,frame:{objects:[box('main',100,{width:t<.5?1400:600}),box('staged',moving&&t>=.5?100+t*100:100,hidden)]}};});
     const still=gates.scoreComposition(comp(false),{mainContentIds:['main','staged']});
     const staging=gates.scoreComposition(comp(true),{mainContentIds:['main','staged']});
-    assert.equal(still.status,'未通过');assert.equal(staging.status,'未通过');
+    assert.equal(still.status,'诊断');assert.equal(staging.status,'诊断');
     assert.deepEqual(staging.measured.narrowIntervals,still.measured.narrowIntervals);
   }
 });
@@ -133,7 +133,7 @@ test('a timeline relay ignores unrelated attachment movement before its actual t
   assert.equal(gates.scoreFollow(sample(true),good).status,'通过');
 });
 test('source, adapter and video locks cover the first numeric sample through the final audit',()=>{
-  const output=process.env.MOTION_REPORT_DIR||path.resolve(path.dirname(self),'../../../reports/motion-coverage-tests');fs.mkdirSync(output,{recursive:true});
+  const output=process.env.MOTION_REPORT_DIR||(process.env.TABLE_VIDEO_TEST_OUTPUT&&path.join(process.env.TABLE_VIDEO_TEST_OUTPUT,'motion-coverage-tests'))||path.resolve(path.dirname(self),'../../../reports/motion-coverage-tests');fs.mkdirSync(output,{recursive:true});
   for(const kind of ['source','adapter','video']){
     const fixture=fs.mkdtempSync(path.join(output,'binding-')),files=Object.fromEntries(['source','adapter','video'].map(k=>[k,path.join(fixture,k+'.txt')]));
     for(const file of Object.values(files))fs.writeFileSync(file,'old-version');

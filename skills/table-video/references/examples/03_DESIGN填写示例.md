@@ -250,7 +250,7 @@
 }
 ---
 
-<!-- GENERATED from examples/03_DESIGN填写示例.md; edit package-skill.mjs transforms or upstream, then sync. -->
+<!-- GENERATED from examples/03_DESIGN填写示例.md; edit the public source or the development workspace tools/package-skill.mjs, then regenerate. -->
 > Skill 模式：总控统一管理，分段可串行或并行；中央 state 与 QA 只由总控写入。源码示例须结合已有运行环境使用；文档与工具测试不代替实际成片验收。
 
 # DESIGN 参数与正文填写示例

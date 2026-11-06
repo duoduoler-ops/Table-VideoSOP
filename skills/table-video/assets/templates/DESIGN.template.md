@@ -219,18 +219,18 @@
           "trail": 7,
           "receiver": 7
         },
-        "scope": "B3 手感参照，不是门禁。通过线见 motion.gates。改帧数时保持先后和比例。当前项目效果待实际片段验证。"
+        "scope": "B3 手感参照；motion.gates 区分硬要求与诊断。改帧数按实际因果和观看任务重排，效果待实际片段验证。"
       },
       "gates": {
-        "source": "第五期成片与 D04 最慢段实测，2026-10-27 用户决定升为采用 table-video 的项目的默认可覆盖值。数值权威在系列根目录 DESIGN.md「运动量化门禁」；覆盖须写入本期 DESIGN 并经用户确认。知识库不复制这些数。",
+        "source": "本项目 DESIGN 记录硬要求与观看判据；第 1、3 项保留硬要求，第 2、4、5 项数值只是历史诊断参照，不能自动判失败。",
         "preview": {"width": 1280, "height": 720, "fps": 30},
         "freeze": {"noiseDb": -55, "minDurationSec": 0.75, "ratioMax": 0.2, "segmentMaxSec": 2, "ep05FullRatio": 0.14, "ep05BodyRatio": 0.15, "ep05LongestSec": 1.93},
-        "camera": {"refWidth": 1920, "refHeight": 1080, "largeArcPx": 80, "minMeanPxPerSec": 358, "judgeBy": "大段中位数，单次不单独判失败但逐次列出", "revealMaxSec": 1.5, "holdMaxSec": 4, "referenceNotThreshold": {"durationSec": 0.7, "t80Sec": 0.43, "meanPxPerSec": 726, "holdSec": 1.15}},
-        "follow": {"windowSec": 0.5, "minFrames": 3, "targetFrames": "6–9", "clockFps": 60, "simultaneousBelowFrames": 3},
-        "anticipation": {"minFrames": 6, "maxFrames": 24, "clockFps": 60, "displacementPx": 200, "ampRefPx": 8},
+        "camera": {"refWidth": 1920, "refHeight": 1080, "largeArcPx": 80, "minMeanPxPerSec": 358, "judgeBy": "诊断参照；按本段揭示、阅读和交接判据人工核实", "revealMaxSec": 1.5, "holdMaxSec": 4, "referenceNotThreshold": {"durationSec": 0.7, "t80Sec": 0.43, "meanPxPerSec": 726, "holdSec": 1.15}},
+        "follow": {"timeOrigin": "actual-trigger-event", "windowSec": 0.5, "minFrames": 3, "targetFrames": "6–9", "clockFps": 60, "simultaneousBelowFrames": 3},
+        "anticipation": {"mode": "diagnostic", "minFrames": 6, "maxFrames": 24, "clockFps": 60, "displacementPx": 200, "ampRefPx": 8},
         "deformRef": {"compression": 0.07, "stretch": 0.095, "contactCompression": 0.09, "singleRecovery": 0.025},
-        "composition": {"contentWidthMin": 0.6},
-        "rigid": "只免形变，不免预备、附属件响应和接收反馈"
+        "composition": {"mode": "diagnostic", "contentWidthMin": 0.6, "criterion": "本段实际尺寸的文字、关系与比较可辨"},
+        "rigid": "允许同步，须有实际触发对应的接收反馈；不为满足数量虚构反向预备"
       }
     },
     "componentBehavior": {
@@ -252,7 +252,7 @@
 }
 ---
 
-<!-- GENERATED from templates/DESIGN.template.md; edit package-skill.mjs transforms or upstream, then sync. -->
+<!-- GENERATED from templates/DESIGN.template.md; edit the public source or the development workspace tools/package-skill.mjs, then regenerate. -->
 > Skill 模式：总控统一管理，分段可串行或并行；中央 state 与 QA 只由总控写入。源码示例须结合已有运行环境使用；文档与工具测试不代替实际成片验收。
 
 # 系列视觉与运动规范
@@ -342,7 +342,7 @@
 
 **不准用一条曲线包办所有动作（含镜头）；曲线合规不等于利落；空值不等于禁用，进入动画前必须有值，并写明来源。** 只对实际采用的动作填执行值；未采用项目注明不适用，不能以空值偷换“禁止预备／跟随”。具体源码见[B3 完整过程](../motion/ep05-d06-task-relay/src/timeline.cjs)与[ep07 相机](../motion/ep07-entry-follow-v8/src/camera.cjs)，制作前结合对象、路程、真实配音和阅读预算选择，不把例中镜头旧曲线继承成普通默认。
 
-B3 的 fps、预备／传递／长距／停稳帧数、后撤、倾斜、压缩／拉伸／一次回正、尾标与跟随延迟，统一维护在上方 `motion.calibration`，不另存一份执行数值。**B3 校准是手感参照，不是门禁硬值；交审通过线认 `motion.gates`。改帧数时保持先后和比例。** 换 fps 先按秒换算，当前项目尚未验证的动态证据保持待验，不能把来源参照登记成本片实测。
+B3 的 fps、预备／传递／长距／停稳帧数、后撤、倾斜、压缩／拉伸／一次回正、尾标与跟随延迟，统一维护在上方 `motion.calibration`，不另存一份执行数值。**B3 校准是手感参照；`motion.gates` 区分硬要求、诊断参照和本段观看判据。改帧数时核真实因果与重量，不机械保持比例。** 换 fps 先按秒换算，当前项目尚未验证的动态证据保持待验，不能把来源参照登记成本片实测。
 
 Skill 没有默认独立动态测试；静态确认后写 DESIGN 时使用这些默认候选并注明来源，在实际片段核验。测试与实际片段产生后，将采用范围、参数来源和当前证据写在既有 DESIGN；不另设逐动作审批。
 
@@ -370,6 +370,18 @@ Skill 没有默认独立动态测试；静态确认后写 DESIGN 时使用这些
 固定项、变量和已确认单段例外写入 `x-video` 相应字段。例外包含版本、范围和确认依据，不自动升级为系列规则。静态确认不扩展为运动确认，参数 lint 通过不代表观众看懂。
 
 采用前核对：必需 token 完整、引用可解析、正文与参数一致、组件实际使用已定义值、正确区分呈现层。沿用镜头剧本与 QA 中的对应条目，将主变化、近读和交接承诺定位到实际实现与帧／时段；静态图检查字号／构图／安全区，动态样本检查因果／接触／遮挡／跟随／阅读和边界。配置写了曲线而实现未使用、实际取景没有兑现承诺时，先修已知失败；实际未看的观感项仍写未验证。
+
+## 运动量化门禁
+
+分段交审前执行者按本段剧本在已有标注写明揭示、阅读、比较与接力的可辨条件，总控核实际观看任务和缺陷闭合。第 1 项静止、第 3 项因果响应保留硬要求；第 2 项速度、第 4 项预备与重量、第 5 项占幅属于诊断参照。取数与返回格式见[工具说明](../../references/motion-check-method.md#运动量化门禁)，工具不能替本项目决定观看判据。
+
+静止采用 motion.gates.freeze：累计占比超过上限或单段达到上限且无有效例外即未通过；例外只免对应单段，不抵扣累计占比，不拉长动作刷统计。部件响应从实际启动、接触、揭示或交接事件起算，标明触发、主体与附属件的实际开始；只改透明度不算，刚性同步仍需接收反馈。没有相关部件按真实结构说明不适用，不凭空造件。
+
+速度、预备和构图数值只帮助定位疑点，项目判据用实际过程和原尺寸阅读验证。正例：慢揭示看清关系、短促下落表达重量、远景留白后近读证据；反例：为达到速度、预备帧数或占幅线破坏阅读和重量。测不到时从实际绘制共用的变换、路径和触发数据补测并对照编码像素；仍测不到记录缺口，不能算通过。执行者核原尺寸及字幕遮挡，总控核覆盖，用户 1× 看推进与节奏；已知缺陷先修，未看听方面保留未验证。
+
+## 空间镜头基线
+
+空间镜头的比例由项目自己的视觉基线决定，改变整体风格要先说明并看实际过程样片。设计者在已有标注写空间适配、观看收益、阅读或比较代价与素材条件；总控核跨段安排。正例：用层级帮助解释依赖；反例：因有现成组件就全片套空间。已确认且条件未变的范围不重复审批。
 
 ## 运动参数采用记录
 

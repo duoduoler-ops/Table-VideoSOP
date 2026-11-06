@@ -359,15 +359,18 @@ function overviewConsent(view,{scoped=false}={}) {
 }
 function coveredProductionTargets(view,scopes,{rejectUnmapped=false,scoped=false}={}) {
   const blockers=[], consent=overviewConsent(view,{scoped});
-  if(!consent?.coverage?.length)return {targets:[],blockers:['正式制作缺少当前采用的视觉总览及明确执行范围']};
-  const selected=consent.coverage.map(c=>c.objectId).filter(id=>id!==view.adopted.visualOverview.objectId &&
-    VISUAL_TARGET_KINDS.has(view.state.artifacts[id]?.kind));
+  // Explicit static reviews select execution targets even before approval; pending
+  // or revoked authorization must block, never vanish from the selected batch.
+  const direct=view.state.pendingReviews.filter(r=>r.aspect==='static' && r.allows.includes('batch-animate')).map(r=>r.objectId);
+  const selected=[...new Set([...direct,...(consent?.coverage??[]).map(c=>c.objectId)])].filter(id=>
+    id!==view.adopted.visualOverview?.objectId && VISUAL_TARGET_KINDS.has(view.state.artifacts[id]?.kind) &&
+    view.state.artifacts[id]?.status!=='superseded');
   const selectedAncestors=new Map(selected.map(id=>[id,explicitAncestors(view.state,id)]));
   const targets=selected.filter(id=>scopes.some(scope=>selectedAncestors.get(id).has(scope)));
   for(const scope of scopes)if(!targets.some(id=>selectedAncestors.get(id).has(scope)))
-    blockers.push('正式制作范围缺少已由总览覆盖且有实际制作依赖的 static/pilot/video 目标：'+scope+'；config 概述或工程须绑定已有可视证据');
+    blockers.push('正式制作范围缺少明确选定且有实际制作依赖的 static/pilot/video 目标：'+scope+'；须为实际目标建立 static/batch-animate 审阅');
   if(rejectUnmapped)for(const id of selected)if(!targets.includes(id))
-    blockers.push('总览执行目标未关联任何当前分段：'+id+'；参考旧片不应放入执行 covers');
+    blockers.push('本批执行目标未关联任何当前分段：'+id+'；参考旧片不应登记为制作目标');
   return {targets:[...new Set(targets)],blockers};
 }
 function checkAction(view, action, scope) {
@@ -405,10 +408,11 @@ function checkAction(view, action, scope) {
     const consent = overviewConsent(view,{scoped:true});
     const ancestors = explicitAncestors(state,scope);
     const coveredTargets = [...new Set([scope,...state.segments.filter(s=>ancestors.has(s.objectId)).map(s=>s.objectId)])];
-    if (!consent?.coverage?.length ||
+    const direct=approval('static','batch-animate');
+    if (!direct && (!consent?.coverage?.length ||
       !coveredTargets.every(target=>artifacts[target]?.validity==='current' &&
-        consent.coverage.some(c=>c.objectId===target && c.effectiveHash===artifacts[target].effectiveHash)))
-      block('正式批量动画缺少有效采用的视觉总览本体或当前目标范围确认；须核对本次采用确认及相关覆盖摘要');
+        consent.coverage.some(c=>c.objectId===target && c.effectiveHash===artifacts[target].effectiveHash))))
+      block('正式批量动画缺少当前目标 static/batch-animate 的有效授权；准备或局部制作不等于本批放行');
   }
   if (['animate','picture-lock','final'].includes(action)) {
     for (const failure of effectFailures(view,scope)) block('当前效果检查未通过：' + failure.objectId + '/' + failure.aspect);
@@ -425,7 +429,7 @@ function checkAction(view, action, scope) {
     if (!storyboards.some(objectId => approval('storyboard', 'design', false, objectId))) block('缺少当前范围的文字镜头剧本确认／委托');
   } else {
     if (action === 'animate' || action === 'pilot') {
-      if (!approval('static', action)) block('缺少当前范围静态确认及对应制作授权');
+      if (!approval('static', action) && !(batch && approval('static','batch-animate'))) block('缺少当前范围静态确认及对应制作授权');
       if (action === 'animate') {
         // Each declared upstream risk needs evidence from its applicable pilot.
         const upstream = upstreamObjects(view,scope);
@@ -569,7 +573,9 @@ export async function apply(root, request) {
         need(Array.isArray(p.allows)&&p.allows.length>0&&p.allows.every(a=>ACTIONS.includes(a)),'INVALID_INPUT','Review allows must name supported actions');
         need(reviewKindMatches(state,p),'STORYBOARD_REQUIRED','Storyboard review and design permission require an actual kind=storyboard object, not a segment proposal');
         let coverage;
-        if (p.covers !== undefined || p.aspect==='visual-overview' || p.allows.includes('batch-animate')) {
+        if (p.allows.includes('batch-animate') && p.aspect!=='visual-overview')
+          need(p.aspect==='static' && VISUAL_TARGET_KINDS.has(object(p.objectId).kind),'BATCH_TARGET','Batch authorization requires an actual static/pilot/video target and static aspect');
+        if (p.covers !== undefined || p.aspect==='visual-overview') {
           need(object(p.objectId).kind==='static' && p.aspect==='visual-overview' && Array.isArray(p.covers) && p.covers.length>0 && new Set(p.covers).size===p.covers.length,
             'OVERVIEW_SCOPE','Visual overview review requires a static artifact and unique covers object IDs');
           coverage = p.covers.map(objectId=>({objectId,effectiveHash:current(objectId).effectiveHash}));

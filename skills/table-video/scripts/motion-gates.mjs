@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Motion gates 1–5. Numbers default to the ep05 measurement confirmed 2026-10-27.
+// Gates 1/3 are constraints; 2/4/5 are diagnostic references, never aesthetic pass lines.
 // Camera arc uses the same screen projection as the ep05 census:
 //   [960+(x-cx)*z, 540+(y-cy)*z] on a 1920×1080 reference, independent of preview size.
 // A constant vertical origin does not change arc length. frameAt().camera is the only pose source.
@@ -263,7 +263,7 @@ export function scoreCamera({moves, duration, gates = DEFAULT_GATES, roles = nul
   const holds = [];
   const ordered = [...moves].sort((a, b) => a.t0 - b.t0 || a.t1 - b.t1);
 
-  // 按大段（窗口）中位数判，不按单次判
+  // Historical window medians locate review candidates; they do not fail a shot.
   if (windowStats) {
     for (const w of windowStats) {
       if (w.largeCount > 0 && w.medianMeanPxPerSec != null && w.medianMeanPxPerSec < gates.minMeanPxPerSec - 1e-6) {
@@ -327,14 +327,14 @@ export function scoreCamera({moves, duration, gates = DEFAULT_GATES, roles = nul
     infoSlow: infoSlow.map(m => ({t0: round(m.t0, 3), t1: round(m.t1, 3), mean: round(m.mean, 1), arcPx: round(m.arcPx, 1)})),
     holds: holds.map(h => ({t0: round(h.t0, 3), gap: round(h.gap, 3)})),
   };
-  let status = '通过';
-  if (reasons.length) {
-    if (holds.length || longReveal.some(m => m.kind === 'reveal' || m.kind === 'reframe') || reasons.some(r => r.includes('中位均速'))) status = '未通过';
-    else if (unclassified) status = '无法测量';
-  }
+  const missingRoles = large.filter(m => !roleOf(m, roles));
+  if (missingRoles.length && !unclassified) reasons.push('有镜头移动但缺少职责声明，须补本段观看依据。');
+  const status = unclassified || missingRoles.length ? '无法测量' : '诊断';
   return {
     status,
-    reasons: status === '通过' ? [] : reasons,
+    judgment: 'diagnostic',
+    visualAcceptance: 'not-assessed',
+    reasons,
     measured,
     reference: {
       meanPxPerSec: EP05_REFERENCE.cameraMeanPxPerSec,
@@ -383,6 +383,14 @@ export function scoreFollow(samples, beat, gates = DEFAULT_GATES) {
   let subjectOn = null;
   let attachOn = null;
   let receiveOn = null;
+  const declaredTrigger = beat.trigger?.time ?? beat.triggerTime;
+  if (declaredTrigger != null && (!Number.isFinite(declaredTrigger) || declaredTrigger < samples[0].t - 1e-9 || declaredTrigger > samples.at(-1).t + 1e-9))
+    return {id:beat.id,...scope,status:'无法测量',reasons:['实际触发时间无效或不在采样范围内。']};
+  const unresolved = samples.some(s => [beat.subjectId,beat.attachmentId].some(id => {
+    const object=objectAt(s.frame,id);
+    return !object || visibleState(object,beat.viewport).state==='unknown';
+  }));
+  if(unresolved)return {id:beat.id,...scope,status:'无法测量',reasons:['主体或部件的实际绘制可见性缺测；须从同源变换、路径和触发数据补测并核像素。']};
   const withinAction = (range, i) => !range || (samples[i - 1].t >= range[0] - 1e-9 && samples[i].t <= range[1] + 1e-9);
   for (let i = 1; i < samples.length; i++) {
     const s0 = objectAt(samples[i - 1].frame, beat.subjectId);
@@ -397,21 +405,25 @@ export function scoreFollow(samples, beat, gates = DEFAULT_GATES) {
     const subjectAction = withinAction(beat.timelineRelay?.fromRange, i);
     const attachmentAction = withinAction(beat.timelineRelay?.toRange, i);
     if (subjectOn == null && subjectVisible && subjectAction && (sd.pos || sd.proc)) subjectOn = samples[i].t;
-    if (subjectOn != null && attachOn == null && attachmentVisible && attachmentAction && samples[i].t + 1e-9 >= subjectOn && ad.causal) attachOn = samples[i].t;
+    if (attachOn == null && attachmentVisible && attachmentAction && ad.causal) attachOn = samples[i].t;
     if (attachOn != null && receiveOn == null && attachmentVisible && attachmentAction && samples[i].t > attachOn + (gates.simultaneousFrames / fps) && (ad.proc || ad.scale || ad.rot)) receiveOn = samples[i].t;
   }
   if (subjectOn == null) return {id: beat.id, ...scope, status: '无法测量', reasons: [`${beat.subjectId} 在窗口内没有可见的位置或揭示变化。`]};
+  const triggerTime = declaredTrigger ?? subjectOn;
+  const triggerKind = beat.trigger?.kind ?? (declaredTrigger == null ? 'measured-subject-onset' : 'declared-production-event');
+  const measured = {triggerTime:round(triggerTime,6),triggerKind,subjectOn:round(subjectOn,3),attachmentOn:round(attachOn,3),rigid:!!beat.rigid};
   const reasons = [];
-  if (attachOn == null || attachOn - subjectOn > gates.followWindowSec + 1e-6) {
-    reasons.push(`${beat.attachmentId} 没有在主体启动后 ${gates.followWindowSec} 秒内发生位置、遮罩或形变。`);
-    return {id: beat.id, ...scope, status: '未通过', reasons, measured: {subjectOn: round(subjectOn, 3)}};
+  if (attachOn == null || attachOn - triggerTime > gates.followWindowSec + 1e-6) {
+    reasons.push(`${beat.attachmentId} 没有在实际触发事件后 ${gates.followWindowSec} 秒内发生位置、遮罩或形变。`);
+    return {id: beat.id, ...scope, status: '未通过', reasons, measured};
   }
-  const delay = attachOn - subjectOn;
+  const delay = attachOn - triggerTime;
   const delayFrames = framesOf(delay, fps);
-  const measured = {subjectOn: round(subjectOn, 3), attachmentOn: round(attachOn, 3), delaySec: round(delay, 4), delayFrames: round(delayFrames, 2), rigid: !!beat.rigid};
+  Object.assign(measured,{delaySec:round(delay,4),delayFrames:round(delayFrames,2),subjectDelaySec:round(attachOn-subjectOn,4)});
+  if(delay < -1e-6)reasons.push('附属件在实际触发事件之前响应，因果顺序不成立。');
   if (beat.rigid) {
     // 测到的是后续遮罩/形变/旋转，是否真是接收反馈仍须看实际画面。
-    if (receiveOn == null) reasons.push('刚性组同步或近同步启动，但没有随后的接收反馈（遮罩、形变或旋转）。');
+    if (receiveOn == null || receiveOn < triggerTime || receiveOn-triggerTime > gates.followWindowSec + 1e-6) reasons.push('刚性组缺少实际触发窗口内的接收反馈（遮罩、形变或旋转）。');
     else measured.receiveOn = round(receiveOn, 3);
   } else if (delayFrames < gates.simultaneousFrames - 1e-6) {
     reasons.push(`错开 ${round(delayFrames, 2)} 帧 < ${gates.simultaneousFrames} 帧，视为同时。`);
@@ -443,6 +455,8 @@ export function scoreAnticipation(samples, beat, gates = DEFAULT_GATES) {
   const maxSec = gates.anticipationMaxFrames / fps;
   const inWindow = samples.filter(s => s.t >= beat.t0 - maxSec - 1e-9 && s.t <= beat.t1 + 1e-9);
   if (inWindow.length < 4) return {id: beat.id, status: '无法测量', reasons: ['预备窗口采样不足。']};
+  if(inWindow.some(s=>!objectAt(s.frame,beat.subjectId)||visibleState(objectAt(s.frame,beat.subjectId),beat.viewport).state==='unknown'))
+    return {id:beat.id,status:'无法测量',reasons:['预备窗口包含缺失或未决绘制，诊断不能视为通过。']};
   const steps = [];
   let visiblePairs = 0;
   for (let i = 1; i < inWindow.length; i++) {
@@ -476,7 +490,7 @@ export function scoreAnticipation(samples, beat, gates = DEFAULT_GATES) {
     ? (runs.find(r => r.path + 1e-6 >= gates.anticipationDisplacementPx) ?? runs[runs.length - 1] ?? null)
     : runs.find(r => r.path + 1e-6 >= gates.anticipationDisplacementPx) ?? null;
   if (!main) {
-    return {id: beat.id, status: beat.reveal ? '无法测量' : '通过', reasons: beat.reveal ? ['声明了揭示，但没有采到主体位移。'] : [], measured: {triggered: false, travelPx: round(Math.max(0, ...runs.map(r => r.path), 0), 1), note: '未达到主体位移门槛，也不是已声明的主要物件揭示。'}};
+    return {id: beat.id, status: beat.reveal ? '无法测量' : '诊断', judgment:'diagnostic', reasons: beat.reveal ? ['声明了揭示，但没有采到主体位移。'] : [], measured: {triggered: false, travelPx: round(Math.max(0, ...runs.map(r => r.path), 0), 1), note: '未达到历史位移取样参照；重量仍按实际过程判断。'}};
   }
   const travel = main.path;
   const reasons = [];
@@ -497,7 +511,7 @@ export function scoreAnticipation(samples, beat, gates = DEFAULT_GATES) {
     reasons.push(`主动作前 ${gates.anticipationMinFrames}–${gates.anticipationMaxFrames} 帧没有反向预备或蓄力。`);
   }
   const measured = {triggered: true, travelPx: round(travel, 1), mainStart: round(main.t0, 3), anticipationSec: prepDur == null ? null : round(prepDur, 3), anticipationAmpPx: round(amp, 1), ampRefPx: gates.anticipationAmpRefPx, rigid: !!beat.rigid};
-  return {id: beat.id, status: reasons.length ? '未通过' : '通过', reasons, measured};
+  return {id: beat.id, status: '诊断', judgment:'diagnostic', visualAcceptance:'not-assessed', reasons, measured};
 }
 
 function visibleContent(o, gates) {
@@ -567,7 +581,9 @@ export function scoreComposition(samples, cast, gates = DEFAULT_GATES) {
   const reasons = [];
   for (const interval of narrowIntervals) reasons.push(`稳定展示 ${round(interval.start, 3)}–${round(interval.end, 3)} 的主要内容外接框宽度最低 ${(interval.minWidthRatio * 100).toFixed(1)}% < ${(gates.contentWidthMin * 100).toFixed(0)}%，不能由全段中位数抵消。`);
   return {
-    status: unresolved.length ? '无法测量' : reasons.length ? '未通过' : '通过',
+    status: unresolved.length ? '无法测量' : '诊断',
+    judgment: 'diagnostic',
+    visualAcceptance: 'not-assessed',
     reasons: [...reasons,...(unresolved.length?['绘制可见性未决：'+unresolved.join(', ')]:[])],
     measured: {stableFrames: ratios.length, medianWidthRatio: round(med, 3), minWidthRatio: round(worst, 3), narrowIntervals, unresolvedVisibilityObjectIds:unresolved,basis: 'Stable confirmed-painted content width only; spacing, legibility and semantic composition not assessed'},
     reference: {minWidthRatio: gates.contentWidthMin},
@@ -608,6 +624,7 @@ function mergeGate(parts) {
   if (!parts.length) return {status: '无法测量', reasons: ['没有可计算的条目。'], measured: {items: []}};
   if (parts.some(p => p.status === '未通过')) return {status: '未通过', reasons: parts.flatMap(p => p.reasons ?? []), measured: {items: parts}};
   if (parts.some(p => p.status === '无法测量')) return {status: '无法测量', reasons: parts.flatMap(p => p.reasons ?? []), measured: {items: parts}};
+  if (parts.some(p => p.status === '诊断')) return {status:'诊断',judgment:'diagnostic',reasons:parts.flatMap(p=>p.reasons??[]),measured:{items:parts}};
   return {status: '通过', reasons: [], measured: {items: parts}};
 }
 
@@ -621,6 +638,7 @@ export function deriveMotionCast(spec) {
     const valid = !!from && !!to && from.objectId !== to.objectId && (spec.coverage?.objectIds ?? []).includes(from.objectId) && (spec.coverage?.objectIds ?? []).includes(to.objectId);
     return {id: r.id, subjectId: from?.objectId, attachmentId: to?.objectId, t0: from && to ? Math.max(0, Math.min(from.start, to.start) - 1 / spec.fps) : 0,
       t1: from && to ? Math.max(from.end, to.end) : 0, rigid: r.motionGate === 'rigid-feedback', timelineRelay: {fromAction: r.fromAction, toAction: r.toAction, fromRange: from ? [from.start, from.end] : null, toRange: to ? [to.start, to.end] : null}, viewport: spec.viewport,
+      ...(r.trigger ? {trigger:r.trigger} : r.triggerTime != null ? {triggerTime:r.triggerTime} : {}),
       valid, anchorReason: valid ? null : '接力没有指向两个不同且已覆盖的生产动作对象。'};
   });
   const anticipations = actions.filter(a => a.motionGate === 'anticipation').map(a => ({id: a.id, subjectId: a.objectId, t0: a.start, t1: a.end, reveal: a.kind === 'reveal', rigid: a.rigid === true, timelineAction: a.id, viewport: spec.viewport,
@@ -741,9 +759,11 @@ export function evaluateSpec(spec, {freeze, gates = DEFAULT_GATES, baseDir = pro
     {id: 4, name: '触发动作的预备时长', ...gate4},
     {id: 5, name: '稳定主内容外接框宽度', ...gate5},
   ];
-  const exitCode = gatesOut.some(g => g.status === '未通过') ? 2 : gatesOut.some(g => g.status !== '通过') ? 1 : 0;
+  for(const g of gatesOut)g.judgment=[1,3].includes(g.id)?'hard-gate':'diagnostic';
+  const exitCode = gatesOut.some(g => g.status === '未通过') ? 2 : gatesOut.some(g => !['通过','诊断','不适用'].includes(g.status)) ? 1 : 0;
   return {
-    status: exitCode === 0 ? '已测数值满足约束' : exitCode === 2 ? '已测数值未满足约束' : '数值测量不完整',
+    reportVersion: 2,
+    status: exitCode === 0 ? '硬要求已测，诊断待人工判断' : exitCode === 2 ? '硬要求未满足' : '数值测量不完整',
     exitCode,
     visualAcceptance: 'not-assessed',
     actionCoverage,
@@ -828,7 +848,7 @@ export function evaluateMotion(spec, {freeze, gates = DEFAULT_GATES, baseDir = p
     result.coverage.limitations = ['Legacy motionCast checks only its selected IDs and windows.', 'Internal parts, script promises and production-source association are not covered.'];
   }
   try { checkInputLocks(); } catch (err) { return rejectChangedInputs(err); }
-  result.status = result.exitCode === 0 ? '已测约束无异常' : result.exitCode === 2 ? '发现约束失败或待核问题' : '测量不完整';
+  result.status = result.exitCode === 0 ? '硬要求已测，诊断待人工判断' : result.exitCode === 2 ? '发现硬要求失败或工程待核问题' : '测量不完整';
   return result;
 }
 
@@ -867,7 +887,8 @@ function readGates(file) {
 }
 
 const HELP = `node scripts/motion-gates.mjs --adapter <adapter.mjs|cjs> --video <preview.mp4> --out <report.json> [--gates <overrides.json>] [--freeze-log <ffmpeg.txt>]
-退出码：0 已声明范围的已测约束无异常；2 数值失败或工程审计待核问题；1 输入或覆盖不完整。都不是视觉验收。
+报告 reportVersion:2。第1/3项保留硬要求，第2/4/5项返回诊断而非数值通过/失败；缺测仍无法测量。
+退出码：0 硬要求已测且诊断数据完整，待人工判断；2 硬要求失败或工程审计待核问题；1 输入或覆盖不完整。都不是视觉验收。
 优先复用 actions[].motionGate / relays[].motionGate 与 coverage.mainContentIds。完整生产适配器同步运行 motion-audit 并绑定源码/成片 SHA-256；旧 motionCast 只保留有限数值检测。
 --freeze-log 使用已经跑完的 freezedetect 日志，不再解码该视频；日志与视频的来源关联未验证，会明确记录。`;
 
