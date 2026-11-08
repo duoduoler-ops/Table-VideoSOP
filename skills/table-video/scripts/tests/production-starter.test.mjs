@@ -56,20 +56,22 @@ test('depth is real projection and camera takes a curved XYZ route',()=>{
   assert.ok(new Set(depths).size>=3);
 });
 test('parts retire with their owner, and no independent text erasure is used',()=>{
-  const scene=createScene();
+  const scene=createScene(),[r0,r1]=scene.input.windows.retire,late=r1-.1;
   for(const id of ['kit','kit.part.a','inspection','inspection.title','tray.accepted','tray.accepted.title']){
-    const a=get(scene,11.5,id).worldGeometry.center,b=get(scene,12.4,id).worldGeometry.center;
-    assert.ok(Math.abs((b[1]-a[1])-scene.stateAt(12.4).retiredOffset[1])<1e-6,id);
+    const a=get(scene,r0,id).worldGeometry.center,b=get(scene,late,id).worldGeometry.center;
+    assert.ok(Math.abs((b[1]-a[1])-scene.stateAt(late).retiredOffset[1])<1e-6,id);
   }
-  assert.ok(!scene.render(12).html.includes('clip-path'));
+  assert.ok(!scene.render(r1-.2).html.includes('clip-path'));
   const finalFrame=scene.render((Math.ceil(scene.config.duration*scene.config.fps)-1)/scene.config.fps);
   assert.deepEqual(finalFrame.objects.filter(o=>o.width>0&&o.height>0&&o.x+o.width>0&&o.y+o.height>0&&o.x<scene.config.width&&o.y<scene.config.height).map(o=>o.id),[]);
 });
 test('tool and waste remain at inspection when the workpiece leaves',()=>{
-  const scene=createScene();
-  assert.deepEqual(get(scene,7.1,'kit.offcut.b').worldGeometry.center,get(scene,10,'kit.offcut.b').worldGeometry.center);
-  assert.deepEqual(get(scene,7.1,'kit.cutter').worldGeometry.center,get(scene,10,'kit.cutter').worldGeometry.center);
-  assert.notDeepEqual(get(scene,7.1,'kit').worldGeometry.center,get(scene,10,'kit').worldGeometry.center);
+  // Sample after the offcut has landed and settled, while the carrier is travelling, and again before retirement.
+  const scene=createScene(),w=scene.input.windows,leaving=w.repair[1]+.35+.55,arrived=w.retire[0]-.05;
+  assert.ok(leaving>w.dispatch[0]&&leaving<w.dispatch[1]);
+  assert.deepEqual(get(scene,leaving,'kit.offcut.b').worldGeometry.center,get(scene,arrived,'kit.offcut.b').worldGeometry.center);
+  assert.deepEqual(get(scene,leaving,'kit.cutter').worldGeometry.center,get(scene,arrived,'kit.cutter').worldGeometry.center);
+  assert.notDeepEqual(get(scene,leaving,'kit').worldGeometry.center,get(scene,arrived,'kit').worldGeometry.center);
 });
 test('foreground operating tool is actually painted after the tilted workpiece',()=>{
   const frame=createScene().render(5);
@@ -89,9 +91,10 @@ test('repair framing exposes the condition, active edge and tool at close readin
   assert.ok(get(scene,5,'kit.offcut.b').localGeometry.y>get(scene,4.25,'kit.offcut.b').localGeometry.y);
 });
 test('close-reading handoff starts from the current projection without a framing jump',()=>{
-  const scene=createScene(),a=scene.cameraAt(7.1-1e-6),b=scene.cameraAt(7.1);
-  assert.ok(Math.hypot(...a.position.map((v,i)=>v-b.position[i]))<1e-6);
-  const c=scene.cameraAt(7.4-1e-6),d=scene.cameraAt(7.4+1e-6);
+  // The carrier is already moving (anticipation release), so compare across 1 microsecond: a jump would be units, not 1e-3.
+  const scene=createScene(),d0=scene.input.windows.dispatch[0],a=scene.cameraAt(d0-1e-6),b=scene.cameraAt(d0);
+  assert.ok(Math.hypot(...a.position.map((v,i)=>v-b.position[i]))<1e-3);
+  const c=scene.cameraAt(d0+.3-1e-6),d=scene.cameraAt(d0+.3+1e-6);
   assert.ok(Math.hypot(...c.position.map((v,i)=>v-d.position[i]))<.01);
 });
 test('receiving sockets and waste tray share the delivered objects’ actual anchors',()=>{
@@ -113,4 +116,29 @@ test('invalid semantic input or contradictory adopted event windows fail explici
   assert.throws(()=>createScene({parts:[{id:'a',length:10}]}),/three/);
   assert.throws(()=>createScene({limit:-1}),/limit/);
   assert.throws(()=>createScene({windows:{scan:[1,2]}}),/causality/);
+});
+
+test('default stages hand off with overlap instead of stop-then-start',()=>{
+  const w=createScene().input.windows;
+  for(const [a,b] of [['transport','scan'],['scan','repair'],['repair','dispatch'],['dispatch','overview']])
+    assert.ok(w[b][0]<w[a][1]+.35,`${b} should start while ${a} is still settling`);
+  // A stage may not start before its cause begins.
+  assert.throws(()=>createScene({windows:{repair:[2.5,4.6]}}),/causality/);
+});
+test('camera approach uses the front-loaded camera curve rather than a symmetric smoothstep',()=>{
+  const scene=createScene(),w=scene.input.windows,start=Math.max(w.transport[0],w.transport[1]-1.5),end=w.transport[1];
+  const n=60,pos=[...Array(n+1)].map((_,i)=>scene.cameraAt(start+(end-start)*i/n).position);
+  const speed=pos.slice(1).map((p,i)=>Math.hypot(...p.map((v,k)=>v-pos[i][k])));
+  const peak=speed.indexOf(Math.max(...speed))/n,mean=speed.reduce((a,b)=>a+b,0)/speed.length;
+  assert.ok(peak<.4,`peak at ${peak}`);
+  assert.ok(Math.max(...speed)/mean>1.9,`peak/mean ${Math.max(...speed)/mean}`);
+});
+test('contact and receipt produce lagged secondary responses',()=>{
+  const scene=createScene(),w=scene.input.windows,arrive=w.transport[1];
+  const at=t=>scene.stateAt(t);
+  assert.ok(at(arrive+.05).kitPress>at(arrive+.05).benchPress,'the carrier is pressed first');
+  assert.ok(at(arrive+.12).benchPress>0,'the bench answers a few frames later');
+  assert.equal(at(arrive+.6).kitPress,0);
+  assert.ok(at(w.dispatch[1]+.12).trayPress>0,'the receiving tray takes the load');
+  assert.ok(Math.abs(at((w.transport[0]+w.transport[1])/2).roll)>1,'the carrier rolls along its arc');
 });

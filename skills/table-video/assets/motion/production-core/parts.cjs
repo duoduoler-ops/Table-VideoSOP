@@ -4,8 +4,8 @@ const {esc} = require('./stage.cjs');
 const INK='#3B352E', MUTED='#847C70', ORANGE='#FF6500', BLUE='#58728A', LINE='#DCE3E8';
 const label = (text,size=28,color=INK,weight=600) => `<div style="font-size:${size}px;color:${color};font-weight:${weight};line-height:1.2;white-space:nowrap">${esc(text)}</div>`;
 
-function tray(stage, {id, center, title, active, received, retirement = [0,0,0]}) {
-  const geometry={center:center.map((n,i)=>n+retirement[i]),width:310,height:300,rotation:[0,-7,0]};
+function tray(stage, {id, center, title, active, received, retirement = [0,0,0], press = 0}) {
+  const geometry={center:center.map((n,i)=>n+retirement[i]+(i===1?press:0)),width:310,height:300,rotation:[0,-7,0]};
   const parent={id,geometry};
   stage.plane({id,geometry,contentVersion:title,style:{background:'#FFFDF9',border:`3px solid ${active?ORANGE:LINE}`,borderRadius:'18px',boxShadow:'0 18px 0 #DCE3E8,0 26px 30px #3B352E12'}});
   stage.part(parent,{id:id+'.title',box:{x:24,y:22,width:270,height:40},html:label(title),contentVersion:title});
@@ -15,10 +15,11 @@ function tray(stage, {id, center, title, active, received, retirement = [0,0,0]}
 }
 
 function workpiece(stage, state, input) {
-  const {position, lengths, activePart, cutProgress, offcutFall, retiredOffset} = state;
-  const geometry={center:position.map((n,i)=>n+retiredOffset[i]),width:236,height:180,rotation:[0,-7,0]};
+  const {position, lengths, activePart, cutProgress, offcutFall, retiredOffset, kitPress = 0, benchPress = 0, roll = 0} = state;
+  const offcutLand = state.offcutLand || input.parts.map(() => 0);
+  const geometry={center:position.map((n,i)=>n+retiredOffset[i]+(i===1?kitPress:0)),width:236,height:180,rotation:[0,-7,roll]};
   const parent={id:'kit',geometry};
-  const benchFrame={id:'inspection',geometry:{...geometry,center:[0,32,40].map((v,i)=>v+retiredOffset[i])}};
+  const benchFrame={id:'inspection',geometry:{...geometry,rotation:[0,-7,0],center:[0,32,40].map((v,i)=>v+retiredOffset[i]+(i===1?benchPress:0))}};
   // The receiver uses the same local frame as the falling material, not the deeper bench face.
   stage.part(benchFrame,{id:'inspection.scrap-bin',box:{x:160,y:210,width:75,height:38},offsetZ:6,
     style:{background:'#EBEEF0',border:`2px solid ${LINE}`,borderRadius:'5px'},contentVersion:'scrap-bin'});
@@ -34,7 +35,7 @@ function workpiece(stage, state, input) {
       contentVersion:'solid-part-'+part.id,process:{morphProgress:state.partProgress[i]},semantic:{value:lengths[i],original:part.length}});
     // The cut excess remains a physical part until it moves below the work area.
     const excess = Math.max(0, part.length - lengths[i]);
-    stage.part(benchFrame,{id:'kit.offcut.'+part.id,box:{x:x0+lengths[i]*unit+state.partProgress[i]*5+offcutFall[i]*10,y:y0+i*46+offcutFall[i]*(214-y0-i*46),width:excess*unit,height:24},offsetZ:-3,independentPlane:true,paintAfter:'kit',
+    stage.part(benchFrame,{id:'kit.offcut.'+part.id,box:{x:x0+lengths[i]*unit+state.partProgress[i]*5+offcutFall[i]*10,y:y0+i*46+offcutFall[i]*(214-y0-i*46)-4*offcutLand[i],width:excess*unit,height:24},offsetZ:-3,independentPlane:true,paintAfter:'kit',
       style:{background:ORANGE,borderRadius:'4px'},contentVersion:'offcut-'+part.id,
       process:{morphProgress:state.partProgress[i]},semantic:{removed:excess}});
   });
@@ -46,7 +47,7 @@ function workpiece(stage, state, input) {
 }
 
 function inspectionBench(stage, state, input) {
-  const geometry={center:[0,0,100].map((v,i)=>v+state.retiredOffset[i]),width:430,height:420,rotation:[0,-7,0]};
+  const geometry={center:[0,0,100].map((v,i)=>v+state.retiredOffset[i]+(i===1?(state.benchPress||0):0)),width:430,height:420,rotation:[0,-7,0]};
   const parent={id:'inspection',geometry};
   stage.plane({id:parent.id,geometry,style:{background:'#F7F9FA',border:`3px solid ${BLUE}`,borderRadius:'20px',boxShadow:'0 20px 0 #CBD4DD'},contentVersion:'inspection-bench'});
   stage.part(parent,{id:'inspection.title',box:{x:28,y:25,width:370,height:44},html:label(input.labels.inspect,34),contentVersion:input.labels.inspect});

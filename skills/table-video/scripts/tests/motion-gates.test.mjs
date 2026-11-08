@@ -4,9 +4,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {
-  DEFAULT_GATES, measureMoves, scoreFreeze, scoreCamera as actualCamera, scoreFollow as actualFollow, scoreAnticipation as actualAnticipation,
-  scoreComposition as actualComposition, evaluateSpec as actualSpec, deriveMotionCast, parseFreezeLog, main,
+  DEFAULT_GATES, measureMoves, scoreCamera as actualCamera, scoreFollow as actualFollow, scoreAnticipation as actualAnticipation,
+  scoreComposition as actualComposition, evaluateSpec as actualSpec, deriveMotionCast, main,
 } from '../motion-gates.mjs';
+import {scoreStillness} from '../stillness.mjs';
 
 import {paintSamples,paintSpec} from './paint-fixture.mjs';
 const scoreCamera=o=>actualCamera({roles:[{t0:0,t1:100,role:'reveal'}],...o});
@@ -19,55 +20,42 @@ const anchor = 'fixture-anchor-motion-gates';
 // These analytic fixtures represent painted, unobscured rectangles; legacy bbox-only has separate tests.
 const obj = (id, x, extra = {}) => ({id, x, y: 80, width: 100, height: 40, opacity: 1, observation:{state:'visible',reason:'fixture-painted-rectangle'}, ...extra});
 const cam = (cx = 0) => ({cx, cy: 0, z: 1});
+// Synthetic perceptual-stillness data at 30fps: spans in `still` are nearly still (0.1% of pixels change), the rest moves (3%).
+const stillnessData = (duration, still = []) => {
+  const fps = 30, n = Math.round(duration * fps), area = [0];
+  for (let i = 1; i <= n; i++) { const t = i / fps; area.push(still.some(([a, b]) => t > a + 1e-9 && t <= b + 1e-9) ? 0.1 : 3); }
+  return {fps, area, duration: n / fps};
+};
 
-test('freeze ratio at 20% passes and above 20% fails; exceptions do not reduce the ratio', () => {
-  const segs = n => Array.from({length: n}, (_, i) => ({start: i, duration: 1, end: i + 1}));
-  assert.equal(scoreFreeze({duration: 100, segments: segs(20)}).status, '通过');
-  assert.equal(scoreFreeze({duration: 100, segments: segs(21)}).status, '未通过');
-  const excused = scoreFreeze({duration: 100, segments: segs(25), exceptions: [{t0: 0, t1: 25, valid: true}]});
-  assert.equal(excused.status, '未通过');
-  assert.match(excused.reasons.join('\n'), /25\.0%/);
-  assert.equal(excused.reasons.some(r => r.includes('已登记例外')), false);
+test('perceptual stillness fails when more than half the counted frames are nearly still', () => {
+  const half = stillnessData(10, [[0, 1.9], [2, 3.9], [4, 5.0]]);
+  assert.equal(scoreStillness({area: half.area, fps: 30}).status, '通过');
+  const most = stillnessData(10, [[0, 1.9], [2, 3.9], [4, 5.9], [6, 6.5]]);
+  const scored = scoreStillness({area: most.area, fps: 30});
+  assert.equal(scored.status, '未通过');
+  assert.match(scored.reasons.join('\n'), /几乎不动的帧占/);
 });
 
-test('a 1.999s freeze passes and 2.0s fails unless a registered exception covers that segment only', () => {
-  const short = scoreFreeze({duration: 100, segments: [{start: 1, duration: 1.999, end: 2.999}]});
-  assert.equal(short.status, '通过');
-  const exact = scoreFreeze({duration: 100, segments: [{start: 1, duration: 2, end: 3}]});
-  assert.equal(exact.status, '未通过');
-  const covered = scoreFreeze({
-    duration: 100,
-    segments: [{start: 1, duration: 2, end: 3}],
-    exceptions: [{t0: 1, t1: 3, valid: true}],
-  });
-  assert.equal(covered.status, '通过');
-  assert.equal(covered.measured.ratio, 0.02);
+test('a still run over 2 s fails unless it lies in a declared reading window; 1.5-2 s runs are flagged for review', () => {
+  const ok = scoreStillness({...stillnessData(10, [[1, 3]]), fps: 30});
+  assert.equal(ok.status, '通过');
+  assert.equal(ok.review.length, 1);
+  const long = stillnessData(10, [[1, 3.2]]);
+  assert.equal(scoreStillness({area: long.area, fps: 30}).status, '未通过');
+  assert.equal(scoreStillness({area: long.area, fps: 30, readings: [{t0: 1, t1: 3.2}]}).status, '通过');
+  // Exempting only part of the run leaves the rest to be counted.
+  assert.equal(scoreStillness({area: long.area, fps: 30, readings: [{t0: 2.9, t1: 3.2}]}).status, '通过');
+  assert.equal(scoreStillness({area: stillnessData(10, [[1, 4]]).area, fps: 30, readings: [{t0: 3.8, t1: 4}]}).status, '未通过');
 });
 
-test('freezes shorter than the detector minimum are not counted', () => {
-  const scored = scoreFreeze({duration: 100, segments: [{start: 0, duration: 0.5, end: 0.5}, {start: 2, duration: 1, end: 3}]});
-  assert.equal(scored.measured.segments, 1);
-  assert.equal(scored.measured.seconds, 1);
-});
-
-test('ep05 control log stays at the announced 60 segments, 63.0s, 1.93s max', {
-  skip: !process.env.EP05_FREEZE_CONTROL_LOG && 'Optional original log not supplied; set EP05_FREEZE_CONTROL_LOG to verify it.',
-}, () => {
-  const text = fs.readFileSync(process.env.EP05_FREEZE_CONTROL_LOG, 'utf8');
-  const parsed = parseFreezeLog(text);
-  const sum = parsed.segments.reduce((s, x) => s + x.duration, 0);
-  const max = Math.max(...parsed.segments.map(s => s.duration));
-  assert.equal(parsed.segments.length, 60);
-  assert.equal(parsed.incomplete.length, 0);
-  assert.equal(parsed.segments.at(-1).closedAtEnd, true);
-  assert.equal(parsed.segments.at(-1).start, 449.9);
-  assert.equal(Math.round(sum * 10) / 10, 63);
-  assert.equal(Math.round(parsed.duration * 10) / 10, 451.4);
-  assert.equal(Math.round(max * 100) / 100, 1.93);
-  assert.equal(parsed.segments.some(s => s.duration >= 2), false);
-  const scored = scoreFreeze(parsed);
-  assert.equal(scored.status, '通过');
-  assert.equal(Math.round(scored.measured.ratio * 1000) / 10, 14);
+test('the rejected sleep-cell test profile fails and the approved D07 profile passes', () => {
+  const profiles = JSON.parse(fs.readFileSync(new URL('../../assets/motion/benchmarks/stillness-profiles.json', import.meta.url), 'utf8')).profiles;
+  for (const p of profiles) assert.equal(scoreStillness({area: p.area, fps: p.fps}).status, '通过', p.id);
+  // Rejected 2026-11-07 test: about 2.3 s of camera pull, then almost nothing moves.
+  const rejected = stillnessData(7.5, [[2.33, 3.26], [4.23, 7.5]]);
+  const scored = scoreStillness({area: rejected.area, fps: 30});
+  assert.equal(scored.status, '未通过');
+  assert.ok(scored.measured.longestSec > 3);
 });
 
 test('camera speed and duration references diagnose slow and fast moves without hard failure',()=>{
@@ -203,16 +191,16 @@ function passingSpec() {
 }
 
 test('numeric-only exit codes describe the five declared measurements, never visual acceptance', () => {
-  const freeze = {duration: 10, segments: [{start: 0, duration: 1, end: 1}]};
-  const pass = evaluateSpec(passingSpec(), {freeze, baseDir: path.dirname(self)});
+  const stillness = stillnessData(10, [[0, 1]]);
+  const pass = evaluateSpec(passingSpec(), {stillness, baseDir: path.dirname(self)});
   assert.equal(pass.visualAcceptance, 'not-assessed');
   assert.notEqual(pass.status, '通过');
   assert.equal(pass.exitCode, 0, pass.gates.map(g => `${g.id}:${g.status}:${(g.reasons || []).join(';')}`).join(' | '));
-  const fail = evaluateSpec(passingSpec(), {freeze: {duration: 10, segments: [{start: 0, duration: 3, end: 3}]}, baseDir: path.dirname(self)});
+  const fail = evaluateSpec(passingSpec(), {stillness: stillnessData(10, [[0, 3]]), baseDir: path.dirname(self)});
   assert.equal(fail.exitCode, 2);
   const spec = passingSpec();
   spec.motionCast.follows = [];
-  const missing = evaluateSpec(spec, {freeze, baseDir: path.dirname(self)});
+  const missing = evaluateSpec(spec, {stillness, baseDir: path.dirname(self)});
   assert.equal(missing.exitCode, 1);
   assert.equal(missing.gates.find(g => g.id === 3).status, '无法测量');
 });
@@ -265,7 +253,7 @@ test('unsupported SVG or perspective visibility cannot turn a missing measuremen
   assert.equal(actualAnticipation(samples,{id:'a',subjectId:'tag',t0:0,t1:4}).status,'无法测量');
   const spec=passingSpec();const render=spec.frameAt;
   spec.frameAt=t=>({...render(t),camera:undefined,camera3d:{position:[0,0,1000]}});
-  const report=evaluateSpec(spec,{freeze:{duration:10,segments:[]}});
+  const report=evaluateSpec(spec,{stillness:stillnessData(10)});
   assert.equal(report.gates[1].status,'无法测量');assert.equal(report.exitCode,1);
 });
 test('report v2 aggregates diagnostics without aesthetic success and keeps hard failures and gaps',()=>{
@@ -276,12 +264,12 @@ test('report v2 aggregates diagnostics without aesthetic success and keeps hard 
     for(const o of f.objects)if(['hero','tag'].includes(o.id))o.screenFixed=true;
     return f;
   };
-  const report=evaluateSpec(spec,{freeze:{duration:10,segments:[]}});
+  const report=evaluateSpec(spec,{stillness:stillnessData(10)});
   assert.equal(report.reportVersion,2);assert.equal(report.exitCode,0,JSON.stringify(report.gates));
   assert.deepEqual(report.gates.filter(g=>[2,4,5].includes(g.id)).map(g=>g.status),['诊断','诊断','诊断']);
   assert.equal(report.visualAcceptance,'not-assessed');
   assert(report.gates[1].reasons.length && report.gates[4].reasons.length);
-  assert.equal(evaluateSpec(spec,{freeze:{duration:10,segments:[{start:0,end:3,duration:3}]}}).exitCode,2);
+  assert.equal(evaluateSpec(spec,{stillness:stillnessData(10,[[0,3]])}).exitCode,2);
   spec.motionCast.mainContentIds=[];
-  assert.equal(evaluateSpec(spec,{freeze:{duration:10,segments:[]}}).exitCode,1);
+  assert.equal(evaluateSpec(spec,{stillness:stillnessData(10)}).exitCode,1);
 });

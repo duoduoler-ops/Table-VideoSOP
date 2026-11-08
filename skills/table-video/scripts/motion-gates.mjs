@@ -1,5 +1,7 @@
 #!/usr/bin/env node
-// Gates 1/3 and an explicitly fixed camera are constraints. Motion-style references are diagnostic.
+// Gates 1/3 and an explicitly fixed camera are constraints; motion-style references are diagnostic.
+// Gate 1 measures perceptual stillness on the decoded video (scripts/stillness.mjs), whatever the camera does:
+// a declared fixed camera only proves the framing did not move, not that the picture keeps moving.
 // Camera arc uses the same screen projection as the ep05 census:
 //   [960+(x-cx)*z, 540+(y-cy)*z] on a 1920×1080 reference, independent of preview size.
 // A constant vertical origin does not change arc length. frameAt().camera is the only pose source.
@@ -10,14 +12,18 @@ import {pathToFileURL, fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
 import crypto from 'node:crypto';
 import {auditMotion,cameraCutFrames} from './motion-audit.mjs';
+import {measureStillness, scoreStillness} from './stillness.mjs';
 import observation from './motion-observation.cjs';
 const {visibleState,inspectActionCoverage}=observation;
 
 export const DEFAULT_GATES = {
-  freezeNoiseDb: -55,
-  freezeMinDuration: 0.75,
-  freezeRatioMax: 0.20,
-  freezeSegmentMax: 2,
+  // Gate 1, perceptual stillness: 30fps, 480x270 gray, pixel delta >6/255, changed area <0.5% = nearly still.
+  // Calibrated 2026-11-08 on 8 approved Ep08 segments (18-43%, longest 1.1-1.8 s) and the rejected test (60%, 3.27 s).
+  stillPixelDelta: 6,
+  stillAreaPct: 0.5,
+  stillRatioMax: 0.5,
+  stillSegmentMax: 2,
+  stillReviewSec: 1.5,
   largeArcPx: 80,
   minMeanPxPerSec: 358,
   revealMaxSec: 1.5,
@@ -86,81 +92,9 @@ export function parseClock(text) {
   return Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]);
 }
 
-export function parseFreezeLog(text) {
-  const durationMatch = text.match(/Duration:\s*(\d+:\d+:\d+(?:\.\d+)?)/);
-  const timeMatch = text.match(/time=(\d+:\d+:\d+(?:\.\d+))\s/);
-  const duration = parseClock(durationMatch?.[1] ?? '') ?? parseClock(timeMatch?.[1] ?? '');
-  const events = [];
-  for (const line of text.split(/\r?\n/)) {
-    const start = line.match(/freeze_start:\s*([0-9.]+)/);
-    const dur = line.match(/freeze_duration:\s*([0-9.]+)/);
-    const end = line.match(/freeze_end:\s*([0-9.]+)/);
-    if (start) events.push({kind: 'start', t: Number(start[1])});
-    else if (dur) events.push({kind: 'duration', t: Number(dur[1])});
-    else if (end) events.push({kind: 'end', t: Number(end[1])});
-  }
-  const segments = [];
-  let open = null;
-  let pending = null;
-  for (const ev of events) {
-    if (ev.kind === 'start') {
-      if (open) segments.push(open);
-      open = {start: ev.t, duration: null, end: null, closedAtEnd: false};
-      pending = null;
-    } else if (ev.kind === 'duration' && open) {
-      pending = ev.t;
-    } else if (ev.kind === 'end' && open) {
-      open.end = ev.t;
-      open.duration = pending ?? round(ev.t - open.start, 6);
-      segments.push(open);
-      open = null;
-      pending = null;
-    }
-  }
-  const incomplete = [];
-  if (open) {
-    // 文件在 freeze_end 之前结束时，用成片 Duration 收尾。第五期日志有 60 个 freeze_start、59 个 freeze_end；
-    // 末段 449.9 收到 451.37 后才是宣布的 60 段、累计 63.0 秒。不另跑全片。
-    if (duration != null && duration > open.start + 1e-6) {
-      open.end = duration;
-      open.duration = pending ?? (duration - open.start);
-      open.closedAtEnd = true;
-      segments.push(open);
-    } else incomplete.push({start: open.start, duration: pending, end: null, incomplete: true});
-  }
-  return {duration, segments: segments.filter(s => s.duration != null), incomplete};
-}
+const stillGates = g => ({pixelDelta: g.stillPixelDelta, stillAreaPct: g.stillAreaPct, ratioMax: g.stillRatioMax, segmentMaxSec: g.stillSegmentMax, reviewSegmentSec: g.stillReviewSec});
 
 function overlaps(a0, a1, b0, b1) { return Math.min(a1, b1) - Math.max(a0, b0) > 1e-6; }
-
-export function scoreFreeze({segments, duration, gates = DEFAULT_GATES, exceptions = []}) {
-  if (duration == null || !(duration > 0)) {
-    return {status: '无法测量', reasons: ['没有成片时长，不能算静止占比。'], measured: {}};
-  }
-  const usable = segments.filter(s => Number.isFinite(s.duration) && s.duration + 1e-9 >= gates.freezeMinDuration - 1e-9);
-  const total = usable.reduce((s, x) => s + x.duration, 0);
-  const ratio = total / duration;
-  const max = usable.reduce((m, x) => Math.max(m, x.duration), 0);
-  const long = usable.filter(s => s.duration + 1e-9 >= gates.freezeSegmentMax);
-  const uncovered = long.filter(s => !exceptions.some(ex => overlaps(s.start, s.end ?? s.start + s.duration, ex.t0, ex.t1) && ex.valid !== false));
-  const reasons = [];
-  if (ratio > gates.freezeRatioMax + 1e-9) reasons.push(`累计静止 ${(ratio * 100).toFixed(1)}% > ${(gates.freezeRatioMax * 100).toFixed(0)}%。`);
-  for (const s of uncovered) reasons.push(`静止段 ${round(s.start, 3)}–${round(s.end ?? s.start + s.duration, 3)} 长 ${round(s.duration, 3)} 秒，达到 ${gates.freezeSegmentMax} 秒且没有已登记例外。`);
-  const measured = {
-    segments: usable.length,
-    seconds: round(total, 1),
-    duration: round(duration, 3),
-    ratio: round(ratio, 4),
-    maxSec: round(max, 3),
-    longUnregistered: uncovered.map(s => ({start: round(s.start, 3), duration: round(s.duration, 3)})),
-  };
-  return {
-    status: reasons.length ? '未通过' : '通过',
-    reasons,
-    measured,
-    reference: {ratio: EP05_REFERENCE.freezeRatio, maxSec: EP05_REFERENCE.freezeMaxSec, segments: EP05_REFERENCE.freezeSegments, seconds: EP05_REFERENCE.freezeSeconds, duration: EP05_REFERENCE.durationSec},
-  };
-}
 
 function estSpeed(a, b, dt) {
   const z = Math.max(0.05, (a.z + b.z) / 2);
@@ -660,7 +594,7 @@ function fixedPose(frame) {
   throw Error('固定镜头的实际相机姿态未暴露。');
 }
 
-export function evaluateSpec(spec, {freeze, gates = DEFAULT_GATES, baseDir = process.cwd()} = {}) {
+export function evaluateSpec(spec, {stillness, gates = DEFAULT_GATES, baseDir = process.cwd()} = {}) {
   const cast = deriveMotionCast(spec);
   const windows = cast.cameraWindows?.length ? cast.cameraWindows : [{id: 'all', t0: 0, t1: spec.duration}];
   const fps = spec.fps;
@@ -806,14 +740,15 @@ export function evaluateSpec(spec, {freeze, gates = DEFAULT_GATES, baseDir = pro
     gate5 = {status: '无法测量', reasons: [String(err.message || err)], measured: {}};
   }
 
-  const exceptions = bindList(cast.freezeExceptions, baseDir);
-  const gate1 = freeze
-    ? scoreFreeze({segments: freeze.segments, duration: freeze.duration, gates, exceptions})
-    : {status: '无法测量', reasons: ['没有 freezedetect 结果。'], measured: {}};
-  if (freeze?.source) gate1.measured.source = freeze.source;
+  // Only declared reading windows (text actually being read) and user-confirmed exceptions are exempt.
+  const exceptions = bindList(cast.stillExceptions ?? cast.freezeExceptions, baseDir);
+  const readingWindows = bindList(cast.reading, baseDir).filter(r => r.valid);
+  const gate1 = stillness
+    ? scoreStillness({area: stillness.area, fps: stillness.fps, readings: readingWindows, exceptions, gates: stillGates(gates)})
+    : {status: '无法测量', reasons: ['没有成片的逐帧变化数据。'], measured: {}};
 
   const gatesOut = [
-    {id: 1, name: '全帧静止比例', ...gate1},
+    {id: 1, name: '感知静止', ...gate1},
     {id: 2, name: '声明窗口的镜头数值', ...gate2},
     {id: 3, name: '声明对象的启动时差', ...gate3},
     {id: 4, name: '触发动作的预备时长', ...gate4},
@@ -834,20 +769,6 @@ export function evaluateSpec(spec, {freeze, gates = DEFAULT_GATES, baseDir = pro
   };
 }
 
-export function runFreezeDetect(video, gates = DEFAULT_GATES, ffmpeg = 'ffmpeg') {
-  const noise = `${gates.freezeNoiseDb}dB`;
-  const args = ['-hide_banner', '-nostats', '-i', video, '-map', '0:v:0', '-vf', `freezedetect=n=${noise}:d=${gates.freezeMinDuration}`, '-an', '-f', 'null', '-'];
-  const result = spawnSync(ffmpeg, args, {encoding: 'utf8', maxBuffer: 64 * 1024 * 1024});
-  if (result.error) throw new Error(`无法启动 ffmpeg：${result.error.message}`);
-  const text = `${result.stderr ?? ''}\n${result.stdout ?? ''}`;
-  if (result.status !== 0) {
-    throw new Error(`ffmpeg 退出 ${result.status}：${text.slice(-500)}`);
-  }
-  const parsed = parseFreezeLog(text);
-  if (parsed.duration == null) throw new Error('freezedetect 日志里没有时长。');
-  return {...parsed, raw: text, source: video};
-}
-
 function fileLock(file) {
   const resolved = fs.realpathSync(file), bytes = fs.readFileSync(resolved);
   return {path: resolved, bytes: bytes.length, sha256: crypto.createHash('sha256').update(bytes).digest('hex')};
@@ -855,7 +776,7 @@ function fileLock(file) {
 
 // One entry for old and new adapters: numeric measurements plus the existing
 // source/video-bound engineering audit when that production contract is exposed.
-export function evaluateMotion(spec, {freeze, gates = DEFAULT_GATES, baseDir = process.cwd(), adapterFile, video, requireVideo = !!video} = {}) {
+export function evaluateMotion(spec, {stillness, gates = DEFAULT_GATES, baseDir = process.cwd(), adapterFile, video, requireVideo = !!video} = {}) {
   const hasAuditContract = !!(spec.coverage || spec.sourceFiles || spec.actions);
   const coverage = {mode: hasAuditContract ? 'production-audit' : 'legacy-declared-numeric-scope', internalProcess: 'unexposed', scriptSemantics: 'not-assessed'};
   let inputLocks;
@@ -869,7 +790,7 @@ export function evaluateMotion(spec, {freeze, gates = DEFAULT_GATES, baseDir = p
   } catch (err) {
     return {status: '测量不完整', exitCode: 1, visualAcceptance: 'not-assessed', coverage, gates: [], engineeringAudit: {status: 'incomplete', visualAcceptance: 'not-assessed', coverageGaps: [String(err.message || err)]}};
   }
-  const result = evaluateSpec(spec, {freeze, gates, baseDir});
+  const result = evaluateSpec(spec, {stillness, gates, baseDir});
   result.coverage = coverage;
   result.locks = inputLocks;
   function checkInputLocks() {
@@ -977,11 +898,10 @@ function readGates(file) {
   return {...DEFAULT_GATES, ...extra};
 }
 
-const HELP = `node scripts/motion-gates.mjs --adapter <adapter.mjs|cjs> --video <preview.mp4> --out <report.json> [--render-manifest <render-manifest.json>] [--gates <overrides.json>] [--freeze-log <ffmpeg.txt>]
-报告 reportVersion:2。固定镜头由 motionCast.cameraWindows 的 role:'fixed' 声明并逐帧核对，实际姿态漂移将记为硬失败。其余相机风格、预备时长和构图只作诊断。整场硬切用现有带来源依据的 role:'cut', scope:'scene' 检查点，在切点两侧分别计算。
+const HELP = `node scripts/motion-gates.mjs --adapter <adapter.mjs|cjs> --video <preview.mp4> --out <report.json> [--render-manifest <render-manifest.json>] [--gates <overrides.json>]
+报告 reportVersion:2。第 1 项为感知静止（与 scripts/stillness.mjs 同一算法），只豁免登记的读字窗口和用户确认的例外。固定镜头由 motionCast.cameraWindows 的 role:'fixed' 声明并逐帧核对，实际姿态漂移将记为硬失败；镜头固定只说明机位没动，画面是否在推进由第 1 项判断。其余相机风格、预备时长和构图只作诊断。整场硬切用现有带来源依据的 role:'cut', scope:'scene' 检查点，在切点两侧分别计算。
 退出码：0 硬要求已测且诊断数据完整，待人工判断；2 硬要求失败或工程审计待核问题；1 输入或覆盖不完整。都不是视觉验收。
-优先复用 actions[].motionGate / relays[].motionGate 与 coverage.mainContentIds。完整生产适配器同步运行 motion-audit 并绑定源码/成片 SHA-256；旧 motionCast 只保留有限数值检测。
---freeze-log 使用已经跑完的 freezedetect 日志，不再解码该视频；日志与视频的来源关联未验证，会明确记录。`;
+优先复用 actions[].motionGate / relays[].motionGate 与 coverage.mainContentIds。完整生产适配器同步运行 motion-audit 并绑定源码/成片 SHA-256；旧 motionCast 只保留有限数值检测。`;
 
 export async function main(argv = process.argv.slice(2)) {
   const args = parseArgs(argv);
@@ -998,19 +918,12 @@ export async function main(argv = process.argv.slice(2)) {
     return 1;
   }
   const beforeDecode = fileLock(video);
-  let freeze = null;
-  let freezeError = null;
+  let stillness = null;
+  let stillnessError = null;
   try {
-    if (args['freeze-log']) {
-      const text = fs.readFileSync(args['freeze-log'], 'utf8');
-      freeze = parseFreezeLog(text);
-      freeze.source = path.resolve(args['freeze-log']);
-      if (freeze.duration == null) throw new Error('静止日志没有时长。');
-    } else {
-      freeze = runFreezeDetect(video, gates, args.ffmpeg || 'ffmpeg');
-    }
+    stillness = measureStillness(video, {ffmpeg: args.ffmpeg || 'ffmpeg', gates: stillGates(gates)});
   } catch (err) {
-    freezeError = String(err.message || err);
+    stillnessError = String(err.message || err);
   }
   let spec;
   let adapterFile;
@@ -1035,7 +948,7 @@ export async function main(argv = process.argv.slice(2)) {
     fs.writeFileSync(args.out, JSON.stringify(report, null, 2));
     return 1;
   }
-  const result = evaluateMotion(spec, {freeze, gates, baseDir: path.dirname(adapterFile), adapterFile, video});
+  const result = evaluateMotion(spec, {stillness, gates, baseDir: path.dirname(adapterFile), adapterFile, video});
   if (receipt && result.locks) result.locks.renderManifest = receipt.lock;
   const expected = [beforeDecode, ...(receipt ? [receipt.lock, receipt.videoLock, ...receipt.sources] : [])];
   if (!expected.every(lock => {
@@ -1046,14 +959,12 @@ export async function main(argv = process.argv.slice(2)) {
     fs.writeFileSync(args.out, JSON.stringify({status:'测量不完整', exitCode:1, visualAcceptance:'not-assessed', gates:[], reasons:[reason]}, null, 2));
     return 1;
   }
-  if (args['freeze-log'] && freeze) {
-    result.freezeEvidence = {log: fileLock(path.resolve(args['freeze-log'])), videoAssociation: 'not-verified', note: '日志文件哈希只锁定输入；日志时长和来源文字不能证明它来自当前视频。'};
-  } else if (freeze) result.freezeEvidence = {videoAssociation: 'decoded-current-video', videoSha256: result.locks?.video?.sha256 ?? null};
-  if (freeze && Math.abs(freeze.duration - spec.duration) > 1 / spec.fps + 0.01) {
-    freezeError = '静止检测时长与适配器时长不一致，不能混用。';
+  if (stillness) result.stillnessEvidence = {videoAssociation: 'decoded-current-video', videoSha256: result.locks?.video?.sha256 ?? null, sampleFps: stillness.fps};
+  if (stillness && Math.abs(stillness.duration - spec.duration) > 1 / 30 + 0.02) {
+    stillnessError = '静止检测时长与适配器时长不一致，不能混用。';
   }
-  if (freezeError) {
-    result.gates[0] = {id: 1, name: '静止', status: '无法测量', reasons: [freezeError], measured: {}};
+  if (stillnessError) {
+    result.gates[0] = {id: 1, name: '感知静止', status: '无法测量', reasons: [stillnessError], measured: {}};
     result.exitCode = result.exitCode === 2 || result.gates.some(g => g.status === '未通过') ? 2 : 1;
     result.status = result.exitCode === 2 ? '发现约束失败或待核问题' : '测量不完整';
   }

@@ -6,13 +6,16 @@ const {tray,workpiece,inspectionBench,label,INK}=require('./parts.cjs');
 const {makeCamera,projectPoint}=require('./space.cjs');
 const {cubicPath,createCameraMove,followCamera,handoffCamera}=require('./camera.cjs');
 const {createTiming,cubicBezier}=require('./timing.cjs');
-const CONFIG={width:1280,height:720,fps:30,duration:12.5};
+const kit=require('./motion-kit.cjs');
+const CONFIG={width:1280,height:720,fps:30,duration:11};
 const DEFAULT={
   parts:[{id:'a',length:48},{id:'b',length:76},{id:'c',length:54}],limit:60,repairCapacity:20,
   labels:{source:'待检组件',inspect:'逐件核对',accepted:'进入装配',rework:'退回返修'},
   // Illustrative silent timings. Formal production replaces these with adopted voice/audio events.
-  windows:{transport:[0.8,3.0],scan:[3.0,4.2],repair:[4.25,6.4],dispatch:[7.1,9.5],overview:[9.3,10.3],retire:[11.5,12.5]},
+  // Neighbouring stages overlap at each hand-off: the next one starts while the previous one is still settling.
+  windows:{transport:[0.8,3.0],scan:[2.8,4.2],repair:[4.05,6.2],dispatch:[6.3,8.8],overview:[8.6,9.6],retire:[9.75,10.85]},
 };
+const MAX_HANDOFF_OVERLAP=0.6;
 const clamp=x=>Math.max(0,Math.min(1,x));
 const mix=(a,b,p)=>a+(b-a)*p;
 const vMix=(a,b,p)=>a.map((n,i)=>mix(n,b[i],p));
@@ -23,7 +26,11 @@ function normalize(input={}) {
   if(p.parts.some(x=>typeof x.id!=='string'||!Number.isFinite(x.length)||x.length<=0||x.length>90))throw Error('Part lengths must be finite and in (0,90].');
   if(!Number.isFinite(p.limit)||p.limit<=0||p.limit>80||!Number.isFinite(p.repairCapacity)||p.repairCapacity<0)throw Error('Invalid limit / repairCapacity');
   for(const [name,window] of Object.entries(p.windows))if(!Array.isArray(window)||window.length!==2||window.some(x=>!Number.isFinite(x))||window[0]<0||window[1]<=window[0]||window[1]>p.config.duration)throw Error('Invalid '+name+' window');
-  if(p.windows.transport[1]>p.windows.scan[0]||p.windows.scan[1]>p.windows.repair[0]||p.windows.repair[1]>p.windows.dispatch[0]||p.windows.dispatch[1]>p.windows.retire[0])throw Error('Contact, inspection, repair and dispatch must respect causality.');
+  // Causality is about onset order: a stage starts only after its cause has begun, and may overlap the cause's
+  // settling tail by at most MAX_HANDOFF_OVERLAP seconds. Requiring every stage to stop before the next starts
+  // produces move-stop-move slides, so it is not required.
+  const chainOrder=['transport','scan','repair','dispatch','retire'];
+  for(let i=1;i<chainOrder.length;i++){const a=p.windows[chainOrder[i-1]],b=p.windows[chainOrder[i]];if(b[0]<a[0]||b[0]<a[1]-MAX_HANDOFF_OVERLAP)throw Error('Transport, inspection, repair, dispatch and retirement must start in causal order; a hand-off may overlap the previous stage by at most '+MAX_HANDOFF_OVERLAP+' s (causality).');}
   return p;
 }
 
@@ -45,16 +52,18 @@ function createScene(rawInput={}) {
   const repairs=repairable.map((index,j)=>({index,start:w.repair[0]+j*repairSpan,end:w.repair[0]+(j+1)*repairSpan}));
   const progressIn=(t,a,b)=>cubicBezier(.42,0,.38,1)(clamp((t-a)/(b-a)));
   function stateAt(t) {
-    const partProgress=input.parts.map(()=>0), offcutFall=input.parts.map(()=>0);
+    const partProgress=input.parts.map(()=>0), offcutFall=input.parts.map(()=>0), offcutLand=input.parts.map(()=>0);
     let activePart=-1,cutProgress=0,cutterY=-52,previousY=-52,cutterLength=input.limit,previousLength=input.limit;
     for(const r of repairs){
       const p=progressIn(t,r.start,r.end);partProgress[r.index]=p;
-      offcutFall[r.index]=progressIn(t,r.start+(r.end-r.start)*.16,r.end+.35);
+      offcutFall[r.index]=kit.seg(t,r.start+(r.end-r.start)*.16,r.end+.35,kit.ease.fall);
+      offcutLand[r.index]=kit.press(t-(r.end+.35));
       if(t>=r.start-.22&&t<=r.end+.12){activePart=r.index;cutProgress=p;}
       const targetY=14+r.index*46;
       if(t>=r.start-.35){
         const aim=progressIn(t,r.start-.35,r.start);
-        cutterY=mix(previousY,targetY,aim);
+        // Anticipation: the tool lifts slightly just before it bites, then presses in.
+        cutterY=mix(previousY,targetY,aim)-10*kit.bump(t,r.start-.2,.2);
         cutterLength=t<r.start?mix(previousLength,input.parts[r.index].length,aim):mix(input.parts[r.index].length,finalLengths[r.index],p);
       }
       previousY=targetY;
@@ -62,9 +71,18 @@ function createScene(rawInput={}) {
     }
     if(repairs.length&&t>=w.repair[1])cutterY=mix(previousY,-52,progressIn(t,w.repair[1],w.repair[1]+.35));
     const lengths=input.parts.map((p,i)=>mix(p.length,finalLengths[i],partProgress[i]));
-    const position=t<=w.transport[1]?incomingPath(travel(t)):t<w.dispatch[0]?bench:outgoingPath(outgoing(t));
+    // Anticipation before leaving: pull back a little, then go.
+    const pull=14*kit.seg(t,w.dispatch[0]-.18,w.dispatch[0])*(1-kit.seg(t,w.dispatch[0],w.dispatch[0]+.12));
+    const base=t<=w.transport[1]?incomingPath(travel(t)):t<w.dispatch[0]?bench:outgoingPath(outgoing(t));
+    const position=[base[0]-pull,base[1],base[2]];
+    // Secondary motion. Arrival presses the carrier and the bench answers 3 frames later; the carrier rolls
+    // slightly along its arc; on delivery the receiving tray takes the load after the same lag.
+    const kitPress=6*(kit.press(t-w.transport[1])+kit.press(t-w.dispatch[1]));
+    const benchPress=3*kit.press(t-w.transport[1]-kit.LAG.near)+2*Math.max(0,...offcutLand);
+    const trayPress=5*kit.press(t-w.dispatch[1]-kit.LAG.near);
+    const roll=t<=w.transport[1]?3*Math.sin(Math.PI*travel(t)):t>=w.dispatch[0]&&t<=w.dispatch[1]?-3*Math.sin(Math.PI*outgoing(t)):0;
     const retirement=retire(t),retiredOffset=[0,-1200*retirement,240*retirement];
-    return {t,position,lengths,finalLengths,partProgress,offcutFall,activePart,cutProgress,cutterY,cutterLength,route,failures,repairable,
+    return {t,position,lengths,finalLengths,partProgress,offcutFall,offcutLand,activePart,cutProgress,cutterY,cutterLength,route,failures,repairable,kitPress,benchPress,trayPress,roll,
       scanProgress:scan(t),gateProgress:progressIn(t,w.repair[1],w.dispatch[0]),received:t>=w.dispatch[1],retiredOffset};
   }
   const focalLength=1050,cam=(position,target)=>makeCamera({position,target,viewport,focalLength});
@@ -75,7 +93,7 @@ function createScene(rawInput={}) {
   const approachStart=Math.max(w.transport[0],w.transport[1]-1.5);
   const approach=createCameraMove({positionPath:cubicPath([opening.position,[-490,-150,-1240],[-155,-120,-500],inspection.position]),
     targetPath:cubicPath([opening.target,[-320,-15,110],[-90,10,75],inspection.target]),start:approachStart,end:w.transport[1],viewport,focalLength,
-    timing:createTiming({start:approachStart,end:w.transport[1]})});
+    timing:kit.cameraTiming(approachStart,w.transport[1])});
   const inspectionAnchor=projectPoint(bench,inspection);
   function following(t){
     const u=outgoing(t),s=stateAt(t);
@@ -84,8 +102,8 @@ function createScene(rawInput={}) {
     // XYZ curvature comes from the actual carrier route and authored aim; no decorative depth oscillation.
     return followCamera({subject:s.position,screenAnchor:[mix(inspectionAnchor.x,viewport.width*.46,u),mix(inspectionAnchor.y,viewport.height*.47,u)],distance:mix(inspectionAnchor.depth,1250,u),orientation});
   }
-  const depart=handoffCamera({follow:()=>inspection,destination:following,start:w.dispatch[0]-.3,end:w.dispatch[0]+.3});
-  const endView=handoffCamera({follow:following,destination:overview,start:w.overview[0],end:w.overview[1]});
+  const depart=handoffCamera({follow:()=>inspection,destination:following,start:w.dispatch[0]-.3,end:w.dispatch[0]+.3,timing:kit.cameraTiming(w.dispatch[0]-.3,w.dispatch[0]+.3)});
+  const endView=handoffCamera({follow:following,destination:overview,start:w.overview[0],end:w.overview[1],timing:kit.cameraTiming(w.overview[0],w.overview[1])});
   function cameraAt(t){if(t<w.transport[0])return opening;if(t<=w.transport[1])return approach(t);if(t<w.dispatch[0]-.3)return inspection;if(t<w.dispatch[0]+.3)return depart(t);if(t<w.overview[0])return following(t);return endView(t);}
   const actions=[
     {id:'carry-to-inspection',objectId:'kit',start:w.transport[0],end:w.transport[1],kind:'transfer'},
@@ -123,8 +141,8 @@ function createScene(rawInput={}) {
     const state=stateAt(t), camera=cameraAt(t),stage=createStage({camera,viewport,omitIds,timeline});
     tray(stage,{id:'source',center:source.map((v,i)=>v+(i===2?30:0)),title:input.labels.source,active:t<w.transport[0],received:false,retirement:state.retiredOffset});
     inspectionBench(stage,state,input);
-    tray(stage,{id:'tray.accepted',center:destinations.accepted.map((v,i)=>v+(i===2?35:0)),title:input.labels.accepted,active:state.gateProgress>0&&route==='accepted',received:state.received&&route==='accepted',retirement:state.retiredOffset});
-    tray(stage,{id:'tray.rework',center:destinations.rework.map((v,i)=>v+(i===2?35:0)),title:input.labels.rework,active:state.gateProgress>0&&route==='rework',received:state.received&&route==='rework',retirement:state.retiredOffset});
+    tray(stage,{id:'tray.accepted',center:destinations.accepted.map((v,i)=>v+(i===2?35:0)),title:input.labels.accepted,active:state.gateProgress>0&&route==='accepted',received:state.received&&route==='accepted',retirement:state.retiredOffset,press:route==='accepted'?state.trayPress:0});
+    tray(stage,{id:'tray.rework',center:destinations.rework.map((v,i)=>v+(i===2?35:0)),title:input.labels.rework,active:state.gateProgress>0&&route==='rework',received:state.received&&route==='rework',retirement:state.retiredOffset,press:route==='rework'?state.trayPress:0});
     workpiece(stage,state,input);
     const result=stage.finish();
     return {...result,state,semantic:{'kit':route,...Object.fromEntries(input.parts.map((p,i)=>['kit.part.'+p.id,lengthsOrValue(state,i)]))}};
