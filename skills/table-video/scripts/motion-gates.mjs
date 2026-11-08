@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Gates 1/3 and an explicitly fixed camera are constraints; motion-style references are diagnostic.
-// Gate 1 measures perceptual stillness on the decoded video (scripts/stillness.mjs), whatever the camera does:
-// a declared fixed camera only proves the framing did not move, not that the picture keeps moving.
+// Gate 1 measures perceptual stillness and how long the composition stays unchanged on the decoded video
+// (scripts/stillness.mjs), whatever the camera does: a declared fixed camera only proves the framing did not move,
+// not that the picture keeps moving.
 // Camera arc uses the same screen projection as the ep05 census:
 //   [960+(x-cx)*z, 540+(y-cy)*z] on a 1920×1080 reference, independent of preview size.
 // A constant vertical origin does not change arc length. frameAt().camera is the only pose source.
@@ -24,6 +25,12 @@ export const DEFAULT_GATES = {
   stillRatioMax: 0.5,
   stillSegmentMax: 2,
   stillReviewSec: 1.5,
+  // Gate 1, composition hold: 10fps, 32x18 gray; a run lasts while <3% of cells differ by >8/255 from its first frame.
+  // Calibrated 2026-11-08: 8 approved/accepted clips 0-11% of time in holds >2 s (longest 2.9 s);
+  // rejected 2026-11-07 clips 28-35%; stopped 2026-11-08 golden tests 81-100%.
+  compositionHoldSec: 2,
+  compositionShareMax: 0.2,
+  compositionSegmentMax: 4,
   largeArcPx: 80,
   minMeanPxPerSec: 358,
   revealMaxSec: 1.5,
@@ -92,7 +99,10 @@ export function parseClock(text) {
   return Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]);
 }
 
-const stillGates = g => ({pixelDelta: g.stillPixelDelta, stillAreaPct: g.stillAreaPct, ratioMax: g.stillRatioMax, segmentMaxSec: g.stillSegmentMax, reviewSegmentSec: g.stillReviewSec});
+const stillGates = g => Object.fromEntries(Object.entries({
+  pixelDelta: g.stillPixelDelta, stillAreaPct: g.stillAreaPct, ratioMax: g.stillRatioMax, segmentMaxSec: g.stillSegmentMax, reviewSegmentSec: g.stillReviewSec,
+  compHoldSec: g.compositionHoldSec, compShareMax: g.compositionShareMax, compSegmentMaxSec: g.compositionSegmentMax,
+}).filter(([, v]) => v !== undefined));
 
 function overlaps(a0, a1, b0, b1) { return Math.min(a1, b1) - Math.max(a0, b0) > 1e-6; }
 
@@ -744,7 +754,7 @@ export function evaluateSpec(spec, {stillness, gates = DEFAULT_GATES, baseDir = 
   const exceptions = bindList(cast.stillExceptions ?? cast.freezeExceptions, baseDir);
   const readingWindows = bindList(cast.reading, baseDir).filter(r => r.valid);
   const gate1 = stillness
-    ? scoreStillness({area: stillness.area, fps: stillness.fps, readings: readingWindows, exceptions, gates: stillGates(gates)})
+    ? scoreStillness({area: stillness.area, fps: stillness.fps, comp: stillness.comp, readings: readingWindows, exceptions, gates: stillGates(gates)})
     : {status: '无法测量', reasons: ['没有成片的逐帧变化数据。'], measured: {}};
 
   const gatesOut = [
@@ -899,7 +909,7 @@ function readGates(file) {
 }
 
 const HELP = `node scripts/motion-gates.mjs --adapter <adapter.mjs|cjs> --video <preview.mp4> --out <report.json> [--render-manifest <render-manifest.json>] [--gates <overrides.json>]
-报告 reportVersion:2。第 1 项为感知静止（与 scripts/stillness.mjs 同一算法），只豁免登记的读字窗口和用户确认的例外。固定镜头由 motionCast.cameraWindows 的 role:'fixed' 声明并逐帧核对，实际姿态漂移将记为硬失败；镜头固定只说明机位没动，画面是否在推进由第 1 项判断。其余相机风格、预备时长和构图只作诊断。整场硬切用现有带来源依据的 role:'cut', scope:'scene' 检查点，在切点两侧分别计算。
+报告 reportVersion:2。第 1 项为感知静止和构图多久没变（与 scripts/stillness.mjs 同一算法），只豁免登记的读字窗口和用户确认的例外。固定镜头由 motionCast.cameraWindows 的 role:'fixed' 声明并逐帧核对，实际姿态漂移将记为硬失败；镜头固定只说明机位没动，画面是否在推进由第 1 项判断。其余相机风格、预备时长和构图只作诊断。整场硬切用现有带来源依据的 role:'cut', scope:'scene' 检查点，在切点两侧分别计算。
 退出码：0 硬要求已测且诊断数据完整，待人工判断；2 硬要求失败或工程审计待核问题；1 输入或覆盖不完整。都不是视觉验收。
 优先复用 actions[].motionGate / relays[].motionGate 与 coverage.mainContentIds。完整生产适配器同步运行 motion-audit 并绑定源码/成片 SHA-256；旧 motionCast 只保留有限数值检测。`;
 

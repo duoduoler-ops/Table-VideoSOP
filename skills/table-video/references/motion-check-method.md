@@ -136,7 +136,7 @@ node scripts/motion-gates.mjs --adapter <adapter.cjs> --video <preview.mp4> --ou
 
 公共工程用 [render.cjs --video](../assets/motion/production-core/README.md) 自动绑定实际输入、源码快照和成片；自有工程的检查入口见上例。适配器沿用 `schemaVersion:1`，`exportAudit()` 可接受本次渲染参数。优先复用现有动作／交接：`actions[].motionGate:'anticipation'`、`relays[].motionGate:'follow'|'rigid-feedback'`，直接使用实际动作 ID、对象与起止；构图对象来自 `coverage.mainContentIds`。旧 `motionCast` 保持兼容并明确标为 legacy 覆盖，只测已有声明，不能代表内部过程或剧本已核。镜头分窗可用 `frameAt(t,{windowId,t0,t1})`，仍调用生产求值。
 
-完整适配器同步执行工程审计，复用动作覆盖与源码／视频摘要。输出增加 `reportVersion:2`，每项有 `judgment:'hard-gate'|'diagnostic'`。第 1 项为感知静止，与 `scripts/stillness.mjs` 同一算法，只豁免登记的读字窗口和用户确认的例外。第 2 项声明固定取景时，按两侧各自的实际编码帧核对相机姿态，固定期间漂移记硬失败；声明固定只证明机位没动，画面是否在推进由第 1 项判断，想要镜头有呼吸感就不要声明固定。有依据的整场硬切只分隔切点，不豁免两侧运动。其余相机风格及第 4／5 项可测时返回 `status:'诊断'`，保留数值与疑点，不返回审美通过／失败；缺职责、对象、可见性或采样仍为“无法测量”。旧消费者须接受诊断状态，不把它当 QA 通过。
+完整适配器同步执行工程审计，复用动作覆盖与源码／视频摘要。输出增加 `reportVersion:2`，每项有 `judgment:'hard-gate'|'diagnostic'`。第 1 项为感知静止和构图多久没变，与 `scripts/stillness.mjs` 同一算法，只豁免登记的读字窗口和用户确认的例外。第 2 项声明固定取景时，按两侧各自的实际编码帧核对相机姿态，固定期间漂移记硬失败；声明固定只证明机位没动，画面是否在推进由第 1 项判断，想要镜头有呼吸感就不要声明固定。有依据的整场硬切只分隔切点，不豁免两侧运动。其余相机风格及第 4／5 项可测时返回 `status:'诊断'`，保留数值与疑点，不返回审美通过／失败；缺职责、对象、可见性或采样仍为“无法测量”。旧消费者须接受诊断状态，不把它当 QA 通过。
 
 退出 0 表示硬要求已测且诊断数据完整，仍待人工判断；2 表示静止／因果硬要求失败或工程审计待核问题；1 表示输入或覆盖不完整。`visualAcceptance:'not-assessed'` 始终保留。已知缺陷和硬要求失败先修，诊断取舍依据本段观看任务与实际输出，测不到不能算通过。
 
