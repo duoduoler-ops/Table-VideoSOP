@@ -26,7 +26,7 @@ node scripts/save-reference-image.mjs --project "<项目目录>" --input "<实�
 
 ## 从测试到正式规范
 
-按[设计提示词](../prompts/02_建立DESIGN.md)比较静态样本，再在同一视觉下做运动测试。用[详细模板](../templates/DESIGN.template.md)填候选。每个当前会用到的 token 都须有具体值；明确不使用的可选结构说明不适用，不能让模板空值进入实现。
+按[设计提示词](../prompts/02_建立DESIGN.md)比较静态样本，再用确认的外观做一小段带原配音的动画作运动测试（完整句子或完整因果过程），运动从[运动默认件](../assets/motion/production-core/README.md#运动默认件)起步，不交参数档位或灰块。用[详细模板](../templates/DESIGN.template.md)填候选。每个当前会用到的 token 都须有具体值；明确不使用的可选结构说明不适用，不能让模板空值进入实现。
 
 先由 Agent 从确认样本填参数，不让用户逐格设计 JSON。用户只需判断真实画面与运动，并确认采用范围。完整机器参数服务复用，不要求作者手工填完所有字段。
 

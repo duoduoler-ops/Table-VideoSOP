@@ -100,11 +100,11 @@ test('active internal progress prevents false common-stop and empty-wait finding
   assert(!r.findings.some(f=>f.code==='relay-empty-wait'));
 });
 test('combined entry binds production audit sources and exposes internal scope without visual approval',()=>{
-  const s=processSpec(),r=gates.evaluateMotion(s,{freeze:{duration:1,segments:[]},adapterFile:self,requireVideo:false});
+  const s=processSpec(),r=gates.evaluateMotion(s,{stillness:{fps:30,area:[0,...Array(30).fill(3)],duration:1},adapterFile:self,requireVideo:false});
   assert.equal(r.coverage.mode,'production-audit');assert.equal(r.visualAcceptance,'not-assessed');
   assert.equal(r.coverage.internalProcess.actions[0].status,'measured-change');
   assert.equal(r.locks.sources.find(f=>f.path===self).sha256.length,64);
-  const hard=gates.evaluateMotion(s,{freeze:{duration:1,segments:[{start:0,end:1,duration:1}]},requireVideo:false});
+  const hard=gates.evaluateMotion(s,{stillness:{fps:30,area:[0,...Array(30).fill(0.1)],duration:1},requireVideo:false});
   assert.equal(hard.exitCode,2);assert.equal(hard.gates[0].status,'未通过');
 });
 test('a mismatched supplied video is an incomplete audit, never a source-bound success',()=>{
@@ -139,7 +139,7 @@ test('source, adapter and video locks cover the first numeric sample through the
     for(const file of Object.values(files))fs.writeFileSync(file,'old-version');
     const s=processSpec(),at=s.frameAt;let count=0;s.sourceFiles.push(files.source);s.videoFile=files.video;
     s.frameAt=t=>{if(++count===10)fs.writeFileSync(files[kind],'new-version');return at(t);};
-    const r=gates.evaluateMotion(s,{adapterFile:files.adapter,video:files.video,freeze:{duration:1,segments:[]}});
+    const r=gates.evaluateMotion(s,{adapterFile:files.adapter,video:files.video,stillness:{fps:30,area:[0,...Array(30).fill(3)],duration:1}});
     assert.equal(r.engineeringAudit.status,'incomplete');
     assert(r.engineeringAudit.coverageGaps.some(x=>/Source changed|Video changed|Adapter changed/.test(x)),kind);
     assert.equal(r.exitCode,1);assert(r.gates.every(g=>g.status==='无法测量'));

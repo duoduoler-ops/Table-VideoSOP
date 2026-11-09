@@ -17,16 +17,14 @@ https://github.com/user-attachments/assets/3f7cf82a-3609-448f-a3a3-08331c593ed0
 **Start:** Provide your script, available voiceover, and references, then send:
 
 ```text
-Use the table-video Skill to produce this video.
-Script: [path]; voiceover: [path / not ready]; references: [paths or links / none].
-Read the materials, check the current stage, and guide me through the decisions.
+Use the table-video Skill to make this video. Script: [path]; voiceover: [path / not ready]; references: [paths or links / none].
 ```
 
 **Simplified flow:** Script and voiceover → references and style → section, storyboard, and design review → first version → human review and revisions → assembly and delivery. You do not need to send every prompt below, but you still review key plans. Production tools are checked as needed; generate images or videos manually when prompted, then return the files.
 
 > **Plan for human review and revisions. Do not expect a good video on the first attempt.** Watch the complete output at normal speed. Check whether the visuals explain the content, camera speed and pacing feel right, and component changes convey meaning. Keep the first version, revise specific problems, and watch the complete result again. Successful rendering, passing tests, and sampled frames cannot replace watching. Anything the agent has not viewed must remain marked as unverified.
 
-You can also follow the complete SOP below without the Skill.
+You can also follow the SOP below without the Skill.
 
 ## About these materials
 
@@ -42,7 +40,7 @@ This README includes English instructions and copyable prompts. The linked guide
 
 ## Three key practices
 
-- **Storyboard and key states** (after section-plan approval, before design frames): the coordinator specifies the main object's changes, the camera's viewing path, the peak and reading pauses, and the reference clip's version, range, and relevant relationships. You review it once before frames are made. Design frames cover start/end compositions, transformation mechanisms, or handoffs according to the type of change, rather than a fixed image count or one frame every few seconds. [Key-state coverage](templates/镜头剧本.template.md#关键状态覆盖)
+- **Storyboards start with the hook** (after section-plan approval, before design frames): each section opens with one sentence naming the moment viewers will remember, and every narration line gets one weighty event plus a change of composition or framing. The coordinator specifies how the camera moves, the peak and reading pauses, and the reference clip's version, range, and relevant relationships. You review it once before frames are made. Design frames cover start/end compositions, transformation mechanisms, or handoffs according to the type of change; they are snapshots taken mid-process, not keyframes, and are not counted by a fixed image quota or one frame every few seconds. [Key-state coverage](templates/镜头剧本.template.md#关键状态覆盖)
 - **Complete the process before polishing parameters**: a new type or unresolved risk of costly rework needs a voiced process preview during design. For an approved type with the relevant risks resolved, reference the approved process and check its adaptation in the first complete preview, without another test-clip approval. Before full production, the coordinator checks cross-section continuity, the current key-state approvals, and the authorized batch. Judge the actual main action, viewing progression, and section rhythm; complete parameter sets and the [motion self-check](tools/README.md) do not replace watching. [Process previews and polishing](docs/04_验收与返修.md#完整过程预演与精修)
 - **End-of-episode retrospective** (after delivery): record rework in your own words and note whether the rule was missing, not followed, misleading, or the judgment was mistaken; list the shots you liked as future reference clips and the rules that can be removed. Change only the items you choose. [Template](templates/复盘.template.md) · [Prompt](prompts/09_复盘.md)
 
@@ -50,7 +48,7 @@ This README includes English instructions and copyable prompts. The linked guide
 
 Put the complete package in your own series folder and open that folder with an agent that can read and write local files. For an existing project, place the package in a separate reference folder and map the integration first, preserving existing files. **Use the first conversation as the coordinator** for episode planning, accepted versions, and assembly. Later section conversations handle their assigned work only.
 
-Copy the prompts below and **replace the bracketed fields**. Use “none” or “undecided” where appropriate. **Send one step at a time**, review its result, then send the relevant approval. Start every new conversation from the series root. If rules are not loaded automatically, add: “Read AGENTS.md at the root before handling this task.”
+Each prompt below only says what the step is, plus the materials and decisions you have. **Replace the brackets with your own details, or delete what does not apply.** `AGENTS.md` tells the agent which guides to read and which checks to run; the agent will ask for anything missing. **Send only the current step**, review the result, then send the next. Start every new conversation from the series root. If the agent does not load the rules automatically, begin with “Read AGENTS.md at the root first.”
 
 **Jump to a step:** [1 Setup](#step-1) · [2 DESIGN](#step-2) · [3 Script & voiceover](#step-3) · [4 Planning](#step-4) · [5 Section design](#step-5) · [6 Visual approval & production](#step-6) · [7 Assembly](#step-7) · [8 Sound & delivery](#step-8) · [9 Cover & publishing](#step-9)
 
@@ -60,21 +58,10 @@ Copy the prompts below and **replace the bracketed fields**. Use “none” or �
 
 ### 1. Initialize the project and check the tools
 
-**Purpose:** Establish the episode's working folders and identify available tools, versions, and missing requirements. Remotion + FFmpeg is the default route; you may specify another.
+**Purpose:** Establish the episode's working folders and identify available tools, versions, and missing requirements. Remotion + FFmpeg is the default route; name another in your prompt if you prefer.
 
 ```text
-Read AGENTS.md, docs/01_快速开始.md, docs/03_目录与并行协作.md, and docs/07_工具与环境.md.
-Task: [new series / integrate an existing project]; series: [name]; episode topic: [topic].
-Platform and aspect ratio: [details]; production route: [Remotion + FFmpeg / other]; collaboration:
-[parallel / sequential].
-Existing script, voiceover, references, and assets: [actual paths / none].
-Check actual paths, tools, versions, and permissions without installing anything.
-For a new project, create the necessary episode folders and episode notes from the directory
-template. For an existing project, list the integration mapping and conflicts, then wait for my
-approval to integrate.
-Mark missing information as pending. For missing dependencies, give the installation plan, impact,
-verification method, and commands. Do not mark DESIGN as approved.
-Deliver the episode notes path, environment findings, and next step.
+Initialize the project: [new series / integrate an existing project]. Series: [name]; this episode is about: [topic]; existing materials: [paths].
 ```
 
 **Check:** The episode folder is easy to locate, and tool availability has been tested. If installation is needed, approve the specific plan before execution and verification of preview, rendering, and decoding.
@@ -96,41 +83,19 @@ Deliver the episode notes path, environment findings, and next step.
 **① Static candidates: approve the appearance**
 
 ```text
-Read AGENTS.md, templates/DESIGN.template.md, and docs/09_DESIGN建立与校验.md.
-Content and audience: [details]; aspect ratio and viewing context: [details].
-Visual preferences and dislikes: [details]; references: [paths and each image's role, such as style
-or composition].
-Character reference: [path / no character].
-Create a small set of meaningfully different design frames close to the final appearance. Compare
-palette, type, layout, graphics, and character treatment; do not substitute placeholder wireframes.
-Save them in 00_系列测试/静态/ with editable sources and parameters. Explain the choices for my review;
-these are candidates, not approved designs.
-If AI image generation is needed, prepare complete prompts and reference roles for me to generate
-manually.
+Set up DESIGN.md. Start with a few static style candidates. References: [image paths or links, and what to take from each].
 ```
 
 **② Motion tests: approve how it moves**
 
 ```text
-Accepted static candidate and scope: [exact path, version, and accepted aspects].
-Read AGENTS.md, experience/视觉叙事与连续MG.md, and experience/镜头推进与转场.md.
-Motion preference: [restrained / lively / specific reference].
-Keep the approved appearance. Test applicable shape changes, object interaction, follow-through, and
-settling. Choose camera movement for the content and emotion, without a technique quota.
-Deliver playable previews, source files, and parameters in 00_系列测试/动态/. Explain the differences and
-wait for my motion selection.
+Use static candidate [ID]; now test motion. Motion preference: [restrained / lively / reference link].
 ```
 
 **③ After both approvals, create the specification**
 
 ```text
-Approved static samples: [paths, versions, scope]; approved motion samples: [paths, versions,
-scope].
-Create the root DESIGN.md using templates/DESIGN.template.md and docs/09_DESIGN建立与校验.md.
-Extract palette, typography, layout, component, and motion parameters from the accepted samples.
-Separate fixed rules, variables, and exceptions, and link the supporting samples.
-Mark untested or unapproved aspects as pending. Preserve a rollback copy of an existing file and
-leave unrelated content intact.
+Use motion sample [ID] and turn it into DESIGN.md.
 ```
 
 **Check:** `DESIGN.md` links to accepted samples and specifies usable parameters. Static approval has not been treated as motion approval.
@@ -148,32 +113,15 @@ leave unrelated content intact.
 **Script review — optional:** Use this if you want suggestions. Skip it if your script is already approved.
 
 ```text
-I choose the optional script review. Read AGENTS.md, docs/05_文案检查_可选.md, and prompts/03_文案检查_可选.md.
-Script: [path]; audience: [details]; facts, views, and personal voice to preserve: [details].
-Keep the original unchanged. Run the full SOP review, including viewer drop-off risks, the five
-improvement areas, and the five root problems; apply the length-specific checks where relevant.
-Deliver one review document in the episode's 01_稿件/ folder with source locations, priorities,
-issues, and suggested changes. Do not rewrite the whole script.
+Review this script: [script path].
 ```
 
-**Apply selected suggestions:** “Accept suggestions `[IDs]` and preserve `[content]`. Change only those items, save a new candidate, and wait for my approval.”
+**Apply selected suggestions:** “Accept `[IDs]`, leave everything else unchanged, and save a new version for me to review.”
 
 **Confirm the script and voiceover:** After approving the script and preparing your audio, send this to the coordinator:
 
 ```text
-Episode: [path]; approved script: [exact path and version]; accepted voiceover: [exact path and
-version].
-Existing subtitles and terminology list: [paths / none]; delivery platform, aspect ratio, and
-specifications: [details].
-Read AGENTS.md. Check the complete spoken content, sequence, pauses, and consistency with the
-script; verify that the audio file is usable.
-Proofread existing subtitles, or generate derived subtitles if the tools are available and
-authorized. Check terminology and actual audio timing; do not treat subtitle intervals as word-onset
-timestamps.
-Record accepted inputs in the episode notes, or maintain them in the production plan if it already
-exists.
-List conflicts or missing inputs. Without voiceover, limit work to semantic planning: do not invent
-final timecodes or start animation that depends on them.
+Approved script: [path]; voiceover: [path]. Check them and record them in the episode notes.
 ```
 
 **Check:** Accepted files and content boundaries are explicit, and the voiceover matches the script. Having an audio file alone does not establish a verified time base.
@@ -186,39 +134,16 @@ final timecodes or start animation that depends on them.
 
 ### 4. Plan the production sections and approve the routes
 
-**Purpose:** Decide what each section adds visually, how to produce it, and where rework is most likely.
+**Purpose:** Decide what each section adds visually, how to produce it, and where rework is most likely. Add any special requirements after the prompt.
 
 ```text
-Read AGENTS.md, docs/02_制作SOP.md, docs/04_验收与返修.md, and templates/制作大段表.template.md.
-Episode: [path]; accepted inputs: [reference the checked episode notes, or list exact script,
-voiceover, and subtitle paths and versions].
-DESIGN: [approved scope]; existing assets and real evidence: [paths / none]; additional
-requirements: [details].
-Divide sections by narrative task, visual relationship, production route, or risk—not fixed
-durations or one shot per sentence.
-For each section, specify what the voiceover already supplies, what the visual adds, necessary
-on-screen text, key states, and transitions. Verify final timing against the actual voiceover.
-Save the production plan in 00_本期控制/. Attach short tables for priority review items and
-generated-video recommendations, including issues, impact, checks, dependencies, and alternatives.
-Highlight the review priorities and recommendation reasons in chat. Recommendations are not accepted
-automatically; wait for my approval of sections, routes, and responsibilities.
+Make the production plan for this episode.
 ```
 
 **Approve the section plan:** After reviewing the plan and issues, send this to the coordinator:
 
 ```text
-I approve the sections, routes, and responsibilities in production plan [exact version].
-Accepted generated-video recommendations: [section IDs / none]; collaboration: [parallel /
-sequential].
-Prepare the required folders and task briefs according to docs/03_目录与并行协作.md. Add only missing items
-and preserve existing work.
-For parallel work, generate 00_本期控制/分段开工指令.md with each section's real absolute paths, accepted
-inputs, permitted stage, write boundaries, and handoff-note location.
-Check that inputs exist, write scopes do not overlap, and transitions have owners. Design and asset
-preparation are permitted now; visual approval is still pending.
-Using templates/镜头剧本.template.md, write 03_视觉设计/正文镜头剧本.md for all sections at once: how the
-main object changes, how the camera leads the eye, the peak moment and reading pauses, and the
-approved reference clip or "new type". Wait for my review before producing design frames.
+Production plan approved. Use generated video in [sections / none]; work [in parallel / sequentially].
 ```
 
 **Check:** Each section has an owner, inputs, design deliverables, and dependencies. Parallel starter prompts are fully filled in and ready to copy. The shot storyboard is ready for your review.
@@ -250,28 +175,13 @@ Give each reference image **a clear role**, establish character identity and vis
 **For sections that need generated images or video**, send this in the relevant section conversation:
 
 ```text
-Read AGENTS.md, DESIGN.md, experience/手动生图生视频.md, and this section's task brief.
-Section: [ID / task brief path]; accepted generation candidate: [content].
-Generation tool and available input modes: [details; check official documentation if uncertain].
-References and roles: [paths, identity / style / composition]; exact text and sound requirements:
-[details].
-Use the voiceover range to prepare complete image and video prompts ready to paste into the tool,
-plus reference upload order, parameters, action and sound requirements, and acceptance checks.
-Time action plans from the shot's local 00:00.000. Without actual voiceover, do not invent final
-durations.
-Save prompts and the reference list in this section's assigned folder. I will generate manually; do
-not submit or retry generation for me.
+This section needs [generated images / generated video] with [tool]. Prepare the prompts.
 ```
 
 **Review returned footage:** After generating, return the files to the same section conversation:
 
 ```text
-Returned candidates for this section: [file paths]. Check identity, meaning, text, style, action,
-camera movement, and sound against the task brief.
-List usable ranges and specific issues. Distinguish generation failures from issues that can be
-fixed in post, and preserve usable material.
-If regeneration is needed, give me complete revised prompts. Review the files first; do not register
-candidates as accepted without my decision.
+Generated files are ready: [file paths]. Check whether they are usable.
 ```
 
 **Check:** Design frames show the actual appearance and explain the key changes. Motion annotations explain how attention shifts, when states change, and how movement settles. Motion-graphics and screen-recording routes also deliver designs and check evidence through their briefs; generated video is not required for every section.
@@ -288,9 +198,9 @@ candidates as accepted without my decision.
 
 #### Motion graphics and camera movement
 
-Use the **voiceover, scene, and emotion** to decide what the audience should notice, then choose object motion and camera movement. **Comparisons, transfers, repeated handoffs, and spatial reveals** call for concrete staging decisions; necessary reading windows remain stable. Motion annotations specify triggers, destinations, contact, state changes, and settling.
+Use the **voiceover, scene, and emotion** to write the hook first—the moment viewers will remember—then choose object motion and camera movement. **Comparisons, transfers, repeated handoffs, and spatial reveals** call for concrete staging decisions; reading windows remain stable. Motion starts from the [motion defaults](assets/motion/production-core/README.md#运动默认件), and motion annotations specify triggers, destinations, contact, state changes, and settling.
 
-**Build continuous changes in the main object and its relationships around complete ideas.** Plan action, viewing position, and attention handoffs together. Each sentence does not need a separate action; reading, comparison, and emotional pauses may stay still. A moving cursor or line end alone does not mean the main scene is progressing. Pure motion-graphics explanations sit directly on the canvas; window frames only hold interfaces, screenshots, recordings, and generated video. Camera moves apply to the whole picture, so a frame pushes, pulls, and pans together with its content.
+**Give each idea one weighty event and a change of composition or framing.** Plan action, viewing position, and attention handoffs together; the picture holds still only while text is being read. A moving cursor or line end alone does not mean the main scene is progressing. Pure motion-graphics explanations sit directly on the canvas; window frames only hold interfaces, screenshots, recordings, and generated video. Camera moves apply to the whole picture, so a frame pushes, pulls, and pans together with its content.
 
 **Budget time for the main change, reading, and handoffs before entrances and decoration.** If motion feels too fast or abrupt, check the process and timing against recognition difficulty and the intended meaning before tuning curves. Remove repeated entrances and waiting before compressing the core change; do not reorder the approved voiceover. Reading time starts when text is complete, clear, unobstructed, and large enough to read. Compared objects need a shared window in which their differences are discernible, while unrelated movement yields attention. See [Give motion and pictures enough time](experience/视觉叙事与连续MG.md#给运动和画面留足时间).
 
@@ -309,48 +219,17 @@ Use the **voiceover, scene, and emotion** to decide what the audience should not
 **① Return to the coordinator for cross-section checks**
 
 ```text
-Episode: [path]; section designs, motion annotations, and asset candidates: [exact handoff-note
-paths and versions].
-Use AGENTS.md and the current production plan to check shared objects, section boundaries, and style. Do not
-accept undecided candidates on my behalf.
-Check that visuals add information beyond the voiceover, key states explain the approved changes,
-camera choices fit the narration, scene, and emotion, and reading windows and transitions work.
-Check the new-risk previews or applicable approved references. List concrete decisions for my review.
-Separate motion that has not been shown or tested; static frames do not validate movement.
+All section designs are in. Check continuity across sections.
 ```
 
 **② Approve the visuals and permit production**
 
-After reviewing the key states, tell the coordinator: “Accept designs `[versions and scope]` and assets `[exact paths and versions]`; authorize the first batch `[IDs]`. Review its actual results and apply feedback before releasing later batches.”
+After reviewing the key states, tell the coordinator: “Approve designs `[version]`; the first batch is `[sections]`.” Review the first batch and apply fixes before releasing later sections.
 
 **③ Return to each section conversation and continue production**
 
 ```text
-The coordinator has recorded this section's visual approval: [plan version and approved scope].
-Check the updated brief and continue the permitted production work.
-Follow the process-preview and polishing section in docs/04_验收与返修.md: reuse valid previews. For
-an approved type with relevant risks resolved, check adaptation in the first complete voiced preview
-without another test-clip approval.
-Complete the viewing process across the section's full accepted voiceover range before polishing
-parameters. Reuse an equivalent valid preview; do not transcode solely to create a low-resolution copy.
-For revisions, record the actual interval and symptom, then distinguish concept, timing, parameter,
-or engineering causes. Prioritize one or two main causes per round; fix obvious defects promptly.
-Do not prescribe a number of revision rounds.
-For programmatic animation, follow the same guide's determinism and continuity checks for the actual
-objects, connections, and direct-seek results involved; state what the checks do not cover.
-Before delivery, use tools/motion-check.ps1 to locate issues, then review the whole section against
-the actual output, original task, and reference clip. Fix known problems. Mark perceptual checks that
-cannot be watched as unverified.
-Use the registered project environment. Write only in this section's assigned folders; do not
-install separate dependencies or change shared components.
-Align action and sound markers to the actual accepted footage. Recalibrate after speed, trim, or
-duration changes.
-Deliver editable source, parameters, a preview, and handoff notes identifying asset versions,
-start/end states, timing, sound strategy, checks, and unresolved issues.
-If the main action, framing, or handoff changes materially, update design evidence within the
-authorized folders. List affected storyboard sections, frames/annotations, accepted-version pointers,
-and QA items in the handoff notes for the coordinator to update centrally. Curve or material changes
-that preserve the process do not require redrawing the entire design.
+This section's design is approved. Start production.
 ```
 
 **Check:** Section deliverables can be located and edited. Candidates and accepted versions are distinct. The coordinator schedules heavy rendering.
@@ -366,18 +245,10 @@ that preserve the process do not require redrawing the entire design.
 **Purpose:** Integrate selected sections into one formal project and check continuity between them.
 
 ```text
-Read AGENTS.md, docs/04_验收与返修.md, and the episode production plan.
-Episode: [path]; section deliverables I accept: [exact handoff notes and versions].
-Check source, parameters, assets, start/end states, time base, source-audio strategy, and
-verification evidence. Integrate them into the registered main project or assembly entry point.
-Use only my selected versions. Render a full review copy and check meaning, readability, section
-joins, transitions, occlusion, empty frames, and aspect ratio.
-Update accepted versions in the production plan and actual findings in the QA sheet. Mark checks you
-cannot perform as unverified.
-Deliver the review file and outstanding decisions, then wait for my picture-lock approval.
+Assemble these sections: [sections and versions]. Render a full review copy for me.
 ```
 
-**Approve picture lock:** After watching and accepting the picture, send: “Approve picture lock for `[review version and scope]`; proceed to sound, subtitles, and final QA.” Picture lock identifies the accepted visual version. Later picture changes require rechecking affected sound and subtitles. [QA and revisions](docs/04_验收与返修.md)
+**Approve picture lock:** After watching and accepting the picture, send: “Approve picture lock for `[review version]`; proceed to sound and subtitles.” Picture lock identifies the accepted visual version. Later picture changes require rechecking affected sound and subtitles. [QA and revisions](docs/04_验收与返修.md)
 
 ---
 
@@ -388,34 +259,13 @@ Deliver the review file and outstanding decisions, then wait for my picture-lock
 **Sound effects and music — optional:** Send the following prompt if you choose this module; otherwise go straight to final assembly. Sound planning may start earlier, but final cue timing follows the actual accepted footage.
 
 ```text
-I choose sound production. Read AGENTS.md, docs/06_音效与配乐_可选.md, and prompts/07_音效与配乐_可选.md.
-Episode and locked picture: [path, version]; accepted voiceover: [path]; existing sound plan: [path
-/ none].
-Scope: [sound effects / music / both]; source-audio strategy: [keep / mute / mix, with scope].
-Available assets and sources: [paths / none]; music direction: [details / no music].
-Plan sound and quiet windows around actual actions, state changes, and emotion. Do not mechanically
-add sound to every movement.
-Give one-shot effects precise local timestamps and sustained sounds start/end ranges. Preserve
-separate tracks, volume envelopes, sources, and mix parameters; avoid duplicate source audio.
-List gaps before incurring charges or using assets with unclear permission. Distinguish technical
-checks from actual listening and mark checks you cannot perform as unverified.
+Make the sound: [sound effects / music / both].
 ```
 
 **Subtitles and final QA:** Once sound choices are settled, send this to the coordinator:
 
 ```text
-Approved picture: [exact version and scope].
-Accepted sound: [approved effect/music paths and versions, or existing voiceover and specified
-source audio only].
-Subtitle and delivery specifications: [details or episode notes reference].
-Follow docs/04_验收与返修.md and experience/字幕与封面.md to create subtitles, assemble the final output, and
-verify it.
-Check script, voiceover, subtitles, and actual picture timing; check duplicate audio, clarity,
-occlusion, specifications, full decoding, sources, and privacy.
-Watch and listen to the complete final file at 1× speed. Mark anything you cannot do as unverified;
-measurements or extracted frames do not replace those checks.
-Deliver the final video, applicable clean master, subtitles, editable project and parameters,
-reproduction instructions, and QA status. List remaining issues; do not publish automatically.
+Use sound [version / voiceover only]. Make the subtitles, final assembly, and QA.
 ```
 
 **Check:** The final video and reproducible source files are available, with completed and unperformed checks clearly separated. Skipping optional sound production still requires checking the voiceover, source audio, and subtitles that are used.
@@ -431,24 +281,13 @@ reproduction instructions, and QA status. List remaining issues; do not publish 
 **Purpose:** Make the title, cover, and description accurately reflect the finished video. Use this step when preparing to publish.
 
 ```text
-Follow experience/字幕与封面.md to prepare the cover and publishing materials.
-Final video and topic: [path / topic]; publishing platform and use: [details].
-Style reference: [path and role]; composition reference: [path and role]; character reference: [path
-/ none].
-Title information to retain: [details].
-Check the current platform's required aspect ratios and official specifications. Propose an
-accurate, readable direction first and wait for my choice.
+Prepare the cover and publishing materials for [platform].
 ```
 
 **After approving the cover direction, send:**
 
 ```text
-Accepted cover direction: [specific option]. Prepare complete image prompts, reference upload roles,
-exact title text, and post-production notes for me to generate manually.
-Review returned candidates and perform authorized post-production. Prepare the title, description,
-required credits, and actual public links.
-Check the complete publishing package for factual accuracy, privacy, sources, and consistency of
-claims. List pending decisions; do not publish automatically.
+Use cover direction [option]. Prepare the image prompts.
 ```
 
 **Check:** Publishing materials are complete and match the video. Upload them yourself, or explicitly authorize an agent with the destination, materials, and permitted actions.
@@ -459,14 +298,7 @@ claims. List pending decisions; do not publish automatically.
 <summary>Reflect after delivery — optional</summary>
 
 ```text
-Follow prompts/09_复盘.md and templates/复盘.template.md to produce a concise retrospective from the
-episode plan, handoff notes, QA (including my own words), and change records.
-Scope: [episode path / revised section].
-First list the shots I was happy with as future reference clips; then real rework (keep my words
-and say whether a rule was missing or existed but was not followed) and rules that can be removed.
-Separate general methods, series preferences, and episode-specific cases. Keep unverified ideas as
-candidates.
-Propose specific files and concise changes first; do not modify rules or publish automatically.
+This episode is delivered. Run the retrospective.
 ```
 
 </details>
@@ -485,13 +317,15 @@ Fill in bracketed fields in templates and prompts. The coordinator supplies actu
 
 The public guides are the method source. Maintainers use the single tools/package-skill.mjs entry in the separate development packaging workspace, where Skill-specific adaptations are maintained. This repository distributes the generated Skill. Commit the public sources first, rebuild with --sync-source and the source commit, refresh hashes, validate and test, then commit the Skill as a second commit. source-map.json points to that source commit. Package hashes normalize UTF-8 text to LF while source hashes retain the original bytes; binary package files are hashed unchanged. Keep the authority, project mirror and public Skill identical; do not edit derived copies separately or install host copies during synchronization.
 
-Motion report v2 keeps freeze and causal-follow constraints; camera speed, anticipation and composition widths are diagnostics. Follow timing starts at the actual production trigger. Missing measurements never mean success. See [tool behavior and exit codes](tools/README.md#运动量化门禁), including N02 media checks not yet ported. Later batches wait for the first batch's actual review and feedback; key states cover necessary understanding, sound uses early real-clip auditions, and retrospective changes distinguish additions from repairs.
+This upgrade: design starts with the hook, and each narration line gets one weighty event and a change of composition; the picture holds still only for reading; new motion graphics start from the motion defaults (`assets/motion/production-core/motion-kit.cjs`); motion gate 1 now measures near-stillness and how long the composition stays unchanged (`scripts/stillness.mjs`), and a declared fixed camera is checked for drift; storyboards start with the hook and restore the camera column. The public guides, scripts, and Skill are updated together. See [tool behavior and exit codes](tools/README.md#运动量化门禁).
 
 ## Validation and license status
 
-These materials come from production and revision work, developed and checked primarily on Windows with Codex. The 2026-10-30 update adds a shared starting point for spatial camera curves, timing, and component expression. Independent tests used two different subjects: order merging and branching water supply. First versions and revisions were preserved.
+These materials come from production and revision work, developed and checked primarily on Windows.
 
-Engineering checks, rendered frames, and component pixel differences provide partial evidence. Complete normal-speed viewing, voiceover synchronization, and some motion measurements remain unverified; these checks do not establish overall visual quality. Codex CLI has discovered the project Skill. A complete fresh-machine installation and production workflow, desktop hot reload, and cross-model effects remain unverified. Produce, review, and revise using your own content.
+On 2026-11-09, two fixed test tasks checked this round of changes: a single-object animation whose content does not appear in the Skill, and a pure motion-graphics explainer (its approach is written in a Skill example). A fresh agent (Claude) made each from scratch, and I watched both at normal speed; both reached a quality I am satisfied with.
+
+Codex CLI has discovered the project Skill. A complete fresh-machine installation and production workflow and desktop hot reload remain unverified. Produce, review, and revise using your own content.
 
 Licensing:
 

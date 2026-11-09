@@ -134,13 +134,14 @@
  }
  // Coverage checks compare the actual sampled state with the production timeline.
  // They locate unrepresented changes and related actions; they do not invent causality.
- function inspectActionCoverage(spec,samples){
+ function inspectActionCoverage(spec,samples,cutFrames=new Set()){
   const actions=spec.actions??[],relays=spec.relays??[],ids=spec.coverage?.objectIds??[],eps=1e-5;
   const rows=samples.filter(s=>(s.time??s.t)<spec.duration).map(s=>({time:s.time??s.t,map:s.map??new Map(s.frame.objects.map(o=>[o.id,o]))}));
   const changed=(a,b)=>Number.isFinite(a)&&Number.isFinite(b)&&Math.abs(a-b)>eps;
   const changes=[],uncoveredChanges=[],activeActions=new Set(),unresolvedPartIds=new Set();
   for(const id of ids){
    for(let i=1;i<rows.length;i++){
+    if(cutFrames.has(Math.round(rows[i].time*spec.fps)))continue;
     const a=rows[i-1].map.get(id),b=rows[i].map.get(id);if(!a||!b||(a.opacity<=0&&b.opacity<=0))continue;
     if(['subtitle-cue','source-footage'].includes(a.d1Category)&&a.d1Category===b.d1Category)continue;
     const local=a.localGeometry&&b.localGeometry,part=!!(a.parentId||b.parentId),fields=[];
@@ -175,12 +176,17 @@
   return{status:uncoveredChanges.length||uncoveredRelayIds.length||relatedActionCandidates.length?'incomplete':'represented-sampled-changes',basis:'sampled object/local-process changes matched to production event ranges; causality and script semantics remain unassessed',changes:changes.map(({key,...c})=>c),uncoveredChanges,actionsWithoutSampledChange:uncoveredActionIds,unresolvedPartIds:[...unresolvedPartIds],follow:{declaredCrossObjectRelayIds:crossRelays.map(r=>r.id),measuredRelayIds,uncoveredRelayIds,relatedActionCandidates,semantics:'not-assessed'}};
  }
  // These are source-frame coordinate observations, not speed-quality thresholds.
- function measureFrameMotion(samples,ids,viewport,fps,actions=[]){
+ function measureFrameMotion(samples,ids,viewport,fps,actions=[],cutFrames=new Set()){
   const objects=[],reviewFrames=new Map(),addFrame=(index,reason,id)=>{if(index<0||index>=samples.length)return;const frame=Math.round(samples[index].time*fps),item=reviewFrames.get(frame)??{frame,time:samples[index].time,objects:[],reasons:[]};if(!item.objects.includes(id))item.objects.push(id);if(!item.reasons.includes(reason))item.reasons.push(reason);reviewFrames.set(frame,item);};
   for(const id of ids){
    const rows=samples.map((s,sampleIndex)=>({sampleIndex,time:s.time,o:s.map?.get(id)??s.frame?.objects?.find(o=>o.id===id)})),steps=[];let path=0,unknown=0,visibleFrames=0,missingFrames=0;const events=[];
    for(let i=0;i<rows.length;i++){const r=rows[i];if(!r.o){missingFrames++;for(const d of [-1,0,1])addFrame(r.sampleIndex+d,'missing-object-observation',id);continue;}
     const v=visibleState(r.o,viewport);if(v.state==='visible')visibleFrames++;if(v.state==='unknown')unknown++;if(!i||!rows[i-1].o)continue;
+    if(cutFrames.has(Math.round(r.time*fps))){addFrame(i-1,'scene-cut-before',id);addFrame(i,'scene-cut-after',id);continue;}
+    if(r.o.notSubmitted||rows[i-1].o.notSubmitted){
+      if(r.o.notSubmitted!==rows[i-1].o.notSubmitted){addFrame(i-1,'draw-boundary',id);addFrame(i,'draw-boundary',id);}
+      continue;
+    }
     const prev=rows[i-1],pv=visibleState(prev.o,viewport),a=prev.o.hotspot??{x:prev.o.x+prev.o.width/2,y:prev.o.y+prev.o.height/2},b=r.o.hotspot??{x:r.o.x+r.o.width/2,y:r.o.y+r.o.height/2};
     const distance=Math.hypot(b.x-a.x,b.y-a.y),dt=r.time-prev.time;path+=distance;steps.push({frame:i,start:prev.time,end:r.time,distance,speed:dt>0?distance/dt:0,cumulative:path,confirmedVisible:pv.state==='visible'&&v.state==='visible'});
     if(v.state!==pv.state||(prev.o.opacity>0)!==(r.o.opacity>0)){const e={frame:Math.round(r.time*fps),time:r.time,from:pv.state,to:v.state,drawSwitch:(prev.o.opacity>0)!==(r.o.opacity>0)};events.push(e);for(const d of [-1,0,1])addFrame(i+d,'visibility-boundary',id);}
@@ -191,7 +197,7 @@
    if(first){for(const f of [first.frame-1,first.frame,peak.frame-1,peak.frame,last.frame])addFrame(f,'motion-sample',id);}
    objects.push({id,basis:rows.filter(r=>r.o).every(r=>r.o.hotspot)?'production-hotspot':'bbox-center-coordinate',fps,visibleFrames,unknownVisibilityFrames:unknown,missingFrames,coordinateCoverage:missingFrames?'incomplete':'complete',totalPathPx:path,pathViewportDiagonalFraction:path/Math.hypot(viewport.width,viewport.height),maxFrameDisplacementPx:peak?.distance??0,peakFrame:peak?Math.round(peak.end*fps):null,peakTime:peak?.end??null,peakSpeedPxPerSec:peak?.speed??0,visiblePathPx:steps.filter(s=>s.confirmedVisible).reduce((n,s)=>n+s.distance,0),motionDurationSec:missingFrames?null:span,t50Sec:cross(.5),t80Sec:cross(.8),firstQuarterPathFraction:missingFrames?null:path?firstQuarterPath/path:0,visibilityEvents:events,qualityAssessment:'not-assessed'});
   }
-  const actionObservations=[];for(const action of actions){const selected=samples.filter(s=>s.time>=action.start-EPS&&s.time<=action.end+EPS),m=measureFrameMotion(selected,[action.objectId],viewport,fps);if(m.objects[0])actionObservations.push({...m.objects[0],id:action.id,objectId:action.objectId,start:action.start,end:action.end});for(const row of m.reviewFrames){const existing=reviewFrames.get(row.frame);if(existing){for(const reason of row.reasons)if(!existing.reasons.includes(reason))existing.reasons.push(reason);for(const id of row.objects)if(!existing.objects.includes(id))existing.objects.push(id);}else reviewFrames.set(row.frame,row);}}
+  const actionObservations=[];for(const action of actions){const selected=samples.filter(s=>s.time>=action.start-EPS&&s.time<=action.end+EPS),m=measureFrameMotion(selected,[action.objectId],viewport,fps,[],cutFrames);if(m.objects[0])actionObservations.push({...m.objects[0],id:action.id,objectId:action.objectId,start:action.start,end:action.end});for(const row of m.reviewFrames){const existing=reviewFrames.get(row.frame);if(existing){for(const reason of row.reasons)if(!existing.reasons.includes(reason))existing.reasons.push(reason);for(const id of row.objects)if(!existing.objects.includes(id))existing.objects.push(id);}else reviewFrames.set(row.frame,row);}}
   return{basis:'actual production-frame samples; coordinates are retained for unknown visibility',qualityAssessment:'not-assessed',speedThreshold:null,objects,actions:actionObservations,reviewFrames:[...reviewFrames.values()].sort((a,b)=>a.frame-b.frame)};
  }
  return{createObservedScene,visibleState,recordedFrameState,measureFrameMotion,inspectActionCoverage,multiply,point};
