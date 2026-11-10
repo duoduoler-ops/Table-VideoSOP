@@ -12,7 +12,13 @@ https://github.com/user-attachments/assets/3f7cf82a-3609-448f-a3a3-08331c593ed0
 
 `table-video` 将这套 SOP 封装成了 Skill，由 Agent 按阶段读取资料、组织制作和记录进度，减少你反复查文档、复制提示词的操作。已有的有效确认可以复用，关键方案和成片仍需要你审查。
 
-**安装（Codex）：** 下载本仓库，将 [skills/table-video](skills/table-video) 整个文件夹复制到你的视频项目的 `.agents/skills/table-video`，确保里面直接包含 `SKILL.md`。从该项目打开 Codex；没有识别到时重启。[安装位置说明](https://learn.chatgpt.com/docs/build-skills#where-to-save-skills)
+**安装（Codex）：** 在你的视频项目里打开 Codex，发送下面这句，它会自己下载装好。没识别到就重启 Codex。
+
+```text
+帮我安装这个 Skill：https://github.com/duoduoler-ops/Table-VideoSOP/tree/main/skills/table-video
+```
+
+想手动装也行：下载本仓库，把 [skills/table-video](skills/table-video) 整个文件夹放进项目的 `.agents/skills/` 里。[安装位置说明](https://learn.chatgpt.com/docs/build-skills#where-to-save-skills)
 
 **开始使用：** 提供文稿、已有配音和参考材料，在对话中发送：
 

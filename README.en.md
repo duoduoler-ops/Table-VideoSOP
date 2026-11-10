@@ -12,7 +12,13 @@ https://github.com/user-attachments/assets/3f7cf82a-3609-448f-a3a3-08331c593ed0
 
 `table-video` packages this SOP as a Skill. The agent reads the relevant guides, organizes production, and records progress by stage, so you spend less time finding documents and copying prompts. Reuse valid approvals; review key plans and the actual video yourself.
 
-**Install in Codex:** Download this repository and copy the entire [skills/table-video](skills/table-video) folder into `.agents/skills/table-video` inside your video project. `SKILL.md` must sit directly inside that folder. Open the project in Codex; restart if the Skill does not appear. [Installation locations](https://learn.chatgpt.com/docs/build-skills#where-to-save-skills)
+**Install in Codex:** Open Codex in your video project and send the line below. It will download and install the Skill. Restart Codex if the Skill does not appear.
+
+```text
+Install this skill for me: https://github.com/duoduoler-ops/Table-VideoSOP/tree/main/skills/table-video
+```
+
+To install manually, download this repository and put the entire [skills/table-video](skills/table-video) folder in your project's `.agents/skills/`. [Installation locations](https://learn.chatgpt.com/docs/build-skills#where-to-save-skills)
 
 **Start:** Provide your script, available voiceover, and references, then send:
 
