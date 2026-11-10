@@ -190,6 +190,23 @@ function passingSpec() {
   };
 }
 
+test('gate 1 fails a one-frame scene change unless the adapter declares a source-backed scene cut there', () => {
+  const stillness = {...stillnessData(10, [[0, 1]]), cuts: [{t: 0.6, changedPct: 20, keptPct: 3}]};
+  const open = evaluateSpec(passingSpec(), {stillness, baseDir: path.dirname(self)});
+  const g1 = open.gates.find(g => g.id === 1);
+  assert.equal(g1.status, '未通过');
+  assert.match(g1.reasons.join(' '), /0\.6 秒一帧换场/);
+  assert.equal(open.exitCode, 2);
+  const spec = passingSpec();
+  spec.sourceFiles = [self];
+  spec.checkpoints = [{id: 'chapter-cut', time: 0.6, role: 'cut', scope: 'scene', objectIds: ['main', 'hero', 'tag', 'body'],
+    exception: {kind: 'cut', evidence: {sourceFile: self, anchor, reason: '章与章之间'}}}];
+  const declared = evaluateSpec(spec, {stillness, baseDir: path.dirname(self)});
+  const d1 = declared.gates.find(g => g.id === 1);
+  assert.equal(d1.status, '通过', d1.reasons.join(' '));
+  assert.equal(d1.measured.cuts[0].registered, true);
+});
+
 test('numeric-only exit codes describe the five declared measurements, never visual acceptance', () => {
   const stillness = stillnessData(10, [[0, 1]]);
   const pass = evaluateSpec(passingSpec(), {stillness, baseDir: path.dirname(self)});

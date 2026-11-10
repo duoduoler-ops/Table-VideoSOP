@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
-import {measureStillness, scoreStillness} from '../stillness.mjs';
+import {measureStillness, scoreStillness, keptStructure, cutCandidates} from '../stillness.mjs';
 
 // 构图取样的合成数据：10fps，每帧 32×18=576 格。changeAt 里的秒点把整幅画换成另一种灰度（构图大变）；
 // flicker 为 true 时，每帧都有 5 个格子（不到 1%）来回闪，模拟“一张图加小动作”。
@@ -71,7 +71,65 @@ test('benchmark profiles carry composition numbers inside the pass line', () => 
   }
 });
 
+test('a one-frame scene change fails unless registered as a chapter cut; a big local change is not a cut', () => {
+  const comp = compData(20, {changeAt: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]});
+  // 第 03 题 Codex 版的切点只留下 1%；认可版 17.27 秒窗口里换内容，留下 86%。
+  const cuts = [{t: 5.4, changedPct: 19.3, keptPct: 1}, {t: 17.267, changedPct: 21.9, keptPct: 86}];
+  const r = scoreStillness({area: moving(20), fps: 30, comp, cuts});
+  assert.equal(r.status, '未通过');
+  assert.deepEqual(r.measured.cuts.map(c => c.t), [5.4]);
+  assert.match(r.reasons.join(' '), /5\.4 秒一帧换场：上一帧的画面只留下 1%/);
+  const chapter = scoreStillness({area: moving(20), fps: 30, comp, cuts, allowedCuts: [5.38]});
+  assert.equal(chapter.status, '通过');
+  assert.equal(chapter.measured.cuts[0].registered, true);
+  // 读字窗口不豁免一帧换场。
+  assert.equal(scoreStillness({area: moving(20), fps: 30, comp, cuts, readings: [{t0: 5, t1: 6}]}).status, '未通过');
+});
+
+test('cut candidates are sudden spikes, not sustained fast motion', () => {
+  const area = [0, ...new Array(60).fill(0.2)];
+  area[30] = 20;                                   // 一帧突然大变
+  for (let i = 40; i < 50; i++) area[i] = 25;      // 持续快速运动（甩镜）
+  assert.deepEqual(cutCandidates(area), [30]);
+});
+
+test('kept structure separates a whole-scene change from a local replacement', () => {
+  const W = 240, H = 136;
+  const frame = boxes => { const f = new Uint8Array(W * H).fill(200); for (const [x0, y0, w, h, v] of boxes) for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) f[y * W + x] = v; return f; };
+  const a = frame([[20, 20, 80, 50, 40], [140, 30, 70, 60, 90]]);
+  const moved = frame([[21, 20, 80, 50, 40], [141, 30, 70, 60, 90]]);
+  const other = frame([[60, 70, 120, 40, 40]]);
+  const added = frame([[20, 20, 80, 50, 40], [140, 30, 70, 60, 90], [100, 90, 40, 20, 10]]);
+  const opts = {width: W, height: H};
+  assert.ok(keptStructure(a, moved, opts) > 0.95);
+  assert.ok(keptStructure(a, added, opts) > 0.95);
+  assert.ok(keptStructure(a, other, opts) < 0.1);
+  assert.equal(keptStructure(frame([]), other, opts), 1);  // 上一帧是空画面：没有东西可丢
+});
+
 const hasFfmpeg = spawnSync('ffmpeg', ['-version']).status === 0;
+
+test('measureStillness finds a hard cut in a real video and ignores a box popping in', {skip: !hasFfmpeg && 'ffmpeg 不可用'}, () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'stillness-cut-'));
+  try {
+    // 前 2 秒是场景 A；cut.mp4 第 2 秒整场换成场景 B，pop.mp4 第 2 秒只在 A 上多出一个方框。
+    const boxes = (list, when) => list.map(b => `drawbox=${b}:t=fill:enable='${when}'`).join(',');
+    const sceneA = ['x=40:y=40:w=160:h=120:color=white', 'x=300:y=150:w=120:h=80:color=black'];
+    const sceneB = ['x=200:y=60:w=200:h=150:color=0x303030', 'x=60:y=180:w=80:h=60:color=white'];
+    const cut = path.join(dir, 'cut.mp4'), pop = path.join(dir, 'pop.mp4');
+    const make = (vf, out) => spawnSync('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', 'color=c=gray:s=480x270:r=30:d=4', '-vf', vf, '-pix_fmt', 'yuv420p', out]).status;
+    assert.equal(make(`${boxes(sceneA, 'lt(t,2)')},${boxes(sceneB, 'gte(t,2)')}`, cut), 0);
+    assert.equal(make(`${boxes(sceneA, '1')},${boxes(['x=240:y=30:w=110:h=80:color=0x202020'], 'gte(t,2)')}`, pop), 0);
+    const c = measureStillness(cut);
+    assert.equal(c.cuts.filter(x => x.keptPct < 30).length, 1);
+    assert.ok(Math.abs(c.cuts.find(x => x.keptPct < 30).t - 2) < 0.05);
+    const p = measureStillness(pop);
+    assert.equal(p.cuts.filter(x => x.keptPct < 30).length, 0);
+    assert.ok(p.cuts.length >= 1);  // 它是候选（突然变了一块），但上一帧的东西都还在
+  } finally {
+    fs.rmSync(dir, {recursive: true, force: true});
+  }
+});
 
 test('measureStillness samples the composition from a real video', {skip: !hasFfmpeg && 'ffmpeg 不可用'}, () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'stillness-comp-'));
