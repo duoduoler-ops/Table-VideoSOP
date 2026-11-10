@@ -319,7 +319,7 @@ https://github.com/user-attachments/assets/3f7cf82a-3609-448f-a3a3-08331c593ed0
 
 清单的 `sourceSha256` 记录实际源字节，`sha256` 记录包文件；`hashBasis` 声明包内 UTF-8 文本统一 LF 后计算 SHA-256，二进制仍按原始字节，历史来源保留。公开脚本与 Skill 的测试分别在 `scripts/tests/` 和 `skills/table-video/scripts/tests/`；测试产物用 `TABLE_VIDEO_TEST_OUTPUT` 指向本地验证目录，不提交用户素材或运行产物。同步不安装宿主副本，也不自动发布。
 
-本次升级：设计先写看点，每句配音安排一件有分量的事并换一次构图；画面只在读字时停住；新 MG 用运动默认件起步（`assets/motion/production-core/motion-kit.cjs`）；运动检查第 1 项改为“几乎不动”加“构图多久没变”（`scripts/stillness.mjs`），声明固定的镜头逐帧核对漂移；镜头剧本先写看点，并恢复“镜头怎么走”栏。公开正文、脚本与 Skill 同步更新。
+本次升级：设计先写看点，每句配音安排一件有分量的事并换一次构图；画面只在读字时停住；新 MG 用运动默认件起步（`assets/motion/production-core/motion-kit.cjs`）；运动检查第 1 项改为“几乎不动”加“构图多久没变”（`scripts/stillness.mjs`），声明固定的镜头逐帧核对漂移；镜头剧本先写看点，并恢复“镜头怎么走”栏。运动检查第 1 项另查“一帧换场”：同一章里连着讲的内容做成一个连续场景，不硬切、不清场重来；只有章与章之间或用户确认的断点用 `--cut` 登记为切点。公开正文、脚本与 Skill 同步更新。
 
 ## 验证与许可状态
 
