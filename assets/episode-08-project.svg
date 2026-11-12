@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">第08期视频工程下载</title>
+  <desc id="desc">暖白底的工程文件夹，带播放标记和橙色下载箭头。</desc>
+  <rect x="2" y="2" width="124" height="124" rx="26" fill="#FDF7E4" stroke="#E6DDCB" stroke-width="2"/>
+  <path d="M24 38a7 7 0 0 1 7-7h21l9 10h36a7 7 0 0 1 7 7v12H24Z" fill="#FFE0BB" stroke="#373733" stroke-width="3" stroke-linejoin="round"/>
+  <rect x="24" y="47" width="80" height="49" rx="8" fill="#FFFDF9" stroke="#373733" stroke-width="3"/>
+  <path d="m48 61 16 10-16 10Z" fill="#58728A"/>
+  <circle cx="94" cy="91" r="22" fill="#FF6500"/>
+  <path d="M94 77v22m-8-8 8 8 8-8" fill="none" stroke="#FFFDF9" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

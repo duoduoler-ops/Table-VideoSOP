@@ -1,6 +1,10 @@
 # README 图片来源 / README image sources
 
-`cover.png` 为作者确认的项目封面。其余图片直接截自作者第 4 期《工作边界》v08 的无硬字幕母片，按原画幅缩放至 1280×720；未修改画面内容。
+`cover.png` 为作者确认的项目封面。下表中的截图直接截自作者第 4 期《工作边界》v08 的无硬字幕母片，按原画幅缩放至 1280×720；未修改画面内容。
+
+`episode-08-project.svg` 为第08期工程下载入口绘制的 SVG 图标，包含工程文件夹、播放标记和下载箭头。
+
+`episode-08-project.svg` is an original SVG icon for the Episode 08 project download, combining a project folder, a play mark, and a download arrow.
 
 `cover.png` is the author-approved project cover. The frames below come from the clean master of Episode 04, “Work Boundaries,” version v08. They were resized proportionally to 1280×720 without changing their content.
 
