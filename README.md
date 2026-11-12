@@ -33,7 +33,7 @@ https://github.com/user-attachments/assets/3f7cf82a-3609-448f-a3a3-08331c593ed0
 
 `table-video` 将这套 SOP 封装成了 Skill，由 Agent 按阶段读取资料、组织制作和记录进度，减少你反复查文档、复制提示词的操作。已有的有效确认可以复用，关键方案和成片仍需要你审查。
 
-**安装（Codex）：** 在你的视频项目里打开 Codex，发送下面这句，它会自己下载装好。没识别到就重启 Codex。
+**安装：** 打开任意 Agent，发送下面这句话：
 
 ```text
 帮我安装这个 Skill：https://github.com/duoduoler-ops/Table-VideoSOP/tree/main/skills/table-video
